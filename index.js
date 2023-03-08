@@ -1,6 +1,7 @@
 require('dotenv').config();
 const Discord = require('discord.js');
 const fs = require('fs');
+const config = require('./config.json');
 
 /*
 axios for easy HTTP promises with node.js
@@ -23,10 +24,12 @@ database.json format:
 
 */
 
-//TODO create a config json file for configuration variables like ebCooldown and msgExpiration
 const client = new Discord.Client();
-const ebCooldown = 3600; //how long users must wait in between awarding edbucks in seconds
-const msgExpiration = 3600; //how long a message can be awarded edbucks for in seconds
+
+//TODO create a config json file for configuration variables like ebCooldown and msgExpiration
+const ebCooldown = config.reactCooldown; //how long users must wait in between awarding edbucks in seconds
+const msgExpiration = config.msgExpiration; //how long a message can be awarded edbucks for in seconds
+const reactAward = config.reactAward; //how many edbucks awarded for reactions
 
 client.on('ready', () => {
     console.log('Logged in as ${client.user.tag}!');
@@ -61,7 +64,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
                     return obj.tag == messageReaction.message.author.tag;
                 });
 
-                recipient.balance += 1;
+                recipient.balance += reactAward;
 
                 //update lastAwarded parameter of the reactor to the current time 
                 storedUserData.lastAwarded = Math.floor(Date.now() / 1000);

@@ -1,0 +1,5 @@
+{
+    "reactCooldown":3600,
+    "msgExpiration":3600,
+    "reactAward":1
+}
