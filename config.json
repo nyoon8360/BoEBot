@@ -1,5 +1,8 @@
 {
     "reactCooldown":3600,
     "msgExpiration":3600,
-    "reactAward":1
+    "reactAward":1,
+    "itemMuteDuration": 7,
+    "itemPolymorphDuration": 300,
+    "itemBanishChannelId": "815839363748462612"
 }

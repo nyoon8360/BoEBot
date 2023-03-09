@@ -3,7 +3,11 @@
         {
             "id":"122893846781624322",
             "balance": 0,
-            "lastAwarded": 1678310667
+            "lastAwarded": 1678310667,
+            "fStatReactionsAwarded": 4,
+            "fStatReactionsReceived": 5,
+            "fStatItemsUsed": 0,
+            "fStatHighestBal": 0
         }
     ]
 }

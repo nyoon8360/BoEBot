@@ -1,4 +1,5 @@
 require('dotenv').config();
+const { ButtonStyle } = require('discord.js');
 const Discord = require('discord.js');
 const fs = require('fs');
 const config = require('./config.json');
@@ -17,22 +18,27 @@ database.json format:
         {
             "tag":"string with discord user's tag i.e 'inspirasian#1234'",
             "balance": 0,
-            "lastAwarded": 1678310667 this will be an integer using epoch unix timestamp
+            "lastAwarded": 1678310667 this will be a number using epoch unix timestamp in seconds
         }
     ]
 }
-
 */
 
 const client = new Discord.Client();
 
 //TODO create a config json file for configuration variables like ebCooldown and msgExpiration
-const ebCooldown = config.reactCooldown; //how long users must wait in between awarding edbucks in seconds
+const reactCooldown = config.reactCooldown; //how long users must wait in between awarding edbucks in seconds
 const msgExpiration = config.msgExpiration; //how long a message can be awarded edbucks for in seconds
 const reactAward = config.reactAward; //how many edbucks awarded for reactions
 
 client.on('ready', () => {
-    console.log('Logged in as ${client.user.tag}!');
+    console.log(`Logged in as ${client.user.tag}!`);
+
+    //set bot status
+    client.user.setStatus('available');
+    client.user.setActivity('Use \'>help\' to see my commands!', {
+        type: "LISTENING"
+    });
 });
 
 client.on('messageReactionAdd', (messageReaction, user) => {
@@ -52,7 +58,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
 
         let currTime = Math.floor(Date.now() / 1000);
 
-        if (currTime - storedUserData.lastAwarded >= ebCooldown) {
+        if (currTime - storedUserData.lastAwarded >= reactCooldown) {
             //do a time check for the reacted to message
 
             /*
@@ -69,6 +75,10 @@ client.on('messageReactionAdd', (messageReaction, user) => {
                 //update lastAwarded parameter of the reactor to the current time 
                 storedUserData.lastAwarded = Math.floor(Date.now() / 1000);
 
+                //update fun stats
+                storedUserData.fStatReactionsAwarded += 1;
+                recipient.fStatReactionsReceived += 1;
+
                 fs.writeFile("./database.json", JSON.stringify(data), error => {
                     if (error) console.log("Error writing to file: \n"  + error);
                 });
@@ -81,7 +91,46 @@ client.on('messageReactionAdd', (messageReaction, user) => {
     });
 });
 
+//event listener for buttons
+client.on('interactionCreate', interaction => {
+    //if interaction is not a button then return
+    if (!interaction.isButton()) return;
+
+    //switch for code for different buttons
+    switch(interaction.customId) {
+        case "showstats":
+            //show user stats
+            jsonReader("./database.json", (error, data) => {
+                let requester = data.users.filter(obj => {
+                    return obj.tag == interaction.user.tag;
+                });
+
+                let lastAwarded = Discord.time(requester.lastAwarded, "R");
+
+                interaction.reply({
+                    content: `
+                    ====================
+                         Your Stats
+                    ====================
+                    Edbuck Balance: ${requester.balance}
+                    Last Edbuck Awarded: ${lastAwarded}
+                    
+                    `,
+                    ephemeral: true
+                })
+            });
+
+            break;
+        
+        case "openinv":
+            break;
+
+    }
+});
+
+//===================================================
 //all client event listeners must be before this line
+//===================================================
 client.login(process.env.CLIENT_TOKEN);
 
 function addEB(user, amount) {
@@ -109,4 +158,18 @@ function jsonReader(filePath, callBack) {
             return callBack && callBack(error);
         }
     })
+}
+
+//returns message composing the main menu of the discord bot
+function openMenu() {
+    let row = new Discord.ActionRowBuilder().addComponents(
+        new Discord.ButtonBuilder()
+            .setCustomId('showstats')
+            .setLabel('Show Stats')
+            .setStyle(ButtonStyle.Primary),
+        new Discord.ButtonBuilder()
+            .setCustomId('openinv')
+            .setLabel('Open Inventory')
+            .setStyle(ButtonStyle.Secondary)
+    );
 }
