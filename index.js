@@ -3,6 +3,7 @@ const { ButtonStyle } = require('discord.js');
 const Discord = require('discord.js');
 const fs = require('fs');
 const config = require('./config.json');
+import { setTimeout } from 'timers/promises';
 
 /*
 axios for easy HTTP promises with node.js
@@ -26,10 +27,13 @@ database.json format:
 
 const client = new Discord.Client();
 
-//TODO create a config json file for configuration variables like ebCooldown and msgExpiration
 const reactCooldown = config.reactCooldown; //how long users must wait in between awarding edbucks in seconds
 const msgExpiration = config.msgExpiration; //how long a message can be awarded edbucks for in seconds
 const reactAward = config.reactAward; //how many edbucks awarded for reactions
+const treasureLR = config.treasureLowerRange;
+const treasureUR = config.treasureUpperRange;
+const treasureCDLR = config.treasureCooldownLowerRange;
+const treasureCDUR = config.treasureCooldownUpperRange;
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -101,6 +105,11 @@ client.on('interactionCreate', interaction => {
         case "showstats":
             //show user stats
             jsonReader("./database.json", (error, data) => {
+                if (error) {
+                    console.log(error);
+                    return;
+                }
+
                 let requester = data.users.filter(obj => {
                     return obj.tag == interaction.user.tag;
                 });
@@ -114,7 +123,6 @@ client.on('interactionCreate', interaction => {
                     ====================
                     Edbuck Balance: ${requester.balance}
                     Last Edbuck Awarded: ${lastAwarded}
-                    
                     `,
                     ephemeral: true
                 })
@@ -125,6 +133,42 @@ client.on('interactionCreate', interaction => {
         case "openinv":
             break;
 
+        case "findtreasure":
+            //on click, award treasure, deactivate this button for a random amount of hours, and then reactivate
+            jsonReader("./database.json", (error, data) => {
+                if (error) {
+                    console.log(error);
+                    return;
+                }
+
+                let user = data.users.filter(obj => {
+                    return obj.tag == interaction.user.tag;
+                });
+
+                let treasure = Math.floor(Math.random * (treasureUR - treasureLR)) + treasureLR;
+                user.balance += treasure;
+
+                fs.writeFile("./database.json", JSON.stringify(data), error => {
+                    if (error) console.log("Error writing to file: \n"  + error);
+                });
+
+                interaction.reply({
+                    content: `
+                    You've found ${treasure} edbucks dropped by a wild Edwin!
+                    All the local Edwins have been spooked back into hiding.
+                    Check back again later to see if they've come back!
+                    `,
+                    ephemeral: true
+                })
+            });
+
+            interaction.component.setDisabled(true);
+
+            treasureCooldown(interaction);
+
+            //TEST DELETE LATER
+            console.log("Treasure cooldown ended and button re-enabled.");
+            break;
     }
 });
 
@@ -170,6 +214,24 @@ function openMenu() {
         new Discord.ButtonBuilder()
             .setCustomId('openinv')
             .setLabel('Open Inventory')
+            .setStyle(ButtonStyle.Secondary),
+        new Discord.ButtonBuilder()
+            .setCustomId('findtreasure')
+            .setLabel('Pick Up Edbucks')
             .setStyle(ButtonStyle.Secondary)
+            .setEmoji('money_with_wings')
     );
+    return {
+        content: "Main Menu",
+        components: [row]
+    };
+}
+
+const treasureCooldown = async (interaction) => {
+    let timeoutDuration = Math.floor(Math.random * (treasureCDUR - treasureCDLR)) + treasureCDLR;
+    //TEST REMOVE AND REWRITE LATER
+    console.log("Treasure set on cooldown for: " + timeoutDuration + " seconds.");
+    await setTimeout(timeoutDuration);
+    
+    interaction.component.setDisabled(false);
 }
