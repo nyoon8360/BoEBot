@@ -231,7 +231,7 @@ const treasureCooldown = async (interaction) => {
     let timeoutDuration = Math.floor(Math.random * (treasureCDUR - treasureCDLR)) + treasureCDLR;
     //TEST REMOVE AND REWRITE LATER
     console.log("Treasure set on cooldown for: " + timeoutDuration + " seconds.");
-    await setTimeout(timeoutDuration);
+    await setTimeout(timeoutDuration * 1000);
     
     interaction.component.setDisabled(false);
 }
