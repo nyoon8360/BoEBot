@@ -1,9 +1,8 @@
 require('dotenv').config();
-const { ButtonStyle } = require('discord.js');
-const Discord = require('discord.js');
+const { Client, IntentsBitField, ButtonStyle, time } = require('discord.js');
 const fs = require('fs');
 const config = require('./config.json');
-import { setTimeout } from 'timers/promises';
+//import { setTimeout } from 'timers/promises';
 
 /*
 axios for easy HTTP promises with node.js
@@ -25,7 +24,18 @@ database.json format:
 }
 */
 
-const client = new Discord.Client();
+// NOTE: Make sure to update intents if new events not in current intents are needed to be listened to
+const client = new Client({
+     intents: [
+        IntentsBitField.Flags.Guilds,
+        IntentsBitField.Flags.GuildMembers,
+        IntentsBitField.Flags.GuildVoiceStates,
+        IntentsBitField.Flags.GuildMessages,
+        IntentsBitField.Flags.GuildMessageReactions,
+        IntentsBitField.Flags.DirectMessages,
+        IntentsBitField.Flags.GuildScheduledEvents
+    ]
+});
 
 const reactCooldown = config.reactCooldown; //how long users must wait in between awarding edbucks in seconds
 const msgExpiration = config.msgExpiration; //how long a message can be awarded edbucks for in seconds
@@ -39,10 +49,12 @@ client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
 
     //set bot status
+    /*
     client.user.setStatus('available');
     client.user.setActivity('Use \'>help\' to see my commands!', {
         type: "LISTENING"
     });
+    */
 });
 
 client.on('messageReactionAdd', (messageReaction, user) => {
@@ -114,7 +126,7 @@ client.on('interactionCreate', interaction => {
                     return obj.tag == interaction.user.tag;
                 });
 
-                let lastAwarded = Discord.time(requester.lastAwarded, "R");
+                let lastAwarded = time(requester.lastAwarded, "R");
 
                 interaction.reply({
                     content: `
@@ -164,6 +176,7 @@ client.on('interactionCreate', interaction => {
 
             interaction.component.setDisabled(true);
 
+            //re-enable button after cooldown
             (async (interaction) => {
                 let timeoutDuration = Math.floor(Math.random * (treasureCDUR - treasureCDLR)) + treasureCDLR;
                 //TEST REMOVE AND REWRITE LATER
@@ -213,16 +226,16 @@ function jsonReader(filePath, callBack) {
 
 //returns message composing the main menu of the discord bot
 function openMenu() {
-    let row = new Discord.ActionRowBuilder().addComponents(
-        new Discord.ButtonBuilder()
+    let row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
             .setCustomId('showstats')
             .setLabel('Show Stats')
             .setStyle(ButtonStyle.Primary),
-        new Discord.ButtonBuilder()
+        new ButtonBuilder()
             .setCustomId('openinv')
             .setLabel('Open Inventory')
             .setStyle(ButtonStyle.Secondary),
-        new Discord.ButtonBuilder()
+        new ButtonBuilder()
             .setCustomId('findtreasure')
             .setLabel('Pick Up Edbucks')
             .setStyle(ButtonStyle.Secondary)
