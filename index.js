@@ -66,7 +66,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
             //do a time check for the reacted to message
 
             /*
-            TODO not sure in what units the createdTimestamp returns so investigate this
+            TODO: not sure in what units the createdTimestamp returns so investigate this
             currently assuming it is in epoch unix timestamp in seconds
             */ 
             if (currTime - messageReaction.message.createdTimestamp <= msgExpiration) {
@@ -87,10 +87,10 @@ client.on('messageReactionAdd', (messageReaction, user) => {
                     if (error) console.log("Error writing to file: \n"  + error);
                 });
             } else {
-                // TODO create a msg only seen by the reactor that says the message has expired
+                // TODO: create a msg only seen by the reactor that says the message has expired
             }
         } else {
-            //TODO create a msg only seen by the reactor that says they cant award edbucks yet
+            //TODO: create a msg only seen by the reactor that says they cant award edbucks yet
         }
     });
 });
@@ -164,7 +164,14 @@ client.on('interactionCreate', interaction => {
 
             interaction.component.setDisabled(true);
 
-            treasureCooldown(interaction);
+            (async (interaction) => {
+                let timeoutDuration = Math.floor(Math.random * (treasureCDUR - treasureCDLR)) + treasureCDLR;
+                //TEST REMOVE AND REWRITE LATER
+                console.log("Treasure set on cooldown for: " + timeoutDuration + " seconds.");
+                await setTimeout(timeoutDuration * 1000);
+    
+                interaction.component.setDisabled(false);
+            })(interaction);
 
             //TEST DELETE LATER
             console.log("Treasure cooldown ended and button re-enabled.");
@@ -225,13 +232,4 @@ function openMenu() {
         content: "Main Menu",
         components: [row]
     };
-}
-
-const treasureCooldown = async (interaction) => {
-    let timeoutDuration = Math.floor(Math.random * (treasureCDUR - treasureCDLR)) + treasureCDLR;
-    //TEST REMOVE AND REWRITE LATER
-    console.log("Treasure set on cooldown for: " + timeoutDuration + " seconds.");
-    await setTimeout(timeoutDuration * 1000);
-    
-    interaction.component.setDisabled(false);
 }
