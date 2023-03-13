@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, IntentsBitField, ButtonStyle, time } = require('discord.js');
+const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, parseEmoji } = require('discord.js');
 const fs = require('fs');
 const config = require('./config.json');
 //import { setTimeout } from 'timers/promises';
@@ -33,7 +33,8 @@ const client = new Client({
         IntentsBitField.Flags.GuildMessages,
         IntentsBitField.Flags.GuildMessageReactions,
         IntentsBitField.Flags.DirectMessages,
-        IntentsBitField.Flags.GuildScheduledEvents
+        IntentsBitField.Flags.GuildScheduledEvents,
+        IntentsBitField.Flags.MessageContent
     ]
 });
 
@@ -55,6 +56,22 @@ client.on('ready', () => {
         type: "LISTENING"
     });
     */
+});
+
+client.on('messageCreate', (message) => {
+    if (!message.content.charAt(0) == '>') return;
+    if (message.author.bot) return;
+
+    switch(message.content.substring(1)) {
+        case "spawnmenu":
+
+            message.channel.send(openMenu());
+            break;
+        
+        default:
+            //TODO: send message saying command is not recognized. might not need if commands will not be used by users
+            break;
+    }
 });
 
 client.on('messageReactionAdd', (messageReaction, user) => {
@@ -130,11 +147,11 @@ client.on('interactionCreate', interaction => {
 
                 interaction.reply({
                     content: `
-                    ====================
-                         Your Stats
-                    ====================
-                    Edbuck Balance: ${requester.balance}
-                    Last Edbuck Awarded: ${lastAwarded}
+====================
+     Your Stats
+====================
+Edbuck Balance: ${requester.balance}
+Last Edbuck Awarded: ${lastAwarded}
                     `,
                     ephemeral: true
                 })
@@ -189,6 +206,10 @@ client.on('interactionCreate', interaction => {
             //TEST DELETE LATER
             console.log("Treasure cooldown ended and button re-enabled.");
             break;
+        
+        case "help":
+            //TODO: implement help message
+            break;
     }
 });
 
@@ -239,10 +260,15 @@ function openMenu() {
             .setCustomId('findtreasure')
             .setLabel('Pick Up Edbucks')
             .setStyle(ButtonStyle.Secondary)
-            .setEmoji('money_with_wings')
+            .setEmoji('💸'),
+        new ButtonBuilder()
+            .setCustomId('help')
+            .setLabel('Help')
+            .setStyle(ButtonStyle.Secondary)
     );
+
     return {
-        content: "Main Menu",
+        content: 'Main Menu',
         components: [row]
     };
 }
