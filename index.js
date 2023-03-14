@@ -97,8 +97,6 @@ client.on('ready', () => {
 
                 let diffArray = guildUsersArray.filter(user => !existingArray.includes(user));
 
-                console.log("Diff Array: " + diffArray);
-
                 diffArray.forEach((newUser) => {
                     console.log(newUser);
                     data.users.push(getNewUserJSON(newUser));
@@ -143,7 +141,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
         }
 
         //do a time check for the reactor
-        let storedUserData = data.users.filter(obj => {
+        let storedUserData = data.users.find(obj => {
             return obj.tag == user.tag;
         });
 
@@ -157,7 +155,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
             currently assuming it is in epoch unix timestamp in seconds
             */ 
             if (currTime - messageReaction.message.createdTimestamp <= msgExpiration) {
-                let recipient = data.users.filter(obj => {
+                let recipient = data.users.find(obj => {
                     return obj.tag == messageReaction.message.author.tag;
                 });
 
@@ -198,7 +196,7 @@ client.on('interactionCreate', interaction => {
                     return;
                 }
 
-                let requester = data.users.filter(obj => {
+                let requester = data.users.find(obj => {
                     return obj.tag == interaction.user.tag;
                 });
 
@@ -229,7 +227,7 @@ Last Edbuck Awarded: ${lastAwarded}
                     return;
                 }
 
-                let user = data.users.filter(obj => {
+                let user = data.users.find(obj => {
                     return obj.tag == interaction.user.tag;
                 });
 
