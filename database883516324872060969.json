@@ -3,6 +3,16 @@
     {
       "tag": "Inspirasian#2923",
       "lastAwarded": 0,
+      "balance": 1,
+      "birthday": "",
+      "fStatReactionsAwarded": 1,
+      "fStatReactionsReceived": 1,
+      "fStatItemsUsed": 0,
+      "fStatHighestBal": 0
+    },
+    {
+      "tag": "BoE Bot#1195",
+      "lastAwarded": 0,
       "balance": 0,
       "birthday": "",
       "fStatReactionsAwarded": 0,
@@ -11,9 +21,9 @@
       "fStatHighestBal": 0
     },
     {
-      "tag": "BoE Bot#1195",
+      "tag": "Dummy User#1234",
       "lastAwarded": 0,
-      "balance": 0,
+      "balance": 420,
       "birthday": "",
       "fStatReactionsAwarded": 0,
       "fStatReactionsReceived": 0,

@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, parseEmoji, inlineCode } = require('discord.js');
+const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, parseEmoji, inlineCode, bold } = require('discord.js');
 const fs = require('fs');
 const config = require('./config.json');
 //import { setTimeout } from 'timers/promises';
@@ -128,8 +128,6 @@ client.on('messageCreate', (message) => {
 
 client.on('messageReactionAdd', (messageReaction, user) => {
     //base system for awarding edbucks to users whose msgs get edbuck reactions
-
-    //TODO: make sure this works. check if reaction is edbuck
     if (messageReaction.emoji.name != 'edbuck') return;
     if (!messageReaction.message.guildId) return;
 
@@ -150,10 +148,8 @@ client.on('messageReactionAdd', (messageReaction, user) => {
         if (currTime - storedUserData.lastAwarded >= reactCooldown) {
             //do a time check for the reacted to message
 
-            /*
-            TODO: not sure in what units the createdTimestamp returns so investigate this
-            currently assuming it is in epoch unix timestamp in seconds
-            */ 
+            //TODO: check to make sure reactor and recipient are NOT the same person so people cant award themselves edbucks
+
             if (currTime - messageReaction.message.createdTimestamp <= msgExpiration) {
                 let recipient = data.users.find(obj => {
                     return obj.tag == messageReaction.message.author.tag;
@@ -200,7 +196,7 @@ client.on('interactionCreate', interaction => {
                     return obj.tag == interaction.user.tag;
                 });
 
-                let lastAwarded = time(requester.lastAwarded, "R");
+                let lastAwarded = requester.lastAwarded > 0 ? time(requester.lastAwarded, "R") : inlineCode("Never");
 
                 interaction.reply({
                     content: `
@@ -208,7 +204,7 @@ client.on('interactionCreate', interaction => {
      Your Stats
 ====================
 Edbuck Balance: ${requester.balance}
-Last Edbuck Awarded: ${lastAwarded > 0 ? lastAwarded : inlineCode('Never')}
+Last Edbuck Awarded: ${lastAwarded}
                     `,
                     ephemeral: true
                 })
@@ -267,6 +263,29 @@ Last Edbuck Awarded: ${lastAwarded > 0 ? lastAwarded : inlineCode('Never')}
         case "help":
             //TODO: implement help message
             break;
+        
+        case "leaderboard":
+            jsonReader("./database" + interaction.guildId + ".json", (error, data) => {
+                if (error) {
+                    console.log(error);
+                    return;
+                }
+
+                let sortedLeaderboard = data.users.sort((a, b) => (a.balance > b.balance) ? -1 : 1);
+
+                let leaderboard = "";
+
+                sortedLeaderboard.forEach((user, index) => {
+                    leaderboard += "(" + (index + 1) + ") " + user.tag + ": " + user.balance + " EB \n"
+                })
+
+                interaction.reply({
+                    content: bold("LEADERBOARD") + "\n" + leaderboard,
+                    ephemeral: true
+                })
+            });
+
+            break;
     }
 });
 
@@ -297,14 +316,6 @@ client.on("guildMemberAdd", member => {
 //===================================================
 client.login(process.env.CLIENT_TOKEN);
 
-function addEB(user, amount) {
-
-}
-
-function removeEB(user, amount) {
-    //do a check if the user has enough EB and if not return false
-}
-
 function jsonReader(filePath, callBack) {
     fs.readFile(filePath, (error, fileData) => {
         //catch if readFile() returned an error
@@ -326,7 +337,7 @@ function jsonReader(filePath, callBack) {
 
 //returns message composing the main menu of the discord bot
 function openMenu() {
-    let row = new ActionRowBuilder().addComponents(
+    let row1 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId('showstats')
             .setLabel('Show Stats')
@@ -343,16 +354,20 @@ function openMenu() {
         new ButtonBuilder()
             .setCustomId('help')
             .setLabel('Help')
+            .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+            .setCustomId('leaderboard')
+            .setLabel('Leaderboard')
             .setStyle(ButtonStyle.Secondary)
     );
 
     return {
         content: 'Main Menu',
-        components: [row]
+        components: [row1]
     };
 }
 
-//default values for new users in database
+//return object with default values for new users in database
 function getNewUserJSON(userTag) {
     userObj = {
         tag: userTag,
