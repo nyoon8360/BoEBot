@@ -170,7 +170,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
                 storedUserData.fStatReactionsAwarded += 1;
                 recipient.fStatReactionsReceived += 1;
 
-                fs.writeFile("./database" + messageReaction.message.guildId + ".json", JSON.stringify(data), error => {
+                fs.writeFile("./database" + messageReaction.message.guildId + ".json", JSON.stringify(data, null, 2), error => {
                     if (error) console.log("Error writing to file: \n"  + error);
                 });
             } else {
@@ -236,7 +236,7 @@ Last Edbuck Awarded: ${lastAwarded}
                 let treasure = Math.floor(Math.random * (treasureUR - treasureLR)) + treasureLR;
                 user.balance += treasure;
 
-                fs.writeFile("./database" + interaction.guildId + ".json", JSON.stringify(data), error => {
+                fs.writeFile("./database" + interaction.guildId + ".json", JSON.stringify(data, null, 2), error => {
                     if (error) console.log("Error writing to file: \n"  + error);
                 });
 
@@ -270,6 +270,28 @@ Last Edbuck Awarded: ${lastAwarded}
             //TODO: implement help message
             break;
     }
+});
+
+//on new guild user join, add entry to database if not already existing
+client.on("guildMemberAdd", member => {
+    jsonReader("./database" + member.guild.id + ".json", (error, data) => {
+        if (error) {
+            console.log(error);
+            return;
+        }
+
+        let existingEntry = data.users.find(entry => {
+            entry.tag == member.user.tag
+        });
+
+        if (!existingEntry) {
+            data.users.push(getNewUserJSON(member.user.tag));
+
+            fs.writeFile("./database" + member.guild.id + ".json", JSON.stringify(data, null, 2), error => {
+                console.log(error);
+            })
+        }
+    })
 });
 
 //===================================================
