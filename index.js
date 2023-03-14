@@ -49,13 +49,67 @@ const treasureCDUR = config.treasureCooldownUpperRange;
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
 
-    //set bot status
-    /*
+    //TODO: this shit doesnt work to set bot status and activity lmao
     client.user.setStatus('available');
     client.user.setActivity('Use \'>help\' to see my commands!', {
         type: "LISTENING"
     });
-    */
+    
+    //add any missing users to database for all guilds bot is in
+    client.guilds.cache.map(guild => guild.id).forEach((guildId) => {
+        try {
+            if (!fs.existsSync("./database" + guildId + ".json")) {
+                data = {
+                    users:[]
+                }
+
+                fs.writeFileSync("./database" + guildId + ".json", JSON.stringify(data), error => {
+                    console.log(error);
+                })
+            }
+        } catch(error) {
+            console.log(error);
+        }
+
+        jsonReader("./database" + guildId + ".json", (error, data) => {
+            if (error) {
+                console.log(error);
+                return;
+            }
+
+            if (!data.users) {
+                data = {
+                    users:[]
+                }
+            }
+    
+            let existingArray = [];
+            let guildUsersArray = [];
+    
+            data.users.forEach((eUser) => {
+                existingArray.push(eUser.tag);
+            });
+
+            client.guilds.resolve(guildId).members.fetch().then(memberManager => {
+                memberManager.forEach((gMember) => {
+                    guildUsersArray.push(gMember.user.tag);
+                });
+
+                let diffArray = guildUsersArray.filter(user => !existingArray.includes(user));
+
+                console.log("Diff Array: " + diffArray);
+
+                diffArray.forEach((newUser) => {
+                    console.log(newUser);
+                    data.users.push(getNewUserJSON(newUser));
+                });
+
+                fs.writeFile("./database" + guildId + ".json", JSON.stringify(data, null, 2), error => {
+                    if (error) console.log("Error writing to file: \n"  + error);
+                });
+            }).catch(console.error);
+        });
+    });
 });
 
 client.on('messageCreate', (message) => {
@@ -77,7 +131,11 @@ client.on('messageCreate', (message) => {
 client.on('messageReactionAdd', (messageReaction, user) => {
     //base system for awarding edbucks to users whose msgs get edbuck reactions
 
-    jsonReader("./database.json", (error, data) => {
+    //TODO: make sure this works. check if reaction is edbuck
+    if (messageReaction.emoji.name != 'edbuck') return;
+    if (!messageReaction.message.guildId) return;
+
+    jsonReader("./database" + messageReaction.message.guildId + ".json", (error, data) => {
         //catch error if jsonReader() returned an error
         if (error) {
             console.log(error);
@@ -112,7 +170,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
                 storedUserData.fStatReactionsAwarded += 1;
                 recipient.fStatReactionsReceived += 1;
 
-                fs.writeFile("./database.json", JSON.stringify(data), error => {
+                fs.writeFile("./database" + messageReaction.message.guildId + ".json", JSON.stringify(data), error => {
                     if (error) console.log("Error writing to file: \n"  + error);
                 });
             } else {
@@ -128,12 +186,13 @@ client.on('messageReactionAdd', (messageReaction, user) => {
 client.on('interactionCreate', interaction => {
     //if interaction is not a button then return
     if (!interaction.isButton()) return;
+    if (!interaction.guildId) return;
 
     //switch for code for different buttons
     switch(interaction.customId) {
         case "showstats":
             //show user stats
-            jsonReader("./database.json", (error, data) => {
+            jsonReader("./database" + interaction.guildId + ".json", (error, data) => {
                 if (error) {
                     console.log(error);
                     return;
@@ -164,7 +223,7 @@ Last Edbuck Awarded: ${lastAwarded}
 
         case "findtreasure":
             //on click, award treasure, deactivate this button for a random amount of hours, and then reactivate
-            jsonReader("./database.json", (error, data) => {
+            jsonReader("./database" + interaction.guildId + ".json", (error, data) => {
                 if (error) {
                     console.log(error);
                     return;
@@ -177,7 +236,7 @@ Last Edbuck Awarded: ${lastAwarded}
                 let treasure = Math.floor(Math.random * (treasureUR - treasureLR)) + treasureLR;
                 user.balance += treasure;
 
-                fs.writeFile("./database.json", JSON.stringify(data), error => {
+                fs.writeFile("./database" + interaction.guildId + ".json", JSON.stringify(data), error => {
                     if (error) console.log("Error writing to file: \n"  + error);
                 });
 
@@ -271,4 +330,18 @@ function openMenu() {
         content: 'Main Menu',
         components: [row]
     };
+}
+
+function getNewUserJSON(userTag) {
+    userObj = {
+        tag: userTag,
+        balance: 0,
+        birthday: "",
+        fStatReactionsAwarded: 4,
+        fStatReactionsReceived: 5,
+        fStatItemsUsed: 0,
+        fStatHighestBal: 0
+    }
+
+    return userObj;
 }
