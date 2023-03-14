@@ -2,19 +2,21 @@
   "users": [
     {
       "tag": "Inspirasian#2923",
+      "lastAwarded": 0,
       "balance": 0,
       "birthday": "",
-      "fStatReactionsAwarded": 4,
-      "fStatReactionsReceived": 5,
+      "fStatReactionsAwarded": 0,
+      "fStatReactionsReceived": 0,
       "fStatItemsUsed": 0,
       "fStatHighestBal": 0
     },
     {
       "tag": "BoE Bot#1195",
+      "lastAwarded": 0,
       "balance": 0,
       "birthday": "",
-      "fStatReactionsAwarded": 4,
-      "fStatReactionsReceived": 5,
+      "fStatReactionsAwarded": 0,
+      "fStatReactionsReceived": 0,
       "fStatItemsUsed": 0,
       "fStatHighestBal": 0
     }

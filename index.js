@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, parseEmoji } = require('discord.js');
+const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, parseEmoji, inlineCode } = require('discord.js');
 const fs = require('fs');
 const config = require('./config.json');
 //import { setTimeout } from 'timers/promises';
@@ -208,7 +208,7 @@ client.on('interactionCreate', interaction => {
      Your Stats
 ====================
 Edbuck Balance: ${requester.balance}
-Last Edbuck Awarded: ${lastAwarded}
+Last Edbuck Awarded: ${lastAwarded > 0 ? lastAwarded : inlineCode('Never')}
                     `,
                     ephemeral: true
                 })
@@ -352,13 +352,15 @@ function openMenu() {
     };
 }
 
+//default values for new users in database
 function getNewUserJSON(userTag) {
     userObj = {
         tag: userTag,
+        lastAwarded: 0,
         balance: 0,
         birthday: "",
-        fStatReactionsAwarded: 4,
-        fStatReactionsReceived: 5,
+        fStatReactionsAwarded: 0,
+        fStatReactionsReceived: 0,
         fStatItemsUsed: 0,
         fStatHighestBal: 0
     }
