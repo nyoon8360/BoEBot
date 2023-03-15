@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, parseEmoji, inlineCode, bold } = require('discord.js');
+const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, parseEmoji, inlineCode, bold, underscore, Options, Sweepers } = require('discord.js');
 const fs = require('fs');
 const config = require('./config.json');
 //import { setTimeout } from 'timers/promises';
@@ -18,7 +18,15 @@ database.json format:
         {
             "tag":"string with discord user's tag i.e 'inspirasian#1234'",
             "balance": 0,
-            "lastAwarded": 1678310667 this will be a number using epoch unix timestamp in seconds
+            "lastAwarded": 1678310667 this will be a number using epoch unix timestamp in seconds,
+            "inventory": [
+                "itemname": 0,
+                "itemname2": 2
+            ],
+            "equiped": {
+                "head":
+                ""
+            }
         }
     ]
 }
@@ -26,7 +34,7 @@ database.json format:
 
 // NOTE: Make sure to update intents if new events not in current intents are needed to be listened to
 const client = new Client({
-     intents: [
+    intents: [
         IntentsBitField.Flags.Guilds,
         IntentsBitField.Flags.GuildMembers,
         IntentsBitField.Flags.GuildVoiceStates,
@@ -35,8 +43,17 @@ const client = new Client({
         IntentsBitField.Flags.DirectMessages,
         IntentsBitField.Flags.GuildScheduledEvents,
         IntentsBitField.Flags.MessageContent
-    ]
+    ],
+    sweepers: {
+        ...Options.DefaultSweeperSettings,
+		messages: {
+			interval: 3600, // Sweep message cache every hour
+			lifetime: 3780,	// Remove messages older than 1 hour 3 minutes.
+		}
+    }
 });
+
+var menuId;
 
 const reactCooldown = config.reactCooldown; //how long users must wait in between awarding edbucks in seconds
 const msgExpiration = config.msgExpiration; //how long a message can be awarded edbucks for in seconds
@@ -60,7 +77,8 @@ client.on('ready', () => {
         try {
             if (!fs.existsSync("./database" + guildId + ".json")) {
                 data = {
-                    users:[]
+                    users:[],
+                    activeMenuId: ""
                 }
 
                 fs.writeFileSync("./database" + guildId + ".json", JSON.stringify(data), error => {
@@ -76,6 +94,8 @@ client.on('ready', () => {
                 console.log(error);
                 return;
             }
+
+            menuId = data.activeMenuId;
 
             if (!data.users) {
                 data = {
@@ -117,7 +137,21 @@ client.on('messageCreate', (message) => {
     switch(message.content.substring(1)) {
         case "spawnmenu":
 
-            message.channel.send(openMenu());
+            message.channel.send(openMenu()).then(msg => {
+                jsonReader("./database" + message.guildId + ".json", (error, data) => {
+                    if (error) {
+                        console.log(error);
+                    }
+
+                    data.activeMenuId = msg.id;
+
+                    menuId = msg.id;
+
+                    fs.writeFile("./database" + message.guildId + ".json", JSON.stringify(data, null, 2), error => {
+                        if (error) console.log("Error writing to file: \n"  + error);
+                    });
+                })
+            });
             break;
         
         default:
@@ -227,7 +261,7 @@ Last Edbuck Awarded: ${lastAwarded}
                     return obj.tag == interaction.user.tag;
                 });
 
-                let treasure = Math.floor(Math.random * (treasureUR - treasureLR)) + treasureLR;
+                let treasure = Math.floor(Math.random() * (treasureUR - treasureLR)) + treasureLR;
                 user.balance += treasure;
 
                 fs.writeFile("./database" + interaction.guildId + ".json", JSON.stringify(data, null, 2), error => {
@@ -236,35 +270,30 @@ Last Edbuck Awarded: ${lastAwarded}
 
                 interaction.reply({
                     content: `
-                    You've found ${treasure} edbucks dropped by a wild Edwin!
-                    All the local Edwins have been spooked back into hiding.
-                    Check back again later to see if they've come back!
+You've found ${treasure} edbucks dropped by a wild Edwin!
+All the local Edwins have been spooked back into hiding.
+Check back again later to see if they've come back!
                     `,
                     ephemeral: true
                 })
             });
 
-            interaction.component.setDisabled(true);
+            interaction.channel.messages.fetch(menuId).then(result => {
+                result.edit(openMenu(true));
 
-            //re-enable button after cooldown
-            (async (interaction) => {
-                let timeoutDuration = Math.floor(Math.random * (treasureCDUR - treasureCDLR)) + treasureCDLR;
-                //TEST REMOVE AND REWRITE LATER
-                console.log("Treasure set on cooldown for: " + timeoutDuration + " seconds.");
-                await setTimeout(timeoutDuration * 1000);
-    
-                interaction.component.setDisabled(false);
-            })(interaction);
-
-            //TEST DELETE LATER
-            console.log("Treasure cooldown ended and button re-enabled.");
+                //re-enable button after cooldown
+                (async (menu) => {
+                    let timeoutDuration = Math.floor(Math.random() * (treasureCDUR - treasureCDLR)) + treasureCDLR;
+                    await setTimeout(() => menu.edit(openMenu()), timeoutDuration * 1000);
+                })(result);
+            });
             break;
         
         case "help":
             //TODO: implement help message
             break;
         
-        case "leaderboard":
+        case "userleaderboard":
             jsonReader("./database" + interaction.guildId + ".json", (error, data) => {
                 if (error) {
                     console.log(error);
@@ -336,34 +365,83 @@ function jsonReader(filePath, callBack) {
 }
 
 //returns message composing the main menu of the discord bot
-function openMenu() {
+function openMenu(disabled) {
     let row1 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId('showstats')
             .setLabel('Show Stats')
-            .setStyle(ButtonStyle.Primary),
+            .setStyle(ButtonStyle.Primary)
+            .setEmoji('📜'),
         new ButtonBuilder()
             .setCustomId('openinv')
             .setLabel('Open Inventory')
-            .setStyle(ButtonStyle.Secondary),
+            .setStyle(ButtonStyle.Primary)
+            .setEmoji('📦'),
+        new ButtonBuilder()
+            .setCustomId('trade')
+            .setLabel('Trade')
+            .setStyle(ButtonStyle.Primary)
+            .setEmoji('🤝'),
         new ButtonBuilder()
             .setCustomId('findtreasure')
             .setLabel('Pick Up Edbucks')
+            .setStyle(ButtonStyle.Primary)
+            .setEmoji('💸')
+            .setDisabled(disabled ? true : false)
+    );
+
+    let row2 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('minigames')
+            .setLabel('Minigames')
+            .setStyle(ButtonStyle.Success)
+            .setEmoji('🎮'),
+        new ButtonBuilder()
+            .setCustomId('challenge')
+            .setLabel('Challenge')
+            .setStyle(ButtonStyle.Success)
+            .setEmoji('🙌'),
+        new ButtonBuilder()
+            .setCustomId('wager')
+            .setLabel('Wager Edbucks')
+            .setStyle(ButtonStyle.Success)
+            .setEmoji('🎲')
+    );
+
+    let row3 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('shop')
+            .setLabel('Shop')
+            .setStyle(ButtonStyle.Danger)
+            .setEmoji('🛒')
+    );
+
+    let row4 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('userleaderboard')
+            .setLabel('User Leaderboard')
             .setStyle(ButtonStyle.Secondary)
-            .setEmoji('💸'),
+            .setEmoji('🏆'),
+        new ButtonBuilder()
+            .setCustomId('msgleaderboard')
+            .setLabel('Message Leaderboard')
+            .setStyle(ButtonStyle.Secondary)
+            .setEmoji('🥇'),
+        new ButtonBuilder()
+            .setCustomId('settings')
+            .setLabel('Settings')
+            .setStyle(ButtonStyle.Secondary)
+            .setEmoji('⚙️'),
         new ButtonBuilder()
             .setCustomId('help')
             .setLabel('Help')
-            .setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder()
-            .setCustomId('leaderboard')
-            .setLabel('Leaderboard')
             .setStyle(ButtonStyle.Secondary)
+            .setEmoji('❓')
     );
 
     return {
-        content: 'Main Menu',
-        components: [row1]
+        content: underscore(bold('MAIN MENU')),
+        components: [row1, row2, row3, row4]
     };
 }
 
