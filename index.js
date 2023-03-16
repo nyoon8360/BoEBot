@@ -28,7 +28,13 @@ database.json format:
                 ""
             }
         }
-    ]
+    ],
+    "msgLeaderboard": [
+        {
+            "msgId": "123215422542",
+        }
+    ],
+    "msgLeaderboardFloor": 0
 }
 */
 
@@ -53,7 +59,9 @@ const client = new Client({
     }
 });
 
-var menuId;
+var workingData = {}; //In-memory data
+
+var menuId = {}; //Id of the most recently spawned menu
 
 const reactCooldown = config.reactCooldown; //how long users must wait in between awarding edbucks in seconds
 const msgExpiration = config.msgExpiration; //how long a message can be awarded edbucks for in seconds
@@ -62,6 +70,10 @@ const treasureLR = config.treasureLowerRange;
 const treasureUR = config.treasureUpperRange;
 const treasureCDLR = config.treasureCooldownLowerRange;
 const treasureCDUR = config.treasureCooldownUpperRange;
+const msgLeaderboardLimit = config.msgLeaderboardLimit;
+const currencyEmojiName = config.currencyEmojiName;
+const botAdmins = config.admins;
+const saveInterval = config.saveInterval;
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -71,89 +83,103 @@ client.on('ready', () => {
     client.user.setActivity('Use \'>help\' to see my commands!', {
         type: "LISTENING"
     });
-    
-    //add any missing users to database for all guilds bot is in
+
+    //LOAD data from json database and assign it to workingData var
     client.guilds.cache.map(guild => guild.id).forEach((guildId) => {
         try {
             if (!fs.existsSync("./database" + guildId + ".json")) {
-                data = {
+                //if database file for this guild doesnt exist then make the file and assign the new data to workingData var
+                newData = {
                     users:[],
-                    activeMenuId: ""
+                    activeMenuId: "",
+                    msgLeaderboard: [],
+                    msgLeaderboardFloor: 0
                 }
 
-                fs.writeFileSync("./database" + guildId + ".json", JSON.stringify(data), error => {
-                    console.log(error);
+                fs.writeFileSync("./database" + guildId + ".json", JSON.stringify(newData, null, 2), error => {
+                    if (error) console.log("Error writing to file: \n" + error);
                 })
+
+                workingData[guildId] = newData;
+            } else {
+                //read data from json database file and assign it to workingData var synchronously
+                jsonReader("./database" + guildId + ".json", true, (error, data) => {
+                    if (error) {
+                        console.log(error);
+                        return;
+                    }
+
+                    workingData[guildId] = data;
+                });
             }
         } catch(error) {
             console.log(error);
         }
 
-        jsonReader("./database" + guildId + ".json", (error, data) => {
-            if (error) {
-                console.log(error);
-                return;
-            }
-
-            menuId = data.activeMenuId;
-
-            if (!data.users) {
-                data = {
-                    users:[]
-                }
-            }
-    
+        //add entries for any users in guilds that are not in database
+        client.guilds.resolve(guildId).members.fetch().then(memberManager => {
             let existingArray = [];
             let guildUsersArray = [];
     
-            data.users.forEach((eUser) => {
+            workingData[guildId].users.forEach((eUser) => {
                 existingArray.push(eUser.tag);
             });
 
-            client.guilds.resolve(guildId).members.fetch().then(memberManager => {
-                memberManager.forEach((gMember) => {
-                    guildUsersArray.push(gMember.user.tag);
-                });
+            memberManager.forEach((gMember) => {
+                guildUsersArray.push(gMember.user.tag);
+            });
 
-                let diffArray = guildUsersArray.filter(user => !existingArray.includes(user));
+            guildUsersArray.filter(user => !existingArray.includes(user)).forEach((newUser) => {
+                console.log(newUser);
+                workingData[guildId].users.push(getNewUserJSON(newUser));
+            });
 
-                diffArray.forEach((newUser) => {
-                    console.log(newUser);
-                    data.users.push(getNewUserJSON(newUser));
-                });
-
-                fs.writeFile("./database" + guildId + ".json", JSON.stringify(data, null, 2), error => {
-                    if (error) console.log("Error writing to file: \n"  + error);
-                });
-            }).catch(console.error);
-        });
+            fs.writeFileSync('./database' + guildId + ".json", JSON.stringify(workingData[guildId], null, 2), error => {
+                if (error) console.log("Error writing to file: \n" + error);
+            });
+        }).catch(console.error);
     });
+
+    setInterval(() => {
+        saveData();
+        console.log((Date.now()/1000) + " (Epoch Seconds Timestamp): Autosave Complete!");
+    }, saveInterval * 1000);
+
+    console.log(`${client.user.tag} is ready!`);
 });
 
+//event listener for messages mainly used for admin commands
 client.on('messageCreate', (message) => {
     if (!message.content.charAt(0) == '>') return;
     if (message.author.bot) return;
+
+    //if command sender is not a bot admin then do not process command
+    if (!botAdmins.includes(message.author.tag)) return;
 
     switch(message.content.substring(1)) {
         case "spawnmenu":
 
             message.channel.send(openMenu()).then(msg => {
-                jsonReader("./database" + message.guildId + ".json", (error, data) => {
-                    if (error) {
-                        console.log(error);
-                    }
+                workingData[message.guildId].activeMenuId = msg.id;
+            });
 
-                    data.activeMenuId = msg.id;
+            break;
 
-                    menuId = msg.id;
-
-                    fs.writeFile("./database" + message.guildId + ".json", JSON.stringify(data, null, 2), error => {
-                        if (error) console.log("Error writing to file: \n"  + error);
-                    });
-                })
+        case "save":
+            saveData();
+            message.channel.send({
+                content: "Manual Save Requested"
             });
             break;
         
+        case "shutdown":
+            saveData(true);
+            message.channel.send({
+                content: "Bot has shut down."
+            });
+            client.destroy();
+            break;
+
         default:
             //TODO: send message saying command is not recognized. might not need if commands will not be used by users
             break;
@@ -165,49 +191,96 @@ client.on('messageReactionAdd', (messageReaction, user) => {
     if (messageReaction.emoji.name != 'edbuck') return;
     if (!messageReaction.message.guildId) return;
 
-    jsonReader("./database" + messageReaction.message.guildId + ".json", (error, data) => {
-        //catch error if jsonReader() returned an error
-        if (error) {
-            console.log(error);
-            return;
-        }
+    //do a time check for the reactor
+    let storedUserData = workingData[messageReaction.message.guildId].users.find(obj => {
+        return obj.tag == user.tag;
+    })
 
-        //do a time check for the reactor
-        let storedUserData = data.users.find(obj => {
-            return obj.tag == user.tag;
-        });
+    let currTime = Math.floor(Date.now() / 1000);
 
-        let currTime = Math.floor(Date.now() / 1000);
+    //TODO: check to make sure reactor and recipient are NOT the same person so people cant award themselves edbucks
 
-        if (currTime - storedUserData.lastAwarded >= reactCooldown) {
-            //do a time check for the reacted to message
+    if (currTime - storedUserData.lastAwarded >= reactCooldown) {
 
-            //TODO: check to make sure reactor and recipient are NOT the same person so people cant award themselves edbucks
+        //do a time check for the reacted to message
+        if (currTime - messageReaction.message.createdTimestamp <= msgExpiration) {
+            //find recipient user's data object in working data var
+            let recipient = workingData[messageReaction.message.guildId].users.find(obj => {
+                return obj.tag == messageReaction.message.author.tag;
+            });
 
-            if (currTime - messageReaction.message.createdTimestamp <= msgExpiration) {
-                let recipient = data.users.find(obj => {
-                    return obj.tag == messageReaction.message.author.tag;
-                });
+            //award recipient edbucks
+            recipient.balance += reactAward;
 
-                recipient.balance += reactAward;
+            //update lastAwarded parameter of the reactor to the current time 
+            storedUserData.lastAwarded = Math.floor(Date.now() / 1000);
 
-                //update lastAwarded parameter of the reactor to the current time 
-                storedUserData.lastAwarded = Math.floor(Date.now() / 1000);
+            //update fun stats
+            storedUserData.fStatReactionsAwarded += 1;
+            recipient.fStatReactionsReceived += 1;
 
-                //update fun stats
-                storedUserData.fStatReactionsAwarded += 1;
-                recipient.fStatReactionsReceived += 1;
+            //check and update msg leaderboard
+            /*
+            msgLeaderboard: [
+                {
+                    "id": "123131532",
+                    "score": 5,
+                    "snippet": "" //this will be a string containing the first 20 characters of the original message or say MEDIA if the post had embeds
+                    "author": "Inspirasian#2324"
+                }
+            ]
+            */
 
-                fs.writeFile("./database" + messageReaction.message.guildId + ".json", JSON.stringify(data, null, 2), error => {
-                    if (error) console.log("Error writing to file: \n"  + error);
-                });
-            } else {
-                // TODO: create a msg only seen by the reactor that says the message has expired
+            let messageScore = messageReaction.message.reactions.cache.find(obj => {
+                return obj.emoji.name == currencyEmojiName;
+            }).count;
+
+            //if the message's edbuck reaction count is greater than or equal to the current leaderboard floor then update leaderboard
+            if (messageScore >= workingData[messageReaction.message.guildId].msgLeaderboardFloor) {
+                let currLeaderboard = workingData[messageReaction.message.guildId].msgLeaderboard;
+
+                let messageSnippet = messageReaction.message.embeds ? "MEDIA POST" : messageReaction.message.content.substring(0, 20);
+
+                if (currLeaderboard.length == 0) {
+                    //if leaderboard is unpopulated, automatically push message to leaderboard
+                    let leaderboardEntry = {
+                        id: messageReaction.message.id,
+                        score: messageScore,
+                        snippet: messageSnippet,
+                        author: messageReaction.message.author
+                    };
+                    currLeaderboard.push(leaderboardEntry);
+                } else {
+                    //if leaderboard is populated, iterate through leaderboard to check if current message has
+                    //higher or equal score to any of the entries and replace if so
+                    let replaceIndex = msgLeaderboardLimit;
+                    currLeaderboard.forEach((entry, index) => {
+                        if (messageScore >= entry.score) {
+                            replaceIndex = index;
+                            return;
+                        }
+                    });
+
+                    if (replaceIndex < msgLeaderboardLimit) {
+                        let leaderboardEntry = {
+                            id: messageReaction.message.id,
+                            score: messageScore,
+                            snippet: messageSnippet,
+                            author: messageReaction.message.author
+                        };
+                        currLeaderboard.splice(replaceIndex, 0, leaderboardEntry);
+                    }
+
+                    //pop any excess entries above the leaderboard limit
+                    while (currLeaderboard.length > msgLeaderboardLimit) currLeaderboard.pop();
+                }
             }
         } else {
-            //TODO: create a msg only seen by the reactor that says they cant award edbucks yet
+            // TODO: create a msg only seen by the reactor that says the message has expired
         }
-    });
+    } else {
+        //TODO: create a message to reactor saying that they cant awards edbucks yet
+    }
 });
 
 //event listener for buttons
@@ -220,28 +293,19 @@ client.on('interactionCreate', interaction => {
     switch(interaction.customId) {
         case "showstats":
             //show user stats
-            jsonReader("./database" + interaction.guildId + ".json", (error, data) => {
-                if (error) {
-                    console.log(error);
-                    return;
-                }
+            let requester = workingData[interaction.guildId].users.find(obj => {
+                return obj.tag == interaction.user.tag;
+            });
 
-                let requester = data.users.find(obj => {
-                    return obj.tag == interaction.user.tag;
-                });
+            let lastAwarded = requester.lastAwarded > 0 ? time(requester.lastAwarded, "R") : inlineCode("Never");
 
-                let lastAwarded = requester.lastAwarded > 0 ? time(requester.lastAwarded, "R") : inlineCode("Never");
-
-                interaction.reply({
-                    content: `
-====================
-     Your Stats
-====================
+            interaction.reply({
+                content: `
+${bold(underscore('YOUR STATS'))}
 Edbuck Balance: ${requester.balance}
 Last Edbuck Awarded: ${lastAwarded}
-                    `,
-                    ephemeral: true
-                })
+                `,
+                ephemeral: true
             });
 
             break;
@@ -251,37 +315,27 @@ Last Edbuck Awarded: ${lastAwarded}
 
         case "findtreasure":
             //on click, award treasure, deactivate this button for a random amount of hours, and then reactivate
-            jsonReader("./database" + interaction.guildId + ".json", (error, data) => {
-                if (error) {
-                    console.log(error);
-                    return;
-                }
+            let user = workingData[interaction.guildId].users.find(obj => {
+                return obj.tag == interaction.user.tag;
+            });
 
-                let user = data.users.find(obj => {
-                    return obj.tag == interaction.user.tag;
-                });
+            let treasure = Math.floor(Math.random() * (treasureUR - treasureLR)) + treasureLR;
+            user.balance += treasure;
 
-                let treasure = Math.floor(Math.random() * (treasureUR - treasureLR)) + treasureLR;
-                user.balance += treasure;
-
-                fs.writeFile("./database" + interaction.guildId + ".json", JSON.stringify(data, null, 2), error => {
-                    if (error) console.log("Error writing to file: \n"  + error);
-                });
-
-                interaction.reply({
-                    content: `
+            interaction.reply({
+                content: `
 You've found ${treasure} edbucks dropped by a wild Edwin!
 All the local Edwins have been spooked back into hiding.
 Check back again later to see if they've come back!
-                    `,
-                    ephemeral: true
-                })
+                `,
+                ephemeral: true
             });
 
-            interaction.channel.messages.fetch(menuId).then(result => {
+            interaction.channel.messages.fetch(workingData[interaction.guildId].activeMenuId).then(result => {
+                //disable pick up edbucks button
                 result.edit(openMenu(true));
 
-                //re-enable button after cooldown
+                //set async function to wait until cooldown is over then re-enable button
                 (async (menu) => {
                     let timeoutDuration = Math.floor(Math.random() * (treasureCDUR - treasureCDLR)) + treasureCDLR;
                     await setTimeout(() => menu.edit(openMenu()), timeoutDuration * 1000);
@@ -291,28 +345,44 @@ Check back again later to see if they've come back!
         
         case "help":
             //TODO: implement help message
+
+            interaction.reply({
+                content:`
+${bold(underscore('HELP'))}
+
+${underscore('Main Sources Of Edbucks')}
+1. Having people react to your messages with the :edbuck: emote.
+2. Being the first person to click on the "Pick Up Edbucks" button when it's randomly enabled.
+3. Winning minigames (WIP)
+
+${underscore('Ways To Use Your Edbucks')}
+1. Spend them on items in the store.
+2. Trade them with other players through the "Trade" button.
+3. Wager them against other players through the "Wager Edbucks" button.
+
+${underscore('How To Use Purchased Items')}
+1. Access your inventory through the "Open Inventory" button.
+2. Click on the item you want to use.
+3. Select the user you want to use the item on from the drop down menu.
+                `,
+                ephemeral: true
+            })
+
             break;
         
         case "userleaderboard":
-            jsonReader("./database" + interaction.guildId + ".json", (error, data) => {
-                if (error) {
-                    console.log(error);
-                    return;
-                }
+            let sortedLeaderboard = workingData[interaction.guildId].users.sort((a, b) => (a.balance > b.balance) ? -1 : 1);
 
-                let sortedLeaderboard = data.users.sort((a, b) => (a.balance > b.balance) ? -1 : 1);
+            let leaderboard = "";
 
-                let leaderboard = "";
+            sortedLeaderboard.forEach((user, index) => {
+                leaderboard += "(" + (index + 1) + ") " + user.tag + ": " + user.balance + " EB \n"
+            })
 
-                sortedLeaderboard.forEach((user, index) => {
-                    leaderboard += "(" + (index + 1) + ") " + user.tag + ": " + user.balance + " EB \n"
-                })
-
-                interaction.reply({
-                    content: bold("LEADERBOARD") + "\n" + leaderboard,
-                    ephemeral: true
-                })
-            });
+            interaction.reply({
+                content: underscore(bold("LEADERBOARD")) + "\n" + leaderboard,
+                ephemeral: true
+            })
 
             break;
     }
@@ -320,24 +390,13 @@ Check back again later to see if they've come back!
 
 //on new guild user join, add entry to database if not already existing
 client.on("guildMemberAdd", member => {
-    jsonReader("./database" + member.guild.id + ".json", (error, data) => {
-        if (error) {
-            console.log(error);
-            return;
-        }
+    let existingEntry = workingData[member.guild.id].users.find(entry => {
+        entry.tag == member.user.tag
+    });
 
-        let existingEntry = data.users.find(entry => {
-            entry.tag == member.user.tag
-        });
-
-        if (!existingEntry) {
-            data.users.push(getNewUserJSON(member.user.tag));
-
-            fs.writeFile("./database" + member.guild.id + ".json", JSON.stringify(data, null, 2), error => {
-                console.log(error);
-            })
-        }
-    })
+    if (!existingEntry) {
+        workingData[member.guild.id].users.push(getNewUserJSON(member.user.tag));
+    }
 });
 
 //===================================================
@@ -345,23 +404,42 @@ client.on("guildMemberAdd", member => {
 //===================================================
 client.login(process.env.CLIENT_TOKEN);
 
-function jsonReader(filePath, callBack) {
-    fs.readFile(filePath, (error, fileData) => {
-        //catch if readFile() returned an error
-        if (error) {
-            //if there is a callback, return callback(erorr).
-            //if there is no callback, return callback which would be undefined
-            return callBack && callBack(error);
-        }
-
-        try {
-            //attempt to parse the file data passed from readFile
-            const data = JSON.parse(fileData);
-            return callBack && callBack(null, data);
-        } catch (error) {
-            return callBack && callBack(error);
-        }
-    })
+function jsonReader(filePath, sync, callBack) {
+    if (sync) {
+        fs.readFileSync(filePath, (error, fileData) => {
+            //catch if readFile() returned an error
+            if (error) {
+                //if there is a callback, return callback(erorr).
+                //if there is no callback, return callback which would be undefined
+                return callBack && callBack(error);
+            }
+    
+            try {
+                //attempt to parse the file data passed from readFile
+                const data = JSON.parse(fileData);
+                return callBack && callBack(null, data);
+            } catch (error) {
+                return callBack && callBack(error);
+            }
+        })
+    } else {
+        fs.readFile(filePath, (error, fileData) => {
+            //catch if readFile() returned an error
+            if (error) {
+                //if there is a callback, return callback(erorr).
+                //if there is no callback, return callback which would be undefined
+                return callBack && callBack(error);
+            }
+    
+            try {
+                //attempt to parse the file data passed from readFile
+                const data = JSON.parse(fileData);
+                return callBack && callBack(null, data);
+            } catch (error) {
+                return callBack && callBack(error);
+            }
+        })
+    }    
 }
 
 //returns message composing the main menu of the discord bot
@@ -459,4 +537,19 @@ function getNewUserJSON(userTag) {
     }
 
     return userObj;
+}
+
+//function to save workingdata to json databases
+function saveData(sync) {
+    client.guilds.cache.map(guild => guild.id).forEach((guildId) => {
+        if (sync) {
+            fs.writeFileSync('./database' + guildId + '.json', JSON.stringify(workingData[guildId], null, 2), error => {
+                if (error) console.log("Error writing to file: \n" + error);
+            });
+        } else {
+            fs.writeFile('./database' + guildId + '.json', JSON.stringify(workingData[guildId], null, 2), error => {
+                if (error) console.log("Error writing to file: \n" + error);
+            });
+        }
+    });
 }

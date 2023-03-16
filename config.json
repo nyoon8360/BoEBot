@@ -1,4 +1,5 @@
 {
+    "saveInterval": 3600,
     "reactCooldown":3600,
     "msgExpiration":3600,
     "reactAward":1,
@@ -8,5 +9,10 @@
     "treasureCooldownUpperRange": 3,
     "itemMuteDuration": 7,
     "itemPolymorphDuration": 300,
-    "itemBanishChannelId": "815839363748462612"
+    "itemBanishChannelId": "815839363748462612",
+    "msgLeaderboardLimit": 5,
+    "currencyEmojiName": "edbuck",
+    "admins": [
+        "Inspirasian#2923"
+    ]
 }
