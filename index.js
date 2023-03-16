@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, parseEmoji, inlineCode, bold, underscore, Options, Sweepers } = require('discord.js');
+const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, parseEmoji, inlineCode, bold, underscore, Options, Sweepers, EmbedBuilder } = require('discord.js');
 const fs = require('fs');
 const config = require('./config.json');
 //import { setTimeout } from 'timers/promises';
@@ -61,8 +61,6 @@ const client = new Client({
 
 var workingData = {}; //In-memory data
 
-var menuId = {}; //Id of the most recently spawned menu
-
 const reactCooldown = config.reactCooldown; //how long users must wait in between awarding edbucks in seconds
 const msgExpiration = config.msgExpiration; //how long a message can be awarded edbucks for in seconds
 const reactAward = config.reactAward; //how many edbucks awarded for reactions
@@ -103,19 +101,14 @@ client.on('ready', () => {
                 workingData[guildId] = newData;
             } else {
                 //read data from json database file and assign it to workingData var synchronously
-                jsonReader("./database" + guildId + ".json", true, (error, data) => {
-                    if (error) {
-                        console.log(error);
-                        return;
-                    }
 
-                    workingData[guildId] = data;
-                });
+                workingData[guildId] = JSON.parse(fs.readFileSync("./database" + guildId + ".json"));
             }
         } catch(error) {
             console.log(error);
         }
 
+        
         //add entries for any users in guilds that are not in database
         client.guilds.resolve(guildId).members.fetch().then(memberManager => {
             let existingArray = [];
@@ -138,6 +131,7 @@ client.on('ready', () => {
                 if (error) console.log("Error writing to file: \n" + error);
             });
         }).catch(console.error);
+        
     });
 
     setInterval(() => {
@@ -179,10 +173,6 @@ client.on('messageCreate', (message) => {
             });
             client.destroy();
             break;
-
-        default:
-            //TODO: send message saying command is not recognized. might not need if commands will not be used by users
-            break;
     }
 });
 
@@ -220,17 +210,6 @@ client.on('messageReactionAdd', (messageReaction, user) => {
             recipient.fStatReactionsReceived += 1;
 
             //check and update msg leaderboard
-            /*
-            msgLeaderboard: [
-                {
-                    "id": "123131532",
-                    "score": 5,
-                    "snippet": "" //this will be a string containing the first 20 characters of the original message or say MEDIA if the post had embeds
-                    "author": "Inspirasian#2324"
-                }
-            ]
-            */
-
             let messageScore = messageReaction.message.reactions.cache.find(obj => {
                 return obj.emoji.name == currencyEmojiName;
             }).count;
@@ -239,7 +218,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
             if (messageScore >= workingData[messageReaction.message.guildId].msgLeaderboardFloor) {
                 let currLeaderboard = workingData[messageReaction.message.guildId].msgLeaderboard;
 
-                let messageSnippet = messageReaction.message.embeds ? "MEDIA POST" : messageReaction.message.content.substring(0, 20);
+                let messageSnippet = messageReaction.message.embeds || messageReaction.message.attachments ? "MEDIA POST" : messageReaction.message.content.substring(0, 20);
 
                 if (currLeaderboard.length == 0) {
                     //if leaderboard is unpopulated, automatically push message to leaderboard
@@ -247,7 +226,8 @@ client.on('messageReactionAdd', (messageReaction, user) => {
                         id: messageReaction.message.id,
                         score: messageScore,
                         snippet: messageSnippet,
-                        author: messageReaction.message.author
+                        author: messageReaction.message.author,
+                        channelid: messageReaction.message.channelId
                     };
                     currLeaderboard.push(leaderboardEntry);
                 } else {
@@ -266,7 +246,8 @@ client.on('messageReactionAdd', (messageReaction, user) => {
                             id: messageReaction.message.id,
                             score: messageScore,
                             snippet: messageSnippet,
-                            author: messageReaction.message.author
+                            author: messageReaction.message.author,
+                            channelid: messageReaction.message.channelId
                         };
                         currLeaderboard.splice(replaceIndex, 0, leaderboardEntry);
                     }
@@ -385,6 +366,38 @@ ${underscore('How To Use Purchased Items')}
             })
 
             break;
+        
+        case "msgleaderboard":
+            //TODO: implement this
+            /*
+            Use embeds to show ephemeral leaderboard with hyperlinks to the messages
+            */
+
+            let leaderboardEntries = [];
+
+            //populate leaderboardEntries 
+            workingData[interaction.guildId].msgLeaderboard.forEach(entry => {
+                client.channels.cache.get(entry.channelId).messages.fetch(entry.id).then(message => {
+                    leaderboardEntries.push(
+                        {
+                            name: entry.author + " (" + entry.score + " EB)",
+                            value: entry.snippet + "(" + message.url + ")"
+                        }
+                    );
+                });
+            })
+
+            let leaderboardEmbed = new EmbedBuilder()
+                .setColor(0x0099FF)
+                .setTitle(bold(underscore('MESSAGE LEADERBOARD')))
+                .setDescription('The top earning messages sent in the server!')
+                .addFields(leaderboardEntries);
+
+            interaction.reply({
+                embeds: leaderboardEmbed,
+                ephemeral: true
+            });
+            break;
     }
 });
 
@@ -404,42 +417,23 @@ client.on("guildMemberAdd", member => {
 //===================================================
 client.login(process.env.CLIENT_TOKEN);
 
-function jsonReader(filePath, sync, callBack) {
-    if (sync) {
-        fs.readFileSync(filePath, (error, fileData) => {
-            //catch if readFile() returned an error
-            if (error) {
-                //if there is a callback, return callback(erorr).
-                //if there is no callback, return callback which would be undefined
-                return callBack && callBack(error);
-            }
-    
-            try {
-                //attempt to parse the file data passed from readFile
-                const data = JSON.parse(fileData);
-                return callBack && callBack(null, data);
-            } catch (error) {
-                return callBack && callBack(error);
-            }
-        })
-    } else {
-        fs.readFile(filePath, (error, fileData) => {
-            //catch if readFile() returned an error
-            if (error) {
-                //if there is a callback, return callback(erorr).
-                //if there is no callback, return callback which would be undefined
-                return callBack && callBack(error);
-            }
-    
-            try {
-                //attempt to parse the file data passed from readFile
-                const data = JSON.parse(fileData);
-                return callBack && callBack(null, data);
-            } catch (error) {
-                return callBack && callBack(error);
-            }
-        })
-    }    
+function jsonReader(filePath, callBack) {
+    fs.readFile(filePath, (error, fileData) => {
+        //catch if readFile() returned an error
+        if (error) {
+            //if there is a callback, return callback(erorr).
+            //if there is no callback, return callback which would be undefined
+            return callBack && callBack(error);
+        }
+
+        try {
+            //attempt to parse the file data passed from readFile
+            const data = JSON.parse(fileData);
+            return callBack && callBack(null, data);
+        } catch (error) {
+            return callBack && callBack(error);
+        }
+    });
 }
 
 //returns message composing the main menu of the discord bot
