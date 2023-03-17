@@ -2,11 +2,11 @@
   "users": [
     {
       "tag": "Inspirasian#2923",
-      "lastAwarded": 0,
-      "balance": 4,
+      "lastAwarded": 1679084701,
+      "balance": 13,
       "birthday": "",
-      "fStatReactionsAwarded": 1,
-      "fStatReactionsReceived": 1,
+      "fStatReactionsAwarded": 10,
+      "fStatReactionsReceived": 10,
       "fStatItemsUsed": 0,
       "fStatHighestBal": 0
     },
@@ -31,7 +31,43 @@
       "fStatHighestBal": 0
     }
   ],
-  "activeMenuId": "1085424510217506988",
-  "msgLeaderboard": [],
+  "activeMenuId": "1086382444774699012",
+  "msgLeaderboard": [
+    {
+      "id": "1086384709799526502",
+      "score": 1,
+      "snippet": "another new top msg",
+      "author": "Inspirasian#2923",
+      "channelid": "1084966127328829462"
+    },
+    {
+      "id": "1086382837080531004",
+      "score": 1,
+      "snippet": "should be at top",
+      "author": "Inspirasian#2923",
+      "channelid": "1084966127328829462"
+    },
+    {
+      "id": "1086381306268622879",
+      "score": 1,
+      "snippet": "NEW TEST 1",
+      "author": "Inspirasian#2923",
+      "channelid": "1084966127328829462"
+    },
+    {
+      "id": "1086381312975323146",
+      "score": 1,
+      "snippet": "NEW TEST 2",
+      "author": "Inspirasian#2923",
+      "channelid": "1084966127328829462"
+    },
+    {
+      "id": "1086381322391519383",
+      "score": 1,
+      "snippet": "NEW TEST 3",
+      "author": "Inspirasian#2923",
+      "channelid": "1084966127328829462"
+    }
+  ],
   "msgLeaderboardFloor": 0
 }

@@ -94,9 +94,7 @@ client.on('ready', () => {
                     msgLeaderboardFloor: 0
                 }
 
-                fs.writeFileSync("./database" + guildId + ".json", JSON.stringify(newData, null, 2), error => {
-                    if (error) console.log("Error writing to file: \n" + error);
-                })
+                fs.writeFileSync("./database" + guildId + ".json", JSON.stringify(newData, null, 2));
 
                 workingData[guildId] = newData;
             } else {
@@ -127,9 +125,7 @@ client.on('ready', () => {
                 workingData[guildId].users.push(getNewUserJSON(newUser));
             });
 
-            fs.writeFileSync('./database' + guildId + ".json", JSON.stringify(workingData[guildId], null, 2), error => {
-                if (error) console.log("Error writing to file: \n" + error);
-            });
+            fs.writeFileSync('./database' + guildId + ".json", JSON.stringify(workingData[guildId], null, 2));
         }).catch(console.error);
         
     });
@@ -169,9 +165,11 @@ client.on('messageCreate', (message) => {
         case "shutdown":
             saveData(true);
             message.channel.send({
-                content: "Bot has shut down."
+                content: "Bot has been manually shut down for this server."
+            }).then(() => {
+                console.log("Manual shutdown for server: " + message.guild.name);
+                client.destroy();
             });
-            client.destroy();
             break;
     }
 });
@@ -218,7 +216,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
             if (messageScore >= workingData[messageReaction.message.guildId].msgLeaderboardFloor) {
                 let currLeaderboard = workingData[messageReaction.message.guildId].msgLeaderboard;
 
-                let messageSnippet = messageReaction.message.embeds || messageReaction.message.attachments ? "MEDIA POST" : messageReaction.message.content.substring(0, 20);
+                let messageSnippet = (messageReaction.message.embeds.length || messageReaction.message.attachments.size) ? "MEDIA POST" : messageReaction.message.content.substring(0, 20);
 
                 if (currLeaderboard.length == 0) {
                     //if leaderboard is unpopulated, automatically push message to leaderboard
@@ -226,7 +224,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
                         id: messageReaction.message.id,
                         score: messageScore,
                         snippet: messageSnippet,
-                        author: messageReaction.message.author,
+                        author: messageReaction.message.author.tag,
                         channelid: messageReaction.message.channelId
                     };
                     currLeaderboard.push(leaderboardEntry);
@@ -234,19 +232,20 @@ client.on('messageReactionAdd', (messageReaction, user) => {
                     //if leaderboard is populated, iterate through leaderboard to check if current message has
                     //higher or equal score to any of the entries and replace if so
                     let replaceIndex = msgLeaderboardLimit;
-                    currLeaderboard.forEach((entry, index) => {
-                        if (messageScore >= entry.score) {
-                            replaceIndex = index;
-                            return;
+
+                    for (i in currLeaderboard) {
+                        if (messageScore >= currLeaderboard[i].score) {
+                            replaceIndex = i;
+                            break;
                         }
-                    });
+                    }
 
                     if (replaceIndex < msgLeaderboardLimit) {
                         let leaderboardEntry = {
                             id: messageReaction.message.id,
                             score: messageScore,
                             snippet: messageSnippet,
-                            author: messageReaction.message.author,
+                            author: messageReaction.message.author.tag,
                             channelid: messageReaction.message.channelId
                         };
                         currLeaderboard.splice(replaceIndex, 0, leaderboardEntry);
@@ -265,7 +264,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
 });
 
 //event listener for buttons
-client.on('interactionCreate', interaction => {
+client.on('interactionCreate', async (interaction) => {
     //if interaction is not a button then return
     if (!interaction.isButton()) return;
     if (!interaction.guildId) return;
@@ -373,30 +372,36 @@ ${underscore('How To Use Purchased Items')}
             Use embeds to show ephemeral leaderboard with hyperlinks to the messages
             */
 
-            let leaderboardEntries = [];
+            
 
             //populate leaderboardEntries 
-            workingData[interaction.guildId].msgLeaderboard.forEach(entry => {
-                client.channels.cache.get(entry.channelId).messages.fetch(entry.id).then(message => {
+            let leaderboardEntries = [];
+
+            for (i in workingData[interaction.guildId].msgLeaderboard) {
+                await client.channels.cache.get(workingData[interaction.guildId].msgLeaderboard[i].channelid).messages.fetch(workingData[interaction.guildId].msgLeaderboard[i].id).then(message => {
                     leaderboardEntries.push(
                         {
-                            name: entry.author + " (" + entry.score + " EB)",
-                            value: entry.snippet + "(" + message.url + ")"
+                            name: workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)",
+                            value: "[" + workingData[interaction.guildId].msgLeaderboard[i].snippet + "]" + "(" + message.url + ")"
                         }
                     );
+                    console.log("In Loop \n" + leaderboardEntries);
                 });
-            })
+            }
+
+            console.log(leaderboardEntries);
 
             let leaderboardEmbed = new EmbedBuilder()
-                .setColor(0x0099FF)
-                .setTitle(bold(underscore('MESSAGE LEADERBOARD')))
-                .setDescription('The top earning messages sent in the server!')
-                .addFields(leaderboardEntries);
+            .setColor(0x0099FF)
+            .setTitle(bold(underscore('MESSAGE LEADERBOARD')))
+            .setDescription('The top earning messages sent in the server!')
+            .addFields(leaderboardEntries);
 
             interaction.reply({
-                embeds: leaderboardEmbed,
+                embeds: [leaderboardEmbed],
                 ephemeral: true
             });
+
             break;
     }
 });
@@ -537,9 +542,7 @@ function getNewUserJSON(userTag) {
 function saveData(sync) {
     client.guilds.cache.map(guild => guild.id).forEach((guildId) => {
         if (sync) {
-            fs.writeFileSync('./database' + guildId + '.json', JSON.stringify(workingData[guildId], null, 2), error => {
-                if (error) console.log("Error writing to file: \n" + error);
-            });
+            fs.writeFileSync('./database' + guildId + '.json', JSON.stringify(workingData[guildId], null, 2));
         } else {
             fs.writeFile('./database' + guildId + '.json', JSON.stringify(workingData[guildId], null, 2), error => {
                 if (error) console.log("Error writing to file: \n" + error);
