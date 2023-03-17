@@ -218,6 +218,15 @@ client.on('messageReactionAdd', (messageReaction, user) => {
 
                 let messageSnippet = (messageReaction.message.embeds.length || messageReaction.message.attachments.size) ? "MEDIA POST" : messageReaction.message.content.substring(0, 20);
 
+                //Check if current message is already on leaderboard and if so then remove it from the leaderboard before processing where to update its position
+                let dupeIndex = currLeaderboard.findIndex((entry) => {
+                    entry.id == messageReaction.message.id;
+                });
+
+                if (dupeIndex > 0) {
+                    currLeaderboard.splice(dupeIndex, 1);
+                }
+
                 if (currLeaderboard.length == 0) {
                     //if leaderboard is unpopulated, automatically push message to leaderboard
                     let leaderboardEntry = {
@@ -367,33 +376,38 @@ ${underscore('How To Use Purchased Items')}
             break;
         
         case "msgleaderboard":
-            //TODO: implement this
-            /*
-            Use embeds to show ephemeral leaderboard with hyperlinks to the messages
-            */
-
-            
-
-            //populate leaderboardEntries 
+            //populate leaderboardEntries with embed fields holding info on the leaderboard messages
             let leaderboardEntries = [];
 
             for (i in workingData[interaction.guildId].msgLeaderboard) {
-                await client.channels.cache.get(workingData[interaction.guildId].msgLeaderboard[i].channelid).messages.fetch(workingData[interaction.guildId].msgLeaderboard[i].id).then(message => {
+                //this is such a bad way to handle deleted messages xd but fuck it
+                try {
+                    await client.channels.cache.get(workingData[interaction.guildId].msgLeaderboard[i].channelid).messages.fetch(workingData[interaction.guildId].msgLeaderboard[i].id).then(message => {
+                        leaderboardEntries.push(
+                            {
+                                name: underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
+                                value: "[" + workingData[interaction.guildId].msgLeaderboard[i].snippet + "]" + "(" + message.url + ")"
+                            }
+                        );
+                    });
+                } catch(e) {
                     leaderboardEntries.push(
                         {
-                            name: workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)",
-                            value: "[" + workingData[interaction.guildId].msgLeaderboard[i].snippet + "]" + "(" + message.url + ")"
+                            name: underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
+                            value: workingData[interaction.guildId].msgLeaderboard[i].snippet + "(Original Message Deleted)"
                         }
                     );
-                });
+                }
             }
 
+            //create embed to send with ephemeral message
             let leaderboardEmbed = new EmbedBuilder()
             .setColor(0x0099FF)
             .setTitle(bold(underscore('MESSAGE LEADERBOARD')))
             .setDescription('The top earning messages sent in the server!')
             .addFields(leaderboardEntries);
 
+            //send leaderboard message
             interaction.reply({
                 embeds: [leaderboardEmbed],
                 ephemeral: true
