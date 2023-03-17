@@ -385,11 +385,8 @@ ${underscore('How To Use Purchased Items')}
                             value: "[" + workingData[interaction.guildId].msgLeaderboard[i].snippet + "]" + "(" + message.url + ")"
                         }
                     );
-                    console.log("In Loop \n" + leaderboardEntries);
                 });
             }
-
-            console.log(leaderboardEntries);
 
             let leaderboardEmbed = new EmbedBuilder()
             .setColor(0x0099FF)
