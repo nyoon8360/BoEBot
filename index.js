@@ -20,13 +20,13 @@ database.json format:
             "balance": 0,
             "lastAwarded": 1678310667 this will be a number using epoch unix timestamp in seconds,
             "inventory": [
-                "itemname": 0,
-                "itemname2": 2
-            ],
-            "equiped": {
-                "head":
-                ""
-            }
+                {
+                    "name": "item_kick",
+                    "displayName": "Comically Large Boot",
+                    "description": "A weirdly fragile boot used to kick someone from voice chat but breaks after a single use.",
+                    "count": 0
+                }
+            ]
         }
     ],
     "msgLeaderboard": [
@@ -36,6 +36,10 @@ database.json format:
     ],
     "msgLeaderboardFloor": 0
 }
+
+underscore("Categories");
+[Usables] [Equipment] [Others]
+
 */
 
 // NOTE: Make sure to update intents if new events not in current intents are needed to be listened to
@@ -385,7 +389,7 @@ ${underscore('How To Use Purchased Items')}
                     await client.channels.cache.get(workingData[interaction.guildId].msgLeaderboard[i].channelid).messages.fetch(workingData[interaction.guildId].msgLeaderboard[i].id).then(message => {
                         leaderboardEntries.push(
                             {
-                                name: underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
+                                name: "[" + (i + 1) + "]" + underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
                                 value: "[" + workingData[interaction.guildId].msgLeaderboard[i].snippet + "]" + "(" + message.url + ")"
                             }
                         );
@@ -399,7 +403,7 @@ ${underscore('How To Use Purchased Items')}
                     );
                 }
             }
-
+            
             //create embed to send with ephemeral message
             let leaderboardEmbed = new EmbedBuilder()
             .setColor(0x0099FF)
