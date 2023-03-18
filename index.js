@@ -424,7 +424,7 @@ Check back again later to see if they've come back!
                     )
     
                 interaction.reply({
-                    content: bold(underscore("Shop Categories")),
+                    content: bold(underscore("SHOP CATEGORIES")),
                     ephemeral: true,
                     components: [row]
                 });
@@ -468,7 +468,7 @@ ${underscore('How To Use Purchased Items')}
                 })
     
                 interaction.reply({
-                    content: underscore(bold("LEADERBOARD")) + "\n" + leaderboard,
+                    content: underscore(bold("USER LEADERBOARD")) + "\n" + leaderboard,
                     ephemeral: true
                 })
     
@@ -543,7 +543,7 @@ ${underscore('How To Use Purchased Items')}
                 shopPage.push(pageNavRow);
 
                 interaction.reply({
-                    content: bold(underscore("Usables Shop")),
+                    content: bold(underscore("USABLES SHOP")),
                     components: shopPage,
                     ephemeral: true
                 });
