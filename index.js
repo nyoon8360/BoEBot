@@ -2,6 +2,8 @@ require('dotenv').config();
 const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, parseEmoji, inlineCode, bold, underscore, Options, Sweepers, EmbedBuilder } = require('discord.js');
 const fs = require('fs');
 const config = require('./config.json');
+const items = require('./items.json');
+const equipment = require('./equipment.json');
 //import { setTimeout } from 'timers/promises';
 
 /*
@@ -22,11 +24,12 @@ database.json format:
             "inventory": [
                 {
                     "name": "item_kick",
-                    "displayName": "Comically Large Boot",
-                    "description": "A weirdly fragile boot used to kick someone from voice chat but breaks after a single use.",
                     "count": 0
                 }
-            ]
+            ],
+            "equipment": {
+                "head": ""
+            }
         }
     ],
     "msgLeaderboard": [
@@ -39,7 +42,14 @@ database.json format:
 
 underscore("Categories");
 [Usables] [Equipment] [Others]
-
+ |
+ V
+ underscore("Usables");
+ [item1] [item2] [item3]
+ [item4] [item5]
+ [item6]
+ [item7]
+ [Next Page] [Page 1] [Previous Page]
 */
 
 // NOTE: Make sure to update intents if new events not in current intents are needed to be listened to
@@ -65,17 +75,33 @@ const client = new Client({
 
 var workingData = {}; //In-memory data
 
-const reactCooldown = config.reactCooldown; //how long users must wait in between awarding edbucks in seconds
-const msgExpiration = config.msgExpiration; //how long a message can be awarded edbucks for in seconds
-const reactAward = config.reactAward; //how many edbucks awarded for reactions
-const treasureLR = config.treasureLowerRange;
-const treasureUR = config.treasureUpperRange;
-const treasureCDLR = config.treasureCooldownLowerRange;
-const treasureCDUR = config.treasureCooldownUpperRange;
-const msgLeaderboardLimit = config.msgLeaderboardLimit;
-const currencyEmojiName = config.currencyEmojiName;
-const botAdmins = config.admins;
-const saveInterval = config.saveInterval;
+const reactCooldown = config.common.reactCooldown; //how long users must wait in between awarding edbucks in seconds
+const msgExpiration = config.common.msgExpiration; //how long a message can be awarded edbucks for in seconds
+const reactAward = config.common.reactAward; //how many edbucks awarded for reactions
+const treasureLR = config.common.treasureLowerRange;
+const treasureUR = config.common.treasureUpperRange;
+const treasureCDLR = config.common.treasureCooldownLowerRange;
+const treasureCDUR = config.common.treasureCooldownUpperRange;
+const msgLeaderboardLimit = config.common.msgLeaderboardLimit;
+const currencyEmojiName = config.common.currencyEmojiName;
+const botAdmins = config.common.admins;
+const saveInterval = config.common.saveInterval;
+
+//Interact event constants
+const intMainMenuPrefix = "MAINMENU_";
+const intShopPrefix = "SHOPSELECTITEM_";
+const intShopPagePrefix = "SHOPNAVPAGES_";
+const intShopCategoryPrefix = "SHOPSELECTCATEGORY_";
+
+//Shop pages and helper variables
+var shopPages_usables = [];
+var shopPages_others = [];
+
+/*
+index 1: head equipment
+index 2: ...
+*/
+var shopPages_equipment = [];
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -134,6 +160,39 @@ client.on('ready', () => {
         
     });
 
+    
+    //Populate usables shop pages
+    for (let pageIndex = 0; pageIndex < Math.ceil(items.length / 20); pageIndex++) {
+        let newPage = [];
+        console.log("page loop");
+        for (let rowIndex = 0; rowIndex < 4; rowIndex ++) {
+            console.log("row loop");
+            let row = new ActionRowBuilder();
+            for (let shelfIndex = 0; shelfIndex < 5; shelfIndex++) {
+                console.log("item loop");
+                if (items[(pageIndex * 20) + (rowIndex * 5) + shelfIndex] != undefined) {
+                    row.addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(intShopPrefix + items[(pageIndex * 20) + (rowIndex * 5) + shelfIndex].name)
+                            .setLabel(items[(pageIndex * 20) + (rowIndex * 5) + shelfIndex].displayName)
+                            .setStyle(ButtonStyle.Success)
+                    )
+                } else {
+                    row.addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(intShopPrefix + "EMPTYSHELF")
+                            .setLabel("Empty Shelf")
+                            .setStyle(ButtonStyle.Secondary)
+                    )
+                }
+            }
+            newPage.push(row);
+        }
+        shopPages_usables.push(newPage);
+    }
+    
+
+    //Set interval for autosaving workingData to json database files
     setInterval(() => {
         saveData();
         console.log((Date.now()/1000) + " (Epoch Seconds Timestamp): Autosave Complete!");
@@ -283,142 +342,199 @@ client.on('interactionCreate', async (interaction) => {
     if (!interaction.guildId) return;
 
     //switch for code for different buttons
-    switch(interaction.customId) {
-        case "showstats":
-            //show user stats
-            let requester = workingData[interaction.guildId].users.find(obj => {
-                return obj.tag == interaction.user.tag;
-            });
-
-            let lastAwarded = requester.lastAwarded > 0 ? time(requester.lastAwarded, "R") : inlineCode("Never");
-
-            interaction.reply({
-                content: `
+    if (interaction.customId.substring(0, intMainMenuPrefix.length) == intMainMenuPrefix) {
+        switch(interaction.customId.substring(intMainMenuPrefix.length)) {
+            case "showstats":
+                //show user stats
+                let requester = workingData[interaction.guildId].users.find(obj => {
+                    return obj.tag == interaction.user.tag;
+                });
+    
+                let lastAwarded = requester.lastAwarded > 0 ? time(requester.lastAwarded, "R") : inlineCode("Never");
+    
+                interaction.reply({
+                    content: `
 ${bold(underscore('YOUR STATS'))}
 Edbuck Balance: ${requester.balance}
 Last Edbuck Awarded: ${lastAwarded}
-                `,
-                ephemeral: true
-            });
-
-            break;
-        
-        case "openinv":
-            break;
-
-        case "findtreasure":
-            //on click, award treasure, deactivate this button for a random amount of hours, and then reactivate
-            let user = workingData[interaction.guildId].users.find(obj => {
-                return obj.tag == interaction.user.tag;
-            });
-
-            let treasure = Math.floor(Math.random() * (treasureUR - treasureLR)) + treasureLR;
-            user.balance += treasure;
-
-            interaction.reply({
-                content: `
+                    `,
+                    ephemeral: true
+                });
+    
+                break;
+            
+            case "openinv":
+                break;
+    
+            case "trade":
+                break;
+    
+            case "findtreasure":
+                //on click, award treasure, deactivate this button for a random amount of hours, and then reactivate
+                let user = workingData[interaction.guildId].users.find(obj => {
+                    return obj.tag == interaction.user.tag;
+                });
+    
+                let treasure = Math.floor(Math.random() * (treasureUR - treasureLR)) + treasureLR;
+                user.balance += treasure;
+    
+                interaction.reply({
+                    content: `
 You've found ${treasure} edbucks dropped by a wild Edwin!
 All the local Edwins have been spooked back into hiding.
 Check back again later to see if they've come back!
-                `,
-                ephemeral: true
-            });
-
-            interaction.channel.messages.fetch(workingData[interaction.guildId].activeMenuId).then(result => {
-                //disable pick up edbucks button
-                result.edit(openMenu(true));
-
-                //set async function to wait until cooldown is over then re-enable button
-                (async (menu) => {
-                    let timeoutDuration = Math.floor(Math.random() * (treasureCDUR - treasureCDLR)) + treasureCDLR;
-                    await setTimeout(() => menu.edit(openMenu()), timeoutDuration * 1000);
-                })(result);
-            });
-            break;
-        
-        case "help":
-            //TODO: implement help message
-
-            interaction.reply({
-                content:`
+                    `,
+                    ephemeral: true
+                });
+    
+                interaction.channel.messages.fetch(workingData[interaction.guildId].activeMenuId).then(result => {
+                    //disable pick up edbucks button
+                    result.edit(openMenu(true));
+    
+                    //set async function to wait until cooldown is over then re-enable button
+                    (async (menu) => {
+                        let timeoutDuration = Math.floor(Math.random() * (treasureCDUR - treasureCDLR)) + treasureCDLR;
+                        await setTimeout(() => menu.edit(openMenu()), timeoutDuration * 1000);
+                    })(result);
+                });
+                break;
+            
+            case "minigames":
+                break;
+    
+            case "challenge":
+                break;
+    
+            case "wager":
+                break;
+    
+            case "shop":
+                //Open shop categories
+                let row = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(intShopCategoryPrefix + "usables")
+                            .setLabel("Usables")
+                            .setStyle(ButtonStyle.Danger),
+                        new ButtonBuilder()
+                            .setCustomId(intShopCategoryPrefix + "equipment")
+                            .setLabel("Equipment")
+                            .setStyle(ButtonStyle.Danger),
+                        new ButtonBuilder()
+                            .setCustomId(intShopCategoryPrefix + "others")
+                            .setLabel("Others")
+                            .setStyle(ButtonStyle.Danger)
+                    )
+    
+                interaction.reply({
+                    content: bold(underscore("Shop Categories")),
+                    ephemeral: true,
+                    components: [row]
+                });
+    
+                break;
+    
+            case "help":
+                //TODO: implement help message
+    
+                interaction.reply({
+                    content:`
 ${bold(underscore('HELP'))}
-
+    
 ${underscore('Main Sources Of Edbucks')}
 1. Having people react to your messages with the :edbuck: emote.
 2. Being the first person to click on the "Pick Up Edbucks" button when it's randomly enabled.
 3. Winning minigames (WIP)
-
+    
 ${underscore('Ways To Use Your Edbucks')}
 1. Spend them on items in the store.
 2. Trade them with other players through the "Trade" button.
 3. Wager them against other players through the "Wager Edbucks" button.
-
+    
 ${underscore('How To Use Purchased Items')}
 1. Access your inventory through the "Open Inventory" button.
 2. Click on the item you want to use.
 3. Select the user you want to use the item on from the drop down menu.
-                `,
-                ephemeral: true
-            })
-
-            break;
-        
-        case "userleaderboard":
-            let sortedLeaderboard = workingData[interaction.guildId].users.sort((a, b) => (a.balance > b.balance) ? -1 : 1);
-
-            let leaderboard = "";
-
-            sortedLeaderboard.forEach((user, index) => {
-                leaderboard += "(" + (index + 1) + ") " + user.tag + ": " + user.balance + " EB \n"
-            })
-
-            interaction.reply({
-                content: underscore(bold("LEADERBOARD")) + "\n" + leaderboard,
-                ephemeral: true
-            })
-
-            break;
-        
-        case "msgleaderboard":
-            //populate leaderboardEntries with embed fields holding info on the leaderboard messages
-            let leaderboardEntries = [];
-
-            for (i in workingData[interaction.guildId].msgLeaderboard) {
-                //this is such a bad way to handle deleted messages xd but fuck it
-                try {
-                    await client.channels.cache.get(workingData[interaction.guildId].msgLeaderboard[i].channelid).messages.fetch(workingData[interaction.guildId].msgLeaderboard[i].id).then(message => {
+                    `,
+                    ephemeral: true
+                })
+    
+                break;
+            
+            case "userleaderboard":
+                let sortedLeaderboard = workingData[interaction.guildId].users.sort((a, b) => (a.balance > b.balance) ? -1 : 1);
+    
+                let leaderboard = "";
+    
+                sortedLeaderboard.forEach((user, index) => {
+                    leaderboard += "(" + (index + 1) + ") " + user.tag + ": " + user.balance + " EB \n"
+                })
+    
+                interaction.reply({
+                    content: underscore(bold("LEADERBOARD")) + "\n" + leaderboard,
+                    ephemeral: true
+                })
+    
+                break;
+            
+            case "msgleaderboard":
+                //populate leaderboardEntries with embed fields holding info on the leaderboard messages
+                let leaderboardEntries = [];
+    
+                for (i in workingData[interaction.guildId].msgLeaderboard) {
+                    //this is such a bad way to handle deleted messages xd but fuck it
+                    try {
+                        await client.channels.cache.get(workingData[interaction.guildId].msgLeaderboard[i].channelid).messages.fetch(workingData[interaction.guildId].msgLeaderboard[i].id).then(message => {
+                            leaderboardEntries.push(
+                                {
+                                    name: "[" + (i) + "]" + underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
+                                    value: "[" + workingData[interaction.guildId].msgLeaderboard[i].snippet + "]" + "(" + message.url + ")"
+                                }
+                            );
+                        });
+                    } catch(e) {
                         leaderboardEntries.push(
                             {
-                                name: "[" + (i + 1) + "]" + underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
-                                value: "[" + workingData[interaction.guildId].msgLeaderboard[i].snippet + "]" + "(" + message.url + ")"
+                                name: underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
+                                value: workingData[interaction.guildId].msgLeaderboard[i].snippet + "(Original Message Deleted)"
                             }
                         );
-                    });
-                } catch(e) {
-                    leaderboardEntries.push(
-                        {
-                            name: underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
-                            value: workingData[interaction.guildId].msgLeaderboard[i].snippet + "(Original Message Deleted)"
-                        }
-                    );
+                    }
                 }
-            }
+                
+                //create embed to send with ephemeral message
+                let leaderboardEmbed = new EmbedBuilder()
+                .setColor(0x0099FF)
+                .setTitle(bold(underscore('MESSAGE LEADERBOARD')))
+                .setDescription('The top earning messages sent in the server!')
+                .addFields(leaderboardEntries);
+    
+                //send leaderboard message
+                interaction.reply({
+                    embeds: [leaderboardEmbed],
+                    ephemeral: true
+                });
+    
+                break;
+        }
+    } else if (interaction.customId.substring(0, intShopPrefix.length) == intShopPrefix) {
+
+    } else if (interaction.customId.substring(0, intShopCategoryPrefix.length) == intShopCategoryPrefix) {
+        switch(interaction.customId.substring(intShopCategoryPrefix)) {
+            case "usables":
+
+                break;
             
-            //create embed to send with ephemeral message
-            let leaderboardEmbed = new EmbedBuilder()
-            .setColor(0x0099FF)
-            .setTitle(bold(underscore('MESSAGE LEADERBOARD')))
-            .setDescription('The top earning messages sent in the server!')
-            .addFields(leaderboardEntries);
+            case "equipment":
+                break;
 
-            //send leaderboard message
-            interaction.reply({
-                embeds: [leaderboardEmbed],
-                ephemeral: true
-            });
+            case "others":
+                break;
+        }
+    } else if (interaction.customId.substring(0, intShopPagePrefix.length) == intShopPagePrefix) {
 
-            break;
     }
+
 });
 
 //on new guild user join, add entry to database if not already existing
@@ -460,22 +576,22 @@ function jsonReader(filePath, callBack) {
 function openMenu(disabled) {
     let row1 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId('showstats')
+            .setCustomId(intMainMenuPrefix + 'showstats')
             .setLabel('Show Stats')
             .setStyle(ButtonStyle.Primary)
             .setEmoji('📜'),
         new ButtonBuilder()
-            .setCustomId('openinv')
+            .setCustomId(intMainMenuPrefix + 'openinv')
             .setLabel('Open Inventory')
             .setStyle(ButtonStyle.Primary)
             .setEmoji('📦'),
         new ButtonBuilder()
-            .setCustomId('trade')
+            .setCustomId(intMainMenuPrefix + 'trade')
             .setLabel('Trade')
             .setStyle(ButtonStyle.Primary)
             .setEmoji('🤝'),
         new ButtonBuilder()
-            .setCustomId('findtreasure')
+            .setCustomId(intMainMenuPrefix + 'findtreasure')
             .setLabel('Pick Up Edbucks')
             .setStyle(ButtonStyle.Primary)
             .setEmoji('💸')
@@ -484,17 +600,17 @@ function openMenu(disabled) {
 
     let row2 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId('minigames')
+            .setCustomId(intMainMenuPrefix + 'minigames')
             .setLabel('Minigames')
             .setStyle(ButtonStyle.Success)
             .setEmoji('🎮'),
         new ButtonBuilder()
-            .setCustomId('challenge')
+            .setCustomId(intMainMenuPrefix + 'challenge')
             .setLabel('Challenge')
             .setStyle(ButtonStyle.Success)
             .setEmoji('🙌'),
         new ButtonBuilder()
-            .setCustomId('wager')
+            .setCustomId(intMainMenuPrefix + 'wager')
             .setLabel('Wager Edbucks')
             .setStyle(ButtonStyle.Success)
             .setEmoji('🎲')
@@ -502,7 +618,7 @@ function openMenu(disabled) {
 
     let row3 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId('shop')
+            .setCustomId(intMainMenuPrefix + 'shop')
             .setLabel('Shop')
             .setStyle(ButtonStyle.Danger)
             .setEmoji('🛒')
@@ -510,22 +626,22 @@ function openMenu(disabled) {
 
     let row4 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId('userleaderboard')
+            .setCustomId(intMainMenuPrefix + 'userleaderboard')
             .setLabel('User Leaderboard')
             .setStyle(ButtonStyle.Secondary)
             .setEmoji('🏆'),
         new ButtonBuilder()
-            .setCustomId('msgleaderboard')
+            .setCustomId(intMainMenuPrefix + 'msgleaderboard')
             .setLabel('Message Leaderboard')
             .setStyle(ButtonStyle.Secondary)
             .setEmoji('🥇'),
         new ButtonBuilder()
-            .setCustomId('settings')
+            .setCustomId(intMainMenuPrefix + 'settings')
             .setLabel('Settings')
             .setStyle(ButtonStyle.Secondary)
             .setEmoji('⚙️'),
         new ButtonBuilder()
-            .setCustomId('help')
+            .setCustomId(intMainMenuPrefix + 'help')
             .setLabel('Help')
             .setStyle(ButtonStyle.Secondary)
             .setEmoji('❓')

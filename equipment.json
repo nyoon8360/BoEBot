@@ -1,0 +1,16 @@
+{
+    "head": [
+
+    ],
+    "ring": [
+        {
+            "name": "equip_mirrorRing",
+            "displayName": "Mirror Ring",
+            "lore": "A ring with a small mirror on it. Your opponent has got to have god awful aim to ever accidentally hit this.",
+            "description": "Gives a 5% chance to reflect any item used on you back to the user.",
+            "slot": "ring",
+            "effectingStat": "reflect",
+            "effectAmount": 5
+        }
+    ]
+}

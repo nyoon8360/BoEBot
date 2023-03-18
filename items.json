@@ -1,0 +1,8 @@
+[
+    {
+        "name": "item_kick",
+        "displayName": "Comically Large Boot",
+        "lore": "A weirdly fragile boot used to kick someone from voice chat but breaks after a single use.",
+        "description": "Kicks a specified user from any voice chats they're in."
+    }
+]

@@ -1,18 +1,22 @@
 {
-    "saveInterval": 3600,
-    "reactCooldown":3600,
-    "msgExpiration":3600,
-    "reactAward":1,
-    "treasureLowerRange": 1,
-    "treasureUpperRange": 3,
-    "treasureCooldownLowerRange": 3600, 
-    "treasureCooldownUpperRange": 7200,
-    "itemMuteDuration": 7,
-    "itemPolymorphDuration": 300,
-    "itemBanishChannelId": "815839363748462612",
-    "msgLeaderboardLimit": 5,
-    "currencyEmojiName": "edbuck",
-    "admins": [
-        "Inspirasian#2923"
-    ]
+    "common": {
+        "currencyEmojiName": "edbuck",
+        "saveInterval": 3600,
+        "reactCooldown":3600,
+        "msgExpiration":3600,
+        "reactAward":1,
+        "treasureLowerRange": 1,
+        "treasureUpperRange": 3,
+        "treasureCooldownLowerRange": 3600, 
+        "treasureCooldownUpperRange": 7200,
+        "msgLeaderboardLimit": 5,
+        "admins": [
+            "Inspirasian#2923"
+        ]
+    },
+    "items": {
+        "itemMuteDuration": 7,
+        "itemPolymorphDuration": 300,
+        "itemBanishChannelId": "815839363748462612"
+    }
 }
