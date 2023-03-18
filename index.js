@@ -86,6 +86,7 @@ const msgLeaderboardLimit = config.common.msgLeaderboardLimit;
 const currencyEmojiName = config.common.currencyEmojiName;
 const botAdmins = config.common.admins;
 const saveInterval = config.common.saveInterval;
+const shopItemsPerRow = config.common.shopItemsPerRow;
 
 //Interact event constants
 const intMainMenuPrefix = "MAINMENU_";
@@ -166,19 +167,19 @@ client.on('ready', () => {
         let newPage = [];
         for (let rowIndex = 0; rowIndex < 4; rowIndex ++) {
             let row = new ActionRowBuilder();
-            for (let shelfIndex = 0; shelfIndex < 5; shelfIndex++) {
-                if (items[(pageIndex * 20) + (rowIndex * 5) + shelfIndex] != undefined) {
+            for (let shelfIndex = 0; shelfIndex < shopItemsPerRow; shelfIndex++) {
+                if (items[(pageIndex * 20) + (rowIndex * shopItemsPerRow) + shelfIndex] != undefined) {
                     row.addComponents(
                         new ButtonBuilder()
-                            .setCustomId(intShopPrefix + items[(pageIndex * 20) + (rowIndex * 5) + shelfIndex].name)
-                            .setLabel(items[(pageIndex * 20) + (rowIndex * 5) + shelfIndex].displayName)
+                            .setCustomId(intShopPrefix + items[(pageIndex * 20) + (rowIndex * shopItemsPerRow) + shelfIndex].name)
+                            .setLabel(items[(pageIndex * 20) + (rowIndex * shopItemsPerRow) + shelfIndex].displayName)
                             .setStyle(ButtonStyle.Success)
                     )
                 } else {
                     row.addComponents(
                         new ButtonBuilder()
                             .setLabel("Empty Shelf")
-                            .setCustomId(intShopPrefix + "EMPTYSHELF_" + ((pageIndex * 20) + (rowIndex * 5) + shelfIndex))
+                            .setCustomId(intShopPrefix + "EMPTYSHELF_" + ((pageIndex * 20) + (rowIndex * shopItemsPerRow) + shelfIndex))
                             .setStyle(ButtonStyle.Secondary)
                     )
                 }

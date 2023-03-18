@@ -1,9 +1,10 @@
 {
     "common": {
         "currencyEmojiName": "edbuck",
-        "saveInterval": 3600,
+        "saveInterval": 10,
         "reactCooldown":3600,
         "msgExpiration":3600,
+        "shopItemsPerRow": 3,
         "reactAward":1,
         "treasureLowerRange": 1,
         "treasureUpperRange": 3,
