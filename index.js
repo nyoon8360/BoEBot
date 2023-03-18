@@ -86,7 +86,7 @@ const msgLeaderboardLimit = config.common.msgLeaderboardLimit;
 const currencyEmojiName = config.common.currencyEmojiName;
 const botAdmins = config.common.admins;
 const saveInterval = config.common.saveInterval;
-const shopItemsPerRow = config.common.shopItemsPerRow;
+const shopItemsPerRow = config.common.shopItemsPerRow > 5 ? 5 : config.common.shopItemsPerRow;
 
 //Interact event constants
 const intMainMenuPrefix = "MAINMENU_";
