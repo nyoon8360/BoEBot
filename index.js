@@ -164,12 +164,9 @@ client.on('ready', () => {
     //Populate usables shop pages
     for (let pageIndex = 0; pageIndex < Math.ceil(items.length / 20); pageIndex++) {
         let newPage = [];
-        console.log("page loop");
         for (let rowIndex = 0; rowIndex < 4; rowIndex ++) {
-            console.log("row loop");
             let row = new ActionRowBuilder();
             for (let shelfIndex = 0; shelfIndex < 5; shelfIndex++) {
-                console.log("item loop");
                 if (items[(pageIndex * 20) + (rowIndex * 5) + shelfIndex] != undefined) {
                     row.addComponents(
                         new ButtonBuilder()
@@ -180,8 +177,8 @@ client.on('ready', () => {
                 } else {
                     row.addComponents(
                         new ButtonBuilder()
-                            .setCustomId(intShopPrefix + "EMPTYSHELF")
                             .setLabel("Empty Shelf")
+                            .setCustomId(intShopPrefix + "EMPTYSHELF_" + ((pageIndex * 20) + (rowIndex * 5) + shelfIndex))
                             .setStyle(ButtonStyle.Secondary)
                     )
                 }
@@ -279,7 +276,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
             if (messageScore >= workingData[messageReaction.message.guildId].msgLeaderboardFloor) {
                 let currLeaderboard = workingData[messageReaction.message.guildId].msgLeaderboard;
 
-                let messageSnippet = (messageReaction.message.embeds.length || messageReaction.message.attachments.size) ? "MEDIA POST" : messageReaction.message.content.substring(0, 20);
+                let messageSnippet = (messageReaction.message.embeds.length || messageReaction.message.attachments.size) ? "MEDIA POST" : messageReaction.message.content.length > 20 ? messageReaction.message.content.substring(0, 17) + "...": messageReaction.message.content.substring(0, 20);
 
                 //Check if current message is already on leaderboard and if so then remove it from the leaderboard before processing where to update its position
                 let dupeIndex = currLeaderboard.findIndex((entry) => {
@@ -481,13 +478,13 @@ ${underscore('How To Use Purchased Items')}
                 //populate leaderboardEntries with embed fields holding info on the leaderboard messages
                 let leaderboardEntries = [];
     
-                for (i in workingData[interaction.guildId].msgLeaderboard) {
+                for (let i in workingData[interaction.guildId].msgLeaderboard) {
                     //this is such a bad way to handle deleted messages xd but fuck it
                     try {
                         await client.channels.cache.get(workingData[interaction.guildId].msgLeaderboard[i].channelid).messages.fetch(workingData[interaction.guildId].msgLeaderboard[i].id).then(message => {
                             leaderboardEntries.push(
                                 {
-                                    name: "[" + (i) + "]" + underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
+                                    name: `[${parseInt(i) + 1}] ` + underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
                                     value: "[" + workingData[interaction.guildId].msgLeaderboard[i].snippet + "]" + "(" + message.url + ")"
                                 }
                             );
@@ -495,8 +492,8 @@ ${underscore('How To Use Purchased Items')}
                     } catch(e) {
                         leaderboardEntries.push(
                             {
-                                name: underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
-                                value: workingData[interaction.guildId].msgLeaderboard[i].snippet + "(Original Message Deleted)"
+                                name: `[${parseInt(i) + 1}] ` + underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
+                                value: "(Original Message Deleted)"
                             }
                         );
                     }
@@ -520,9 +517,36 @@ ${underscore('How To Use Purchased Items')}
     } else if (interaction.customId.substring(0, intShopPrefix.length) == intShopPrefix) {
 
     } else if (interaction.customId.substring(0, intShopCategoryPrefix.length) == intShopCategoryPrefix) {
-        switch(interaction.customId.substring(intShopCategoryPrefix)) {
+        switch(interaction.customId.substring(intShopCategoryPrefix.length)) {
             case "usables":
 
+                let pageNavRow = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(intShopPagePrefix + "previous")
+                            .setLabel("Prev")
+                            .setStyle(ButtonStyle.Primary)
+                            .setDisabled(true),
+                        new ButtonBuilder()
+                            .setCustomId(intShopPagePrefix + "pagenum")
+                            .setLabel("Page 1")
+                            .setStyle(ButtonStyle.Primary)
+                            .setDisabled(true),
+                        new ButtonBuilder()
+                            .setCustomId(intShopPagePrefix + "next")
+                            .setLabel("Next")
+                            .setStyle(ButtonStyle.Primary)
+                            .setDisabled(!(shopPages_usables.length > 1))
+                    );
+
+                let shopPage = [...shopPages_usables[0]];
+                shopPage.push(pageNavRow);
+
+                interaction.reply({
+                    content: bold(underscore("Usables Shop")),
+                    components: shopPage,
+                    ephemeral: true
+                });
                 break;
             
             case "equipment":
