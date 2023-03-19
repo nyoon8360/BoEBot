@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, parseEmoji, inlineCode, bold, underscore, Options, Sweepers, EmbedBuilder, italic } = require('discord.js');
+const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, parseEmoji, inlineCode, bold, underscore, Options, Sweepers, EmbedBuilder, italic, codeBlock, TextInputBuilder, TextInputStyle } = require('discord.js');
 const fs = require('fs');
 const config = require('./config.json');
 const items = require('./items.json');
@@ -19,14 +19,15 @@ database.json format:
             "tag":"string with discord user's tag i.e 'inspirasian#1234'",
             "balance": 0,
             "lastAwarded": 1678310667 this will be a number using epoch unix timestamp in seconds,
-            "inventory": [
+            "itemInventory": [
                 {
                     "name": "item_kick",
                     "count": 0
                 }
             ],
-            "equipment": {
-                "head": ""
+            "equipmentInventory": [],
+            "equiped": {
+                "head": 
             }
         }
     ],
@@ -387,7 +388,7 @@ Check back again later to see if they've come back!
                 interaction.channel.messages.fetch(workingData[interaction.guildId].activeMenuId).then(result => {
                     //disable pick up edbucks button
                     result.edit(openMenu(true));
-    
+                    
                     //set async function to wait until cooldown is over then re-enable button
                     (async (menu) => {
                         let timeoutDuration = Math.floor(Math.random() * (treasureCDUR - treasureCDLR)) + treasureCDLR;
@@ -531,11 +532,15 @@ ${underscore('How To Use Purchased Items')}
                 new ButtonBuilder()
                     .setCustomId(intShopPurchaseMenuPrefix + itemInfo.name)
                     .setLabel("Purchase")
-                    .setStyle(ButtonStyle.Success)
-            )
-            
+                    .setStyle(ButtonStyle.Success),
+                new ButtonBuilder()
+                    .setCustomId(intShopPurchaseMenuPrefix + "x5" + itemInfo.name)
+                    .setLabel("Purchase x5")
+                    .setStyle(ButtonStyle.Success),
+            );
+
         interaction.update({
-            content: bold("===============\nUSABLES SHOP\n===============") + "\n" + underscore(itemInfo.displayName) + "\n" + italic(itemInfo.lore) + "\n" + itemInfo.description,
+            content: bold("===============\nUSABLES SHOP\n===============") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock("Description: " + itemInfo.description + "\nEffect: " + itemInfo.effect + "\nPrice: " + itemInfo.price + " EB"),
             components: [row],
             ephemeral: true
         });
@@ -560,10 +565,61 @@ ${underscore('How To Use Purchased Items')}
         if (interaction.customId.substring(intShopPurchaseMenuPrefix.length) == "BACK") {
             interaction.update(openUsablesShop());
         } else {
-            //TODO: write logic to handle purchasing item from shop
+            //change purchase count if purchasing more than 1 of the item
+            let pCount = 1;
+            if (interaction.customId.substring(intShopPurchaseMenuPrefix.length).substring(0, 2) == "x5") pCount = 5;
+
+            //fetch item and customer info
+            let itemInfo = items.find(obj => {
+                return obj.name == pCount > 1 ? interaction.customId.substring(intShopPurchaseMenuPrefix.length + 2) : interaction.customId.substring(intShopPurchaseMenuPrefix.length);
+            });
+
+            let customer = workingData[interaction.guildId].users.find(obj => {
+                return obj.tag == interaction.user.tag;
+            });
+
+            //do a balance check for the customer
+            if (customer.balance < (itemInfo.price * pCount)) {
+                interaction.reply({
+                    content: "Insufficient Edbucks!",
+                    ephemeral: true
+                });
+                return;
+            }
+
+            //deduct balance and give customer the purchased item(s)
+            customer.balance -= (itemInfo.price * pCount);
+
+            let existingInventoryEntry = customer.itemInventory.find(obj => {
+                obj.name == itemInfo.name;
+            });
+
+            if (existingInventoryEntry) {
+                existingInventoryEntry.count += pCount;
+            } else {
+                customer.itemInventory.push(
+                    {
+                        name: itemInfo.name,
+                        count: pCount
+                    }
+                )
+            }
+
+            let row = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(intShopPurchaseMenuPrefix + "BACK")
+                        .setStyle(ButtonStyle.Danger)
+                        .setLabel("Back")
+                )
+
+            interaction.update({
+                content: bold("===================\nPurchase Complete!\n==================="),
+                ephemeral: true,
+                components: [row]
+            });
         }
     }
-
 });
 
 //on new guild user join, add entry to database if not already existing
@@ -722,6 +778,9 @@ function getNewUserJSON(userTag) {
         lastAwarded: 0,
         balance: 0,
         birthday: "",
+        itemInventory: [],
+        equipmentInventory: [],
+        equiped: {},
         fStatReactionsAwarded: 0,
         fStatReactionsReceived: 0,
         fStatItemsUsed: 0,

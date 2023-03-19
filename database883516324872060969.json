@@ -3,12 +3,18 @@
     {
       "tag": "Inspirasian#2923",
       "lastAwarded": 1679181319,
-      "balance": 14,
+      "balance": 9,
       "birthday": "",
       "fStatReactionsAwarded": 11,
       "fStatReactionsReceived": 11,
       "fStatItemsUsed": 0,
-      "fStatHighestBal": 0
+      "fStatHighestBal": 0,
+      "itemInventory": [
+        {
+          "name": "item_kick",
+          "count": 1
+        }
+      ]
     },
     {
       "tag": "BoE Bot#1195",
@@ -18,7 +24,8 @@
       "fStatReactionsAwarded": 0,
       "fStatReactionsReceived": 0,
       "fStatItemsUsed": 0,
-      "fStatHighestBal": 0
+      "fStatHighestBal": 0,
+      "itemInventory": []
     },
     {
       "tag": "Dummy User#1234",
@@ -28,7 +35,8 @@
       "fStatReactionsAwarded": 0,
       "fStatReactionsReceived": 0,
       "fStatItemsUsed": 0,
-      "fStatHighestBal": 0
+      "fStatHighestBal": 0,
+      "itemInventory": []
     }
   ],
   "activeMenuId": "1086382444774699012",
