@@ -552,9 +552,11 @@ ${underscore('How To Use Purchased Items')}
                 break;
             
             case "equipment":
+                //TODO: implement equipment store
                 break;
 
             case "others":
+                //TODO: figure out what other items to implement then implement store
                 break;
         }
     } else if (interaction.customId.substring(0, intShopEquipPrefix.length) == intShopEquipPrefix) {
