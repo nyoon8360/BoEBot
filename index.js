@@ -180,6 +180,7 @@ client.on('ready', () => {
                             .setLabel("Empty Shelf")
                             .setCustomId(intItemShopSelectShelfPrefix + "EMPTYSHELF_" + ((pageIndex * 20) + (rowIndex * shopItemsPerRow) + shelfIndex))
                             .setStyle(ButtonStyle.Secondary)
+                            .setDisabled(true)
                     )
                 }
             }
@@ -533,7 +534,7 @@ ${underscore('How To Use Purchased Items')}
 
         //get item display name
         let itemInfo = items.find(entry => {
-            return entry.name = interaction.customId.substring(intItemShopSelectShelfPrefix.length)
+            return entry.name == interaction.customId.substring(intItemShopSelectShelfPrefix.length);
         });
 
         let row = new ActionRowBuilder()
@@ -575,7 +576,18 @@ ${underscore('How To Use Purchased Items')}
     } else if (interaction.customId.substring(0, intEquipShopSelectShelfPrefix.length) == intEquipShopSelectShelfPrefix) {
 
     } else if (interaction.customId.substring(0, intItemShopNavPagesPrefix.length) == intItemShopNavPagesPrefix) {
-        //TODO: implement navigating pages in the item shop
+        //God this is not a great way to do this but whatever
+        let curPageNum = parseInt(interaction.customId.substring(intItemShopNavPagesPrefix.length + 4));
+
+        switch(interaction.customId.substring(intItemShopNavPagesPrefix.length, intItemShopNavPagesPrefix.length + 4)) {
+            case "prev":
+                interaction.update(openUsablesShop(curPageNum - 1));
+                break;
+
+            case "next":
+                interaction.update(openUsablesShop(curPageNum + 1));
+                break;
+        }
 
     } else if (interaction.customId.substring(0, intItemShopPurchaseMenuPrefix.length) == intItemShopPurchaseMenuPrefix) {
         if (interaction.customId.substring(intItemShopPurchaseMenuPrefix.length) == "BACK") {
@@ -650,7 +662,7 @@ function openUsablesShop(pagenum) {
     let pageNavRow = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intItemShopNavPagesPrefix + "previous")
+                .setCustomId(intItemShopNavPagesPrefix + "prev" + pagenum)
                 .setLabel("Prev")
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(!(pagenum > 1)),
@@ -660,7 +672,7 @@ function openUsablesShop(pagenum) {
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(true),
             new ButtonBuilder()
-                .setCustomId(intItemShopNavPagesPrefix + "next")
+                .setCustomId(intItemShopNavPagesPrefix + "next" + pagenum)
                 .setLabel("Next")
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(!(shopPages_usables.length > pagenum))
