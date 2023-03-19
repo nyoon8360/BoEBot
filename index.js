@@ -561,7 +561,7 @@ ${underscore('How To Use Purchased Items')}
     } else if (interaction.customId.substring(0, intShopCategoryPrefix.length) == intShopCategoryPrefix) {
         switch(interaction.customId.substring(intShopCategoryPrefix.length)) {
             case "usables":
-                interaction.update(openUsablesShop());
+                interaction.update(openUsablesShop(1));
                 break;
             
             case "equipment":
@@ -576,10 +576,10 @@ ${underscore('How To Use Purchased Items')}
 
     } else if (interaction.customId.substring(0, intItemShopNavPagesPrefix.length) == intItemShopNavPagesPrefix) {
         //TODO: implement navigating pages in the item shop
-        
+
     } else if (interaction.customId.substring(0, intItemShopPurchaseMenuPrefix.length) == intItemShopPurchaseMenuPrefix) {
         if (interaction.customId.substring(intItemShopPurchaseMenuPrefix.length) == "BACK") {
-            interaction.update(openUsablesShop());
+            interaction.update(openUsablesShop(1));
         } else {
             //change purchase count if purchasing more than 1 of the item
             let pCount = 1;
@@ -644,27 +644,29 @@ ${underscore('How To Use Purchased Items')}
 client.login(process.env.CLIENT_TOKEN);
 
 //returns message composing the categories menu of the shop
-function openUsablesShop() {
+function openUsablesShop(pagenum) {
+    if (pagenum > shopPages_usables.length || pagenum < 1) pagenum = 1;
+
     let pageNavRow = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
                 .setCustomId(intItemShopNavPagesPrefix + "previous")
                 .setLabel("Prev")
                 .setStyle(ButtonStyle.Primary)
-                .setDisabled(true),
+                .setDisabled(!(pagenum > 1)),
             new ButtonBuilder()
                 .setCustomId(intItemShopNavPagesPrefix + "pagenum")
-                .setLabel("Page 1")
+                .setLabel("Page " + pagenum)
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(true),
             new ButtonBuilder()
                 .setCustomId(intItemShopNavPagesPrefix + "next")
                 .setLabel("Next")
                 .setStyle(ButtonStyle.Primary)
-                .setDisabled(!(shopPages_usables.length > 1))
+                .setDisabled(!(shopPages_usables.length > pagenum))
         );
     
-    let shopPage = [...shopPages_usables[0]];
+    let shopPage = [...shopPages_usables[pagenum - 1]];
     shopPage.push(pageNavRow);
 
     let shopMessage = {
