@@ -92,7 +92,7 @@ const intShopItemPrefix = "SHOPSELECTITEM_";
 const intShopEquipPrefix = "SHOPSELECTEQUIP_";
 const intShopPagePrefix = "SHOPNAVPAGES_";
 const intShopCategoryPrefix = "SHOPSELECTCATEGORY_";
-const intShopPurchasePrefix = "SHOPPURCHASE_";
+const intShopPurchaseMenuPrefix = "SHOPPURCHASEMENU_";
 
 //Shop pages and helper variables
 var shopPages_usables = [];
@@ -525,11 +525,11 @@ ${underscore('How To Use Purchased Items')}
         let row = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
-                    .setCustomId("BACKTOSHOP")
+                    .setCustomId(intShopPurchaseMenuPrefix + "BACK")
                     .setLabel("Back")
                     .setStyle(ButtonStyle.Danger),
                 new ButtonBuilder()
-                    .setCustomId(intShopPurchasePrefix + interaction.customId.substring(intShopItemPrefix.length))
+                    .setCustomId(intShopPurchaseMenuPrefix + itemInfo.name)
                     .setLabel("Purchase")
                     .setStyle(ButtonStyle.Success)
             )
@@ -543,36 +543,7 @@ ${underscore('How To Use Purchased Items')}
     } else if (interaction.customId.substring(0, intShopCategoryPrefix.length) == intShopCategoryPrefix) {
         switch(interaction.customId.substring(intShopCategoryPrefix.length)) {
             case "usables":
-
-                let pageNavRow = new ActionRowBuilder()
-                    .addComponents(
-                        new ButtonBuilder()
-                            .setCustomId(intShopPagePrefix + "previous")
-                            .setLabel("Prev")
-                            .setStyle(ButtonStyle.Primary)
-                            .setDisabled(true),
-                        new ButtonBuilder()
-                            .setCustomId(intShopPagePrefix + "pagenum")
-                            .setLabel("Page 1")
-                            .setStyle(ButtonStyle.Primary)
-                            .setDisabled(true),
-                        new ButtonBuilder()
-                            .setCustomId(intShopPagePrefix + "next")
-                            .setLabel("Next")
-                            .setStyle(ButtonStyle.Primary)
-                            .setDisabled(!(shopPages_usables.length > 1))
-                    );
-
-                let shopPage = [...shopPages_usables[0]];
-                shopPage.push(pageNavRow);
-                
-                interaction.update(
-                    {
-                        content: bold("===============\nUSABLES SHOP\n==============="),
-                        components: shopPage,
-                        ephemeral: true
-                    }
-                );
+                interaction.update(openUsablesShop());
                 break;
             
             case "equipment":
@@ -585,8 +556,12 @@ ${underscore('How To Use Purchased Items')}
 
     } else if (interaction.customId.substring(0, intShopPagePrefix.length) == intShopPagePrefix) {
         
-    } else if (interaction.customId.substring(0, intShopPurchasePrefix.length) == intShopPurchasePrefix) {
-
+    } else if (interaction.customId.substring(0, intShopPurchaseMenuPrefix.length) == intShopPurchaseMenuPrefix) {
+        if (interaction.customId.substring(intShopPurchaseMenuPrefix.length) == "BACK") {
+            interaction.update(openUsablesShop());
+        } else {
+            //TODO: write logic to handle purchasing item from shop
+        }
     }
 
 });
@@ -627,8 +602,36 @@ function jsonReader(filePath, callBack) {
 }
 
 //returns message composing the categories menu of the shop
-function openShopCategories() {
+function openUsablesShop() {
+    let pageNavRow = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(intShopPagePrefix + "previous")
+                .setLabel("Prev")
+                .setStyle(ButtonStyle.Primary)
+                .setDisabled(true),
+            new ButtonBuilder()
+                .setCustomId(intShopPagePrefix + "pagenum")
+                .setLabel("Page 1")
+                .setStyle(ButtonStyle.Primary)
+                .setDisabled(true),
+            new ButtonBuilder()
+                .setCustomId(intShopPagePrefix + "next")
+                .setLabel("Next")
+                .setStyle(ButtonStyle.Primary)
+                .setDisabled(!(shopPages_usables.length > 1))
+        );
+    
+    let shopPage = [...shopPages_usables[0]];
+    shopPage.push(pageNavRow);
 
+    let shopMessage = {
+        content: bold("===============\nUSABLES SHOP\n==============="),
+        components: shopPage,
+        ephemeral: true
+    };
+
+    return shopMessage;
 }
 
 //returns message composing the main menu of the discord bot
