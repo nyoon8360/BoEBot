@@ -11,6 +11,7 @@
         "treasureCooldownLowerRange": 3600, 
         "treasureCooldownUpperRange": 7200,
         "msgLeaderboardLimit": 5,
+        "userLeaderboardLimit": 5,
         "admins": [
             "Inspirasian#2923"
         ]

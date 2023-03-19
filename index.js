@@ -9,9 +9,7 @@ const equipment = require('./equipment.json');
 axios for easy HTTP promises with node.js
 dotenv for loading environment variables from .env file
 fs for reading/writing/editing json files
-*/
 
-/*
 database.json format:
 {
     "users": [
@@ -26,8 +24,11 @@ database.json format:
                 }
             ],
             "equipmentInventory": [],
-            "equiped": {
+            "equipped": {
                 "head": 
+            },
+            settings: {
+
             }
         }
     ],
@@ -38,17 +39,6 @@ database.json format:
     ],
     "msgLeaderboardFloor": 0
 }
-
-underscore("Categories");
-[Usables] [Equipment] [Others]
- |
- V
- underscore("Usables");
- [item1] [item2] [item3]
- [item4] [item5]
- [item6]
- [item7]
- [Next Page] [Page 1] [Previous Page]
 */
 
 // NOTE: Make sure to update intents if new events not in current intents are needed to be listened to
@@ -77,15 +67,17 @@ var workingData = {}; //In-memory data
 const reactCooldown = config.common.reactCooldown; //how long users must wait in between awarding edbucks in seconds
 const msgExpiration = config.common.msgExpiration; //how long a message can be awarded edbucks for in seconds
 const reactAward = config.common.reactAward; //how many edbucks awarded for reactions
-const treasureLR = config.common.treasureLowerRange;
-const treasureUR = config.common.treasureUpperRange;
-const treasureCDLR = config.common.treasureCooldownLowerRange;
-const treasureCDUR = config.common.treasureCooldownUpperRange;
-const msgLeaderboardLimit = config.common.msgLeaderboardLimit;
+const treasureLR = config.common.treasureLowerRange; //min possible number of edbucks found on pressing "Pick Up Edbucks" button
+const treasureUR = config.common.treasureUpperRange; //max possible number of edbucks found on pressing "Pick Up Edbucks" button
+const treasureCDLR = config.common.treasureCooldownLowerRange; //min possible number of seconds the "Pick Up Edbucks" button will be disabled for
+const treasureCDUR = config.common.treasureCooldownUpperRange; //max possible number of seconds the "Pick Up Edbucks" button will be disabled for
+const userLeaderboardLimit = config.common.userLeaderboardLimit;
+const msgLeaderboardLimit = config.common.msgLeaderboardLimit; //max number of entries that will show on the message leaderboard
 const currencyEmojiName = config.common.currencyEmojiName;
 const botAdmins = config.common.admins;
 const saveInterval = config.common.saveInterval;
 const shopItemsPerRow = config.common.shopItemsPerRow > 5 ? 5 : config.common.shopItemsPerRow;
+
 
 //Interact event constants
 const intMainMenuPrefix = "MAINMENU_";
@@ -197,6 +189,17 @@ client.on('ready', () => {
     }, saveInterval * 1000);
 
     console.log(`${client.user.tag} is ready!`);
+});
+
+//on new guild user join, add entry to database if not already existing
+client.on("guildMemberAdd", member => {
+    let existingEntry = workingData[member.guild.id].users.find(entry => {
+        entry.tag == member.user.tag
+    });
+
+    if (!existingEntry) {
+        workingData[member.guild.id].users.push(getNewUserJSON(member.user.tag));
+    }
 });
 
 //event listener for messages mainly used for admin commands
@@ -463,6 +466,8 @@ ${underscore('How To Use Purchased Items')}
                 let sortedLeaderboard = workingData[interaction.guildId].users.sort((a, b) => (a.balance > b.balance) ? -1 : 1);
     
                 let leaderboard = "";
+
+                sortedLeaderboard = sortedLeaderboard.slice(0, userLeaderboardLimit);
     
                 sortedLeaderboard.forEach((user, index) => {
                     leaderboard += "(" + (index + 1) + ") " + user.tag + ": " + user.balance + " EB \n"
@@ -624,40 +629,10 @@ ${underscore('How To Use Purchased Items')}
     }
 });
 
-//on new guild user join, add entry to database if not already existing
-client.on("guildMemberAdd", member => {
-    let existingEntry = workingData[member.guild.id].users.find(entry => {
-        entry.tag == member.user.tag
-    });
-
-    if (!existingEntry) {
-        workingData[member.guild.id].users.push(getNewUserJSON(member.user.tag));
-    }
-});
-
 //===================================================
 //all client event listeners must be before this line
 //===================================================
 client.login(process.env.CLIENT_TOKEN);
-
-function jsonReader(filePath, callBack) {
-    fs.readFile(filePath, (error, fileData) => {
-        //catch if readFile() returned an error
-        if (error) {
-            //if there is a callback, return callback(erorr).
-            //if there is no callback, return callback which would be undefined
-            return callBack && callBack(error);
-        }
-
-        try {
-            //attempt to parse the file data passed from readFile
-            const data = JSON.parse(fileData);
-            return callBack && callBack(null, data);
-        } catch (error) {
-            return callBack && callBack(error);
-        }
-    });
-}
 
 //returns message composing the categories menu of the shop
 function openUsablesShop() {
@@ -782,7 +757,8 @@ function getNewUserJSON(userTag) {
         birthday: "",
         itemInventory: [],
         equipmentInventory: [],
-        equiped: {},
+        equipped: {},
+        settings: {},
         fStatReactionsAwarded: 0,
         fStatReactionsReceived: 0,
         fStatItemsUsed: 0,
