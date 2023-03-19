@@ -10,7 +10,8 @@
             "description": "Gives a 5% chance to reflect any item used on you back to the user.",
             "slot": "ring",
             "effectingStat": "reflect",
-            "effectAmount": 5
+            "effectAmount": 5,
+            "price": 30
         }
     ]
 }

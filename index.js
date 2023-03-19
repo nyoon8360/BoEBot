@@ -1,10 +1,9 @@
 require('dotenv').config();
-const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, parseEmoji, inlineCode, bold, underscore, Options, Sweepers, EmbedBuilder } = require('discord.js');
+const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, parseEmoji, inlineCode, bold, underscore, Options, Sweepers, EmbedBuilder, italic } = require('discord.js');
 const fs = require('fs');
 const config = require('./config.json');
 const items = require('./items.json');
 const equipment = require('./equipment.json');
-//import { setTimeout } from 'timers/promises';
 
 /*
 axios for easy HTTP promises with node.js
@@ -14,7 +13,6 @@ fs for reading/writing/editing json files
 
 /*
 database.json format:
-
 {
     "users": [
         {
@@ -90,9 +88,11 @@ const shopItemsPerRow = config.common.shopItemsPerRow > 5 ? 5 : config.common.sh
 
 //Interact event constants
 const intMainMenuPrefix = "MAINMENU_";
-const intShopPrefix = "SHOPSELECTITEM_";
+const intShopItemPrefix = "SHOPSELECTITEM_";
+const intShopEquipPrefix = "SHOPSELECTEQUIP_";
 const intShopPagePrefix = "SHOPNAVPAGES_";
 const intShopCategoryPrefix = "SHOPSELECTCATEGORY_";
+const intShopPurchasePrefix = "SHOPPURCHASE_";
 
 //Shop pages and helper variables
 var shopPages_usables = [];
@@ -171,7 +171,7 @@ client.on('ready', () => {
                 if (items[(pageIndex * 20) + (rowIndex * shopItemsPerRow) + shelfIndex] != undefined) {
                     row.addComponents(
                         new ButtonBuilder()
-                            .setCustomId(intShopPrefix + items[(pageIndex * 20) + (rowIndex * shopItemsPerRow) + shelfIndex].name)
+                            .setCustomId(intShopItemPrefix + items[(pageIndex * 20) + (rowIndex * shopItemsPerRow) + shelfIndex].name)
                             .setLabel(items[(pageIndex * 20) + (rowIndex * shopItemsPerRow) + shelfIndex].displayName)
                             .setStyle(ButtonStyle.Success)
                     )
@@ -179,7 +179,7 @@ client.on('ready', () => {
                     row.addComponents(
                         new ButtonBuilder()
                             .setLabel("Empty Shelf")
-                            .setCustomId(intShopPrefix + "EMPTYSHELF_" + ((pageIndex * 20) + (rowIndex * shopItemsPerRow) + shelfIndex))
+                            .setCustomId(intShopItemPrefix + "EMPTYSHELF_" + ((pageIndex * 20) + (rowIndex * shopItemsPerRow) + shelfIndex))
                             .setStyle(ButtonStyle.Secondary)
                     )
                 }
@@ -515,7 +515,31 @@ ${underscore('How To Use Purchased Items')}
     
                 break;
         }
-    } else if (interaction.customId.substring(0, intShopPrefix.length) == intShopPrefix) {
+    } else if (interaction.customId.substring(0, intShopItemPrefix.length) == intShopItemPrefix) {
+        //TODO: change this to edit the original reply instead of sending a new message
+
+        //get item display name
+        let itemInfo = items.find(entry => {
+            return entry.name = interaction.customId.substring(intShopItemPrefix.length)
+        });
+
+        let row = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId("BACKTOSTORE")
+                    .setLabel("Back")
+                    .setStyle(ButtonStyle.Danger),
+                new ButtonBuilder()
+                    .setCustomId(intShopPurchasePrefix + interaction.customId.substring(intShopItemPrefix.length))
+                    .setLabel("Purchase")
+                    .setStyle(ButtonStyle.Success)
+            )
+
+        interaction.reply({
+            content: bold(itemInfo.displayName) + "\n" + italic(itemInfo.lore) + "\n" + itemInfo.description,
+            components: [row],
+            ephemeral: true
+        });
 
     } else if (interaction.customId.substring(0, intShopCategoryPrefix.length) == intShopCategoryPrefix) {
         switch(interaction.customId.substring(intShopCategoryPrefix.length)) {
@@ -556,7 +580,11 @@ ${underscore('How To Use Purchased Items')}
             case "others":
                 break;
         }
+    } else if (interaction.customId.substring(0, intShopEquipPrefix.length) == intShopEquipPrefix) {
+
     } else if (interaction.customId.substring(0, intShopPagePrefix.length) == intShopPagePrefix) {
+        
+    } else if (interaction.customId.substring(0, intShopPurchasePrefix.length) == intShopPurchasePrefix) {
 
     }
 
@@ -597,8 +625,13 @@ function jsonReader(filePath, callBack) {
     });
 }
 
+//returns message composing the categories menu of the shop
+function openShopCategories() {
+
+}
+
 //returns message composing the main menu of the discord bot
-function openMenu(disabled) {
+function openMenu(tButtonDisabled) {
     let row1 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId(intMainMenuPrefix + 'showstats')
@@ -620,7 +653,7 @@ function openMenu(disabled) {
             .setLabel('Pick Up Edbucks')
             .setStyle(ButtonStyle.Primary)
             .setEmoji('💸')
-            .setDisabled(disabled ? true : false)
+            .setDisabled(tButtonDisabled)
     );
 
     let row2 = new ActionRowBuilder().addComponents(
