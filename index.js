@@ -97,7 +97,6 @@ const intShopPurchasePrefix = "SHOPPURCHASE_";
 //Shop pages and helper variables
 var shopPages_usables = [];
 var shopPages_others = [];
-
 /*
 index 1: head equipment
 index 2: ...
@@ -352,7 +351,7 @@ client.on('interactionCreate', async (interaction) => {
     
                 interaction.reply({
                     content: `
-${bold(underscore('YOUR STATS'))}
+${bold('============\nYOUR STATS\n============')}
 Edbuck Balance: ${requester.balance}
 Last Edbuck Awarded: ${lastAwarded}
                     `,
@@ -425,7 +424,7 @@ Check back again later to see if they've come back!
                     )
     
                 interaction.reply({
-                    content: bold(underscore("SHOP CATEGORIES")),
+                    content: bold("==================\nSHOP CATEGORIES\n=================="),
                     ephemeral: true,
                     components: [row]
                 });
@@ -437,7 +436,7 @@ Check back again later to see if they've come back!
     
                 interaction.reply({
                     content:`
-${bold(underscore('HELP'))}
+${bold('=====\nHELP\n=====')}
     
 ${underscore('Main Sources Of Edbucks')}
 1. Having people react to your messages with the :edbuck: emote.
@@ -469,7 +468,7 @@ ${underscore('How To Use Purchased Items')}
                 })
     
                 interaction.reply({
-                    content: underscore(bold("USER LEADERBOARD")) + "\n" + leaderboard,
+                    content: bold("====================\nUSER LEADERBOARD\n====================") + "\n" + leaderboard,
                     ephemeral: true
                 })
     
@@ -526,7 +525,7 @@ ${underscore('How To Use Purchased Items')}
         let row = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
-                    .setCustomId("BACKTOSTORE")
+                    .setCustomId("BACKTOSHOP")
                     .setLabel("Back")
                     .setStyle(ButtonStyle.Danger),
                 new ButtonBuilder()
@@ -534,9 +533,9 @@ ${underscore('How To Use Purchased Items')}
                     .setLabel("Purchase")
                     .setStyle(ButtonStyle.Success)
             )
-
-        interaction.reply({
-            content: bold(itemInfo.displayName) + "\n" + italic(itemInfo.lore) + "\n" + itemInfo.description,
+            
+        interaction.update({
+            content: bold("===============\nUSABLES SHOP\n===============") + "\n" + underscore(itemInfo.displayName) + "\n" + italic(itemInfo.lore) + "\n" + itemInfo.description,
             components: [row],
             ephemeral: true
         });
@@ -566,12 +565,14 @@ ${underscore('How To Use Purchased Items')}
 
                 let shopPage = [...shopPages_usables[0]];
                 shopPage.push(pageNavRow);
-
-                interaction.reply({
-                    content: bold(underscore("USABLES SHOP")),
-                    components: shopPage,
-                    ephemeral: true
-                });
+                
+                interaction.update(
+                    {
+                        content: bold("===============\nUSABLES SHOP\n==============="),
+                        components: shopPage,
+                        ephemeral: true
+                    }
+                );
                 break;
             
             case "equipment":
@@ -653,7 +654,7 @@ function openMenu(tButtonDisabled) {
             .setLabel('Pick Up Edbucks')
             .setStyle(ButtonStyle.Primary)
             .setEmoji('💸')
-            .setDisabled(tButtonDisabled)
+            .setDisabled(tButtonDisabled ? true : false)
     );
 
     let row2 = new ActionRowBuilder().addComponents(
@@ -706,7 +707,7 @@ function openMenu(tButtonDisabled) {
     );
 
     return {
-        content: underscore(bold('MAIN MENU')),
+        content: bold('============\nMAIN MENU\n============'),
         components: [row1, row2, row3, row4]
     };
 }
