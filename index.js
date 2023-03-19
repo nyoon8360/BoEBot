@@ -71,21 +71,28 @@ const treasureLR = config.common.treasureLowerRange; //min possible number of ed
 const treasureUR = config.common.treasureUpperRange; //max possible number of edbucks found on pressing "Pick Up Edbucks" button
 const treasureCDLR = config.common.treasureCooldownLowerRange; //min possible number of seconds the "Pick Up Edbucks" button will be disabled for
 const treasureCDUR = config.common.treasureCooldownUpperRange; //max possible number of seconds the "Pick Up Edbucks" button will be disabled for
-const userLeaderboardLimit = config.common.userLeaderboardLimit;
+const userLeaderboardLimit = config.common.userLeaderboardLimit; //max number of entries that will show on the user leaderboard
 const msgLeaderboardLimit = config.common.msgLeaderboardLimit; //max number of entries that will show on the message leaderboard
-const currencyEmojiName = config.common.currencyEmojiName;
-const botAdmins = config.common.admins;
-const saveInterval = config.common.saveInterval;
-const shopItemsPerRow = config.common.shopItemsPerRow > 5 ? 5 : config.common.shopItemsPerRow;
+const currencyEmojiName = config.common.currencyEmojiName; //the name of the emoji used to award currency
+const botAdmins = config.common.admins; //list of user tags that are able to run admin commands for the bot
+const saveInterval = config.common.saveInterval; //the interval between json file autosaves
+const shopItemsPerRow = config.common.shopItemsPerRow > 5 ? 5 : config.common.shopItemsPerRow; //the number of items displayed per row in the item shop. maxed at 5
 
 
 //Interact event constants
 const intMainMenuPrefix = "MAINMENU_";
-const intShopItemPrefix = "SHOPSELECTITEM_";
-const intShopEquipPrefix = "SHOPSELECTEQUIP_";
-const intShopPagePrefix = "SHOPNAVPAGES_";
-const intShopCategoryPrefix = "SHOPSELECTCATEGORY_";
-const intShopPurchaseMenuPrefix = "SHOPPURCHASEMENU_";
+const intShopCategoryPrefix = "SELECTSHOPCATEGORY_";
+
+//Item shop interact event constants
+const intItemShopSelectShelfPrefix = "ITEMSHOPSELECTSHELF_";
+const intItemShopPurchaseMenuPrefix = "ITEMSHOPPURCHASEMENU_";
+const intItemShopNavPagesPrefix = "ITEMSHOPNAVPAGES_";
+
+//Equip shop interact event constants
+const intEquipShopSelectShelfPrefix = "EQUIPSHOPSELECTSHELF_";
+
+//Others shop interact event constants
+const intOtherShopSelectShelfPrefix = "OTHERSHOPSELECTSHELF_";
 
 //Shop pages and helper variables
 var shopPages_usables = [];
@@ -163,7 +170,7 @@ client.on('ready', () => {
                 if (items[(pageIndex * 20) + (rowIndex * shopItemsPerRow) + shelfIndex] != undefined) {
                     row.addComponents(
                         new ButtonBuilder()
-                            .setCustomId(intShopItemPrefix + items[(pageIndex * 20) + (rowIndex * shopItemsPerRow) + shelfIndex].name)
+                            .setCustomId(intItemShopSelectShelfPrefix + items[(pageIndex * 20) + (rowIndex * shopItemsPerRow) + shelfIndex].name)
                             .setLabel(items[(pageIndex * 20) + (rowIndex * shopItemsPerRow) + shelfIndex].displayName)
                             .setStyle(ButtonStyle.Success)
                     )
@@ -171,7 +178,7 @@ client.on('ready', () => {
                     row.addComponents(
                         new ButtonBuilder()
                             .setLabel("Empty Shelf")
-                            .setCustomId(intShopItemPrefix + "EMPTYSHELF_" + ((pageIndex * 20) + (rowIndex * shopItemsPerRow) + shelfIndex))
+                            .setCustomId(intItemShopSelectShelfPrefix + "EMPTYSHELF_" + ((pageIndex * 20) + (rowIndex * shopItemsPerRow) + shelfIndex))
                             .setStyle(ButtonStyle.Secondary)
                     )
                 }
@@ -243,14 +250,15 @@ client.on('messageReactionAdd', (messageReaction, user) => {
     if (messageReaction.emoji.name != 'edbuck') return;
     if (!messageReaction.message.guildId) return;
 
+    //If the reactor and the reacted to are the same person then dont award anything.
+    if (user.tag == messageReaction.message.author.tag) return;
+
     //do a time check for the reactor
     let storedUserData = workingData[messageReaction.message.guildId].users.find(obj => {
         return obj.tag == user.tag;
     })
 
     let currTime = Math.floor(Date.now() / 1000);
-
-    //TODO: check to make sure reactor and recipient are NOT the same person so people cant award themselves edbucks
 
     if (currTime - storedUserData.lastAwarded >= reactCooldown) {
 
@@ -520,26 +528,26 @@ ${underscore('How To Use Purchased Items')}
     
                 break;
         }
-    } else if (interaction.customId.substring(0, intShopItemPrefix.length) == intShopItemPrefix) {
+    } else if (interaction.customId.substring(0, intItemShopSelectShelfPrefix.length) == intItemShopSelectShelfPrefix) {
         //TODO: change this to edit the original reply instead of sending a new message
 
         //get item display name
         let itemInfo = items.find(entry => {
-            return entry.name = interaction.customId.substring(intShopItemPrefix.length)
+            return entry.name = interaction.customId.substring(intItemShopSelectShelfPrefix.length)
         });
 
         let row = new ActionRowBuilder()
             .addComponents(
                 new ButtonBuilder()
-                    .setCustomId(intShopPurchaseMenuPrefix + "BACK")
+                    .setCustomId(intItemShopPurchaseMenuPrefix + "BACK")
                     .setLabel("Back")
                     .setStyle(ButtonStyle.Danger),
                 new ButtonBuilder()
-                    .setCustomId(intShopPurchaseMenuPrefix + itemInfo.name)
+                    .setCustomId(intItemShopPurchaseMenuPrefix + itemInfo.name)
                     .setLabel("Purchase")
                     .setStyle(ButtonStyle.Success),
                 new ButtonBuilder()
-                    .setCustomId(intShopPurchaseMenuPrefix + "x5" + itemInfo.name)
+                    .setCustomId(intItemShopPurchaseMenuPrefix + "x5" + itemInfo.name)
                     .setLabel("Purchase x5")
                     .setStyle(ButtonStyle.Success),
             );
@@ -564,21 +572,22 @@ ${underscore('How To Use Purchased Items')}
                 //TODO: figure out what other items to implement then implement store
                 break;
         }
-    } else if (interaction.customId.substring(0, intShopEquipPrefix.length) == intShopEquipPrefix) {
+    } else if (interaction.customId.substring(0, intEquipShopSelectShelfPrefix.length) == intEquipShopSelectShelfPrefix) {
 
-    } else if (interaction.customId.substring(0, intShopPagePrefix.length) == intShopPagePrefix) {
+    } else if (interaction.customId.substring(0, intItemShopNavPagesPrefix.length) == intItemShopNavPagesPrefix) {
+        //TODO: implement navigating pages in the item shop
         
-    } else if (interaction.customId.substring(0, intShopPurchaseMenuPrefix.length) == intShopPurchaseMenuPrefix) {
-        if (interaction.customId.substring(intShopPurchaseMenuPrefix.length) == "BACK") {
+    } else if (interaction.customId.substring(0, intItemShopPurchaseMenuPrefix.length) == intItemShopPurchaseMenuPrefix) {
+        if (interaction.customId.substring(intItemShopPurchaseMenuPrefix.length) == "BACK") {
             interaction.update(openUsablesShop());
         } else {
             //change purchase count if purchasing more than 1 of the item
             let pCount = 1;
-            if (interaction.customId.substring(intShopPurchaseMenuPrefix.length).substring(0, 2) == "x5") pCount = 5;
+            if (interaction.customId.substring(intItemShopPurchaseMenuPrefix.length).substring(0, 2) == "x5") pCount = 5;
 
             //fetch item and customer info
             let itemInfo = items.find(obj => {
-                return obj.name == pCount > 1 ? interaction.customId.substring(intShopPurchaseMenuPrefix.length + 2) : interaction.customId.substring(intShopPurchaseMenuPrefix.length);
+                return obj.name == pCount > 1 ? interaction.customId.substring(intItemShopPurchaseMenuPrefix.length + 2) : interaction.customId.substring(intItemShopPurchaseMenuPrefix.length);
             });
 
             let customer = workingData[interaction.guildId].users.find(obj => {
@@ -615,7 +624,7 @@ ${underscore('How To Use Purchased Items')}
             let row = new ActionRowBuilder()
                 .addComponents(
                     new ButtonBuilder()
-                        .setCustomId(intShopPurchaseMenuPrefix + "BACK")
+                        .setCustomId(intItemShopPurchaseMenuPrefix + "BACK")
                         .setStyle(ButtonStyle.Danger)
                         .setLabel("Back")
                 )
@@ -639,17 +648,17 @@ function openUsablesShop() {
     let pageNavRow = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intShopPagePrefix + "previous")
+                .setCustomId(intItemShopNavPagesPrefix + "previous")
                 .setLabel("Prev")
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(true),
             new ButtonBuilder()
-                .setCustomId(intShopPagePrefix + "pagenum")
+                .setCustomId(intItemShopNavPagesPrefix + "pagenum")
                 .setLabel("Page 1")
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(true),
             new ButtonBuilder()
-                .setCustomId(intShopPagePrefix + "next")
+                .setCustomId(intItemShopNavPagesPrefix + "next")
                 .setLabel("Next")
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(!(shopPages_usables.length > 1))
