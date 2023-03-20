@@ -28,7 +28,7 @@ database.json format:
                 "head": 
             },
             settings: {
-
+                "itemsPerInventoryRow": 5
             }
         }
     ],
@@ -39,6 +39,35 @@ database.json format:
     ],
     "msgLeaderboardFloor": 0
 }
+
+====================
+Inventory Categories
+====================
+[Items] [Equipment] [Others]
+ |
+ V
+=========
+Inventory
+=========
+Usables
+[Item1] [Item2] [Item3]
+[Item1] [Item2] [Item3]
+[Item1] [Item2] [Item3]
+[Item1] [Item2] [Item3]
+[Prev] [Page 1] [Next]
+ |
+ V
+Item Display Name
+Lore
+Description
+Effect
+Stock: 5
+[Back] [Use]
+         |
+         V
+Item Display Name
+Target: _______________
+
 */
 
 // NOTE: Make sure to update intents if new events not in current intents are needed to be listened to
@@ -76,17 +105,17 @@ const msgLeaderboardLimit = config.common.msgLeaderboardLimit; //max number of e
 const currencyEmojiName = config.common.currencyEmojiName; //the name of the emoji used to award currency
 const botAdmins = config.common.admins; //list of user tags that are able to run admin commands for the bot
 const saveInterval = config.common.saveInterval; //the interval between json file autosaves
-const shopItemsPerRow = config.common.shopItemsPerRow > 5 ? 5 : config.common.shopItemsPerRow; //the number of items displayed per row in the item shop. maxed at 5
+const usablesShopItemsPerRow = config.common.usablesShopItemsPerRow > 5 ? 5 : config.common.usablesShopItemsPerRow; //the number of items displayed per row in the item shop. maxed at 5
 
 
 //Interact event constants
 const intMainMenuPrefix = "MAINMENU_";
 const intShopCategoryPrefix = "SELECTSHOPCATEGORY_";
 
-//Item shop interact event constants
-const intItemShopSelectShelfPrefix = "ITEMSHOPSELECTSHELF_";
-const intItemShopPurchaseMenuPrefix = "ITEMSHOPPURCHASEMENU_";
-const intItemShopNavPagesPrefix = "ITEMSHOPNAVPAGES_";
+//Usables shop interact event constants
+const intUsablesShopSelectShelfPrefix = "USABLESSHOPSELECTSHELF_";
+const intUsablesShopPurchaseMenuPrefix = "USABLESSHOPPURCHASEMENU_";
+const intUsablesShopNavPagesPrefix = "USABLESSHOPNAVPAGES_";
 
 //Equip shop interact event constants
 const intEquipShopSelectShelfPrefix = "EQUIPSHOPSELECTSHELF_";
@@ -102,6 +131,14 @@ index 1: head equipment
 index 2: ...
 */
 var shopPages_equipment = [];
+
+//===================================================
+//===================================================
+//
+//             CLIENT EVENT LISTENERS
+//
+//===================================================
+//===================================================
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -166,19 +203,19 @@ client.on('ready', () => {
         let newPage = [];
         for (let rowIndex = 0; rowIndex < 4; rowIndex ++) {
             let row = new ActionRowBuilder();
-            for (let shelfIndex = 0; shelfIndex < shopItemsPerRow; shelfIndex++) {
-                if (items[(pageIndex * 20) + (rowIndex * shopItemsPerRow) + shelfIndex] != undefined) {
+            for (let shelfIndex = 0; shelfIndex < usablesShopItemsPerRow; shelfIndex++) {
+                if (items[(pageIndex * 20) + (rowIndex * usablesShopItemsPerRow) + shelfIndex] != undefined) {
                     row.addComponents(
                         new ButtonBuilder()
-                            .setCustomId(intItemShopSelectShelfPrefix + items[(pageIndex * 20) + (rowIndex * shopItemsPerRow) + shelfIndex].name)
-                            .setLabel(items[(pageIndex * 20) + (rowIndex * shopItemsPerRow) + shelfIndex].displayName)
+                            .setCustomId(intUsablesShopSelectShelfPrefix + items[(pageIndex * 20) + (rowIndex * usablesShopItemsPerRow) + shelfIndex].name)
+                            .setLabel(items[(pageIndex * 20) + (rowIndex * usablesShopItemsPerRow) + shelfIndex].displayName)
                             .setStyle(ButtonStyle.Success)
                     )
                 } else {
                     row.addComponents(
                         new ButtonBuilder()
                             .setLabel("Empty Shelf")
-                            .setCustomId(intItemShopSelectShelfPrefix + "EMPTYSHELF_" + ((pageIndex * 20) + (rowIndex * shopItemsPerRow) + shelfIndex))
+                            .setCustomId(intUsablesShopSelectShelfPrefix + "EMPTYSHELF_" + ((pageIndex * 20) + (rowIndex * usablesShopItemsPerRow) + shelfIndex))
                             .setStyle(ButtonStyle.Secondary)
                             .setDisabled(true)
                     )
@@ -345,32 +382,20 @@ client.on('messageReactionAdd', (messageReaction, user) => {
     }
 });
 
-//event listener for buttons
+//===================================================
+//              Button Event Listeners
+//===================================================
 client.on('interactionCreate', async (interaction) => {
-    //if interaction is not a button then return
+    //if interaction is not a button or doesnt have a guildId then return
     if (!interaction.isButton()) return;
     if (!interaction.guildId) return;
 
-    //switch for code for different buttons
+    //handlers for main menu interaction events
     if (interaction.customId.substring(0, intMainMenuPrefix.length) == intMainMenuPrefix) {
         switch(interaction.customId.substring(intMainMenuPrefix.length)) {
             case "showstats":
                 //show user stats
-                let requester = workingData[interaction.guildId].users.find(obj => {
-                    return obj.tag == interaction.user.tag;
-                });
-    
-                let lastAwarded = requester.lastAwarded > 0 ? time(requester.lastAwarded, "R") : inlineCode("Never");
-    
-                interaction.reply({
-                    content: `
-${bold('============\nYOUR STATS\n============')}
-Edbuck Balance: ${requester.balance}
-Last Edbuck Awarded: ${lastAwarded}
-                    `,
-                    ephemeral: true
-                });
-    
+                mainMenu_showStats(interaction);
                 break;
             
             case "openinv":
@@ -380,33 +405,8 @@ Last Edbuck Awarded: ${lastAwarded}
                 break;
     
             case "findtreasure":
-                //on click, award treasure, deactivate this button for a random amount of hours, and then reactivate
-                let user = workingData[interaction.guildId].users.find(obj => {
-                    return obj.tag == interaction.user.tag;
-                });
-    
-                let treasure = Math.floor(Math.random() * (treasureUR - treasureLR)) + treasureLR;
-                user.balance += treasure;
-    
-                interaction.reply({
-                    content: `
-You've found ${treasure} edbucks dropped by a wild Edwin!
-All the local Edwins have been spooked back into hiding.
-Check back again later to see if they've come back!
-                    `,
-                    ephemeral: true
-                });
-    
-                interaction.channel.messages.fetch(workingData[interaction.guildId].activeMenuId).then(result => {
-                    //disable pick up edbucks button
-                    result.edit(openMenu(true));
-                    
-                    //set async function to wait until cooldown is over then re-enable button
-                    (async (menu) => {
-                        let timeoutDuration = Math.floor(Math.random() * (treasureCDUR - treasureCDLR)) + treasureCDLR;
-                        await setTimeout(() => menu.edit(openMenu()), timeoutDuration * 1000);
-                    })(result);
-                });
+                //Pick up edbucks button
+                mainMenu_findTreasure(interaction);
                 break;
             
             case "minigames":
@@ -420,148 +420,34 @@ Check back again later to see if they've come back!
     
             case "shop":
                 //Open shop categories
-                let row = new ActionRowBuilder()
-                    .addComponents(
-                        new ButtonBuilder()
-                            .setCustomId(intShopCategoryPrefix + "usables")
-                            .setLabel("Usables")
-                            .setStyle(ButtonStyle.Danger),
-                        new ButtonBuilder()
-                            .setCustomId(intShopCategoryPrefix + "equipment")
-                            .setLabel("Equipment")
-                            .setStyle(ButtonStyle.Danger),
-                        new ButtonBuilder()
-                            .setCustomId(intShopCategoryPrefix + "others")
-                            .setLabel("Others")
-                            .setStyle(ButtonStyle.Danger)
-                    )
-    
-                interaction.reply({
-                    content: bold("==================\nSHOP CATEGORIES\n=================="),
-                    ephemeral: true,
-                    components: [row]
-                });
-    
+                mainMenu_shop(interaction);
                 break;
     
             case "help":
-                //TODO: implement help message
-    
-                interaction.reply({
-                    content:`
-${bold('=====\nHELP\n=====')}
-    
-${underscore('Main Sources Of Edbucks')}
-1. Having people react to your messages with the :edbuck: emote.
-2. Being the first person to click on the "Pick Up Edbucks" button when it's randomly enabled.
-3. Winning minigames (WIP)
-    
-${underscore('Ways To Use Your Edbucks')}
-1. Spend them on items in the store.
-2. Trade them with other players through the "Trade" button.
-3. Wager them against other players through the "Wager Edbucks" button.
-    
-${underscore('How To Use Purchased Items')}
-1. Access your inventory through the "Open Inventory" button.
-2. Click on the item you want to use.
-3. Select the user you want to use the item on from the drop down menu.
-                    `,
-                    ephemeral: true
-                })
-    
+                //Show help text for the bot
+                mainMenu_help(interaction);
                 break;
             
             case "userleaderboard":
-                let sortedLeaderboard = workingData[interaction.guildId].users.sort((a, b) => (a.balance > b.balance) ? -1 : 1);
-    
-                let leaderboard = "";
-
-                sortedLeaderboard = sortedLeaderboard.slice(0, userLeaderboardLimit);
-    
-                sortedLeaderboard.forEach((user, index) => {
-                    leaderboard += "(" + (index + 1) + ") " + user.tag + ": " + user.balance + " EB \n"
-                })
-    
-                interaction.reply({
-                    content: bold("====================\nUSER LEADERBOARD\n====================") + "\n" + leaderboard,
-                    ephemeral: true
-                })
-    
+                //Display leaderboard for top balance users
+                mainMenu_userLeaderboard(interaction);
                 break;
             
             case "msgleaderboard":
-                //populate leaderboardEntries with embed fields holding info on the leaderboard messages
-                let leaderboardEntries = [];
-    
-                for (let i in workingData[interaction.guildId].msgLeaderboard) {
-                    //this is such a bad way to handle deleted messages xd but fuck it
-                    try {
-                        await client.channels.cache.get(workingData[interaction.guildId].msgLeaderboard[i].channelid).messages.fetch(workingData[interaction.guildId].msgLeaderboard[i].id).then(message => {
-                            leaderboardEntries.push(
-                                {
-                                    name: `[${parseInt(i) + 1}] ` + underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
-                                    value: "[" + workingData[interaction.guildId].msgLeaderboard[i].snippet + "]" + "(" + message.url + ")"
-                                }
-                            );
-                        });
-                    } catch(e) {
-                        leaderboardEntries.push(
-                            {
-                                name: `[${parseInt(i) + 1}] ` + underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
-                                value: "(Original Message Deleted)"
-                            }
-                        );
-                    }
-                }
-                
-                //create embed to send with ephemeral message
-                let leaderboardEmbed = new EmbedBuilder()
-                .setColor(0x0099FF)
-                .setTitle(bold(underscore('MESSAGE LEADERBOARD')))
-                .setDescription('The top earning messages sent in the server!')
-                .addFields(leaderboardEntries);
-    
-                //send leaderboard message
-                interaction.reply({
-                    embeds: [leaderboardEmbed],
-                    ephemeral: true
-                });
-    
+                //Display leaderboard for top earning messages
+                mainMenu_msgLeaderboard(interaction);
                 break;
         }
-    } else if (interaction.customId.substring(0, intItemShopSelectShelfPrefix.length) == intItemShopSelectShelfPrefix) {
-        //TODO: change this to edit the original reply instead of sending a new message
+    //handlers for usables shop shelf interaction events
+    } else if (interaction.customId.substring(0, intUsablesShopSelectShelfPrefix.length) == intUsablesShopSelectShelfPrefix) {
 
-        //get item display name
-        let itemInfo = items.find(entry => {
-            return entry.name == interaction.customId.substring(intItemShopSelectShelfPrefix.length);
-        });
-
-        let row = new ActionRowBuilder()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId(intItemShopPurchaseMenuPrefix + "BACK")
-                    .setLabel("Back")
-                    .setStyle(ButtonStyle.Danger),
-                new ButtonBuilder()
-                    .setCustomId(intItemShopPurchaseMenuPrefix + itemInfo.name)
-                    .setLabel("Purchase")
-                    .setStyle(ButtonStyle.Success),
-                new ButtonBuilder()
-                    .setCustomId(intItemShopPurchaseMenuPrefix + "x5" + itemInfo.name)
-                    .setLabel("Purchase x5")
-                    .setStyle(ButtonStyle.Success),
-            );
-
-        interaction.update({
-            content: bold("===============\nUSABLES SHOP\n===============") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock("Description: " + itemInfo.description + "\nEffect: " + itemInfo.effect + "\nPrice: " + itemInfo.price + " EB"),
-            components: [row],
-            ephemeral: true
-        });
+        //Open window displaying selected item's purchase page
+        usablesShop_selectShelf(interaction);
 
     } else if (interaction.customId.substring(0, intShopCategoryPrefix.length) == intShopCategoryPrefix) {
         switch(interaction.customId.substring(intShopCategoryPrefix.length)) {
             case "usables":
+                //open page 1 of the usables shop
                 interaction.update(openUsablesShop(1));
                 break;
             
@@ -575,11 +461,11 @@ ${underscore('How To Use Purchased Items')}
         }
     } else if (interaction.customId.substring(0, intEquipShopSelectShelfPrefix.length) == intEquipShopSelectShelfPrefix) {
 
-    } else if (interaction.customId.substring(0, intItemShopNavPagesPrefix.length) == intItemShopNavPagesPrefix) {
-        //God this is not a great way to do this but whatever
-        let curPageNum = parseInt(interaction.customId.substring(intItemShopNavPagesPrefix.length + 4));
+    } else if (interaction.customId.substring(0, intUsablesShopNavPagesPrefix.length) == intUsablesShopNavPagesPrefix) {
+        //Navigate pages of usables shop
+        let curPageNum = parseInt(interaction.customId.substring(intUsablesShopNavPagesPrefix.length + 4));
 
-        switch(interaction.customId.substring(intItemShopNavPagesPrefix.length, intItemShopNavPagesPrefix.length + 4)) {
+        switch(interaction.customId.substring(intUsablesShopNavPagesPrefix.length, intUsablesShopNavPagesPrefix.length + 4)) {
             case "prev":
                 interaction.update(openUsablesShop(curPageNum - 1));
                 break;
@@ -589,63 +475,12 @@ ${underscore('How To Use Purchased Items')}
                 break;
         }
 
-    } else if (interaction.customId.substring(0, intItemShopPurchaseMenuPrefix.length) == intItemShopPurchaseMenuPrefix) {
-        if (interaction.customId.substring(intItemShopPurchaseMenuPrefix.length) == "BACK") {
+    } else if (interaction.customId.substring(0, intUsablesShopPurchaseMenuPrefix.length) == intUsablesShopPurchaseMenuPrefix) {
+        if (interaction.customId.substring(intUsablesShopPurchaseMenuPrefix.length) == "BACK") {
+            //Open page 1 of the usables shop if the BACK button is pressed in an item's purchase window
             interaction.update(openUsablesShop(1));
         } else {
-            //change purchase count if purchasing more than 1 of the item
-            let pCount = 1;
-            if (interaction.customId.substring(intItemShopPurchaseMenuPrefix.length).substring(0, 2) == "x5") pCount = 5;
-
-            //fetch item and customer info
-            let itemInfo = items.find(obj => {
-                return obj.name == pCount > 1 ? interaction.customId.substring(intItemShopPurchaseMenuPrefix.length + 2) : interaction.customId.substring(intItemShopPurchaseMenuPrefix.length);
-            });
-
-            let customer = workingData[interaction.guildId].users.find(obj => {
-                return obj.tag == interaction.user.tag;
-            });
-
-            //do a balance check for the customer
-            if (customer.balance < (itemInfo.price * pCount)) {
-                interaction.reply({
-                    content: "Insufficient Edbucks!",
-                    ephemeral: true
-                });
-                return;
-            }
-
-            //deduct balance and give customer the purchased item(s)
-            customer.balance -= (itemInfo.price * pCount);
-
-            let existingInventoryEntry = customer.itemInventory.find(obj => {
-                obj.name == itemInfo.name;
-            });
-
-            if (existingInventoryEntry) {
-                existingInventoryEntry.count += pCount;
-            } else {
-                customer.itemInventory.push(
-                    {
-                        name: itemInfo.name,
-                        count: pCount
-                    }
-                )
-            }
-
-            let row = new ActionRowBuilder()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(intItemShopPurchaseMenuPrefix + "BACK")
-                        .setStyle(ButtonStyle.Danger)
-                        .setLabel("Back")
-                )
-
-            interaction.update({
-                content: bold("===================\nPurchase Complete!\n==================="),
-                ephemeral: true,
-                components: [row]
-            });
+            usablesShop_purchase(interaction);
         }
     }
 });
@@ -655,42 +490,56 @@ ${underscore('How To Use Purchased Items')}
 //===================================================
 client.login(process.env.CLIENT_TOKEN);
 
-//returns message composing the categories menu of the shop
-function openUsablesShop(pagenum) {
-    if (pagenum > shopPages_usables.length || pagenum < 1) pagenum = 1;
+//===================================================
+//===================================================
+//
+//                UTILITY FUNCTIONS
+//
+//===================================================
+//===================================================
 
-    let pageNavRow = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId(intItemShopNavPagesPrefix + "prev" + pagenum)
-                .setLabel("Prev")
-                .setStyle(ButtonStyle.Primary)
-                .setDisabled(!(pagenum > 1)),
-            new ButtonBuilder()
-                .setCustomId(intItemShopNavPagesPrefix + "pagenum")
-                .setLabel("Page " + pagenum)
-                .setStyle(ButtonStyle.Primary)
-                .setDisabled(true),
-            new ButtonBuilder()
-                .setCustomId(intItemShopNavPagesPrefix + "next" + pagenum)
-                .setLabel("Next")
-                .setStyle(ButtonStyle.Primary)
-                .setDisabled(!(shopPages_usables.length > pagenum))
-        );
-    
-    let shopPage = [...shopPages_usables[pagenum - 1]];
-    shopPage.push(pageNavRow);
+//return object with default values for new users in database
+function getNewUserJSON(userTag) {
+    userObj = {
+        tag: userTag,
+        lastAwarded: 0,
+        balance: 0,
+        birthday: "",
+        itemInventory: [],
+        equipmentInventory: [],
+        equipped: {},
+        settings: {},
+        fStatReactionsAwarded: 0,
+        fStatReactionsReceived: 0,
+        fStatItemsUsed: 0,
+        fStatHighestBal: 0
+    }
 
-    let shopMessage = {
-        content: bold("===============\nUSABLES SHOP\n==============="),
-        components: shopPage,
-        ephemeral: true
-    };
-
-    return shopMessage;
+    return userObj;
 }
 
-//returns message composing the main menu of the discord bot
+//function to save workingdata to json databases
+function saveData(sync) {
+    client.guilds.cache.map(guild => guild.id).forEach((guildId) => {
+        if (sync) {
+            fs.writeFileSync('./database' + guildId + '.json', JSON.stringify(workingData[guildId], null, 2));
+        } else {
+            fs.writeFile('./database' + guildId + '.json', JSON.stringify(workingData[guildId], null, 2), error => {
+                if (error) console.log("Error writing to file: \n" + error);
+            });
+        }
+    });
+}
+
+//===================================================
+//===================================================
+//
+//                   UI BUILDERS
+//
+//===================================================
+//===================================================
+
+//UI builder for main menu of discord bot
 function openMenu(tButtonDisabled) {
     let row1 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
@@ -771,35 +620,280 @@ function openMenu(tButtonDisabled) {
     };
 }
 
-//return object with default values for new users in database
-function getNewUserJSON(userTag) {
-    userObj = {
-        tag: userTag,
-        lastAwarded: 0,
-        balance: 0,
-        birthday: "",
-        itemInventory: [],
-        equipmentInventory: [],
-        equipped: {},
-        settings: {},
-        fStatReactionsAwarded: 0,
-        fStatReactionsReceived: 0,
-        fStatItemsUsed: 0,
-        fStatHighestBal: 0
-    }
+//UI builder for usables shop
+function openUsablesShop(pagenum) {
+    if (pagenum > shopPages_usables.length || pagenum < 1) pagenum = 1;
 
-    return userObj;
+    let pageNavRow = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(intUsablesShopNavPagesPrefix + "prev" + pagenum)
+                .setLabel("Prev")
+                .setStyle(ButtonStyle.Primary)
+                .setDisabled(!(pagenum > 1)),
+            new ButtonBuilder()
+                .setCustomId(intUsablesShopNavPagesPrefix + "pagenum")
+                .setLabel("Page " + pagenum)
+                .setStyle(ButtonStyle.Primary)
+                .setDisabled(true),
+            new ButtonBuilder()
+                .setCustomId(intUsablesShopNavPagesPrefix + "next" + pagenum)
+                .setLabel("Next")
+                .setStyle(ButtonStyle.Primary)
+                .setDisabled(!(shopPages_usables.length > pagenum))
+        );
+    
+    let shopPage = [...shopPages_usables[pagenum - 1]];
+    shopPage.push(pageNavRow);
+
+    let shopMessage = {
+        content: bold("===============\nUSABLES SHOP\n==============="),
+        components: shopPage,
+        ephemeral: true
+    };
+
+    return shopMessage;
 }
 
-//function to save workingdata to json databases
-function saveData(sync) {
-    client.guilds.cache.map(guild => guild.id).forEach((guildId) => {
-        if (sync) {
-            fs.writeFileSync('./database' + guildId + '.json', JSON.stringify(workingData[guildId], null, 2));
-        } else {
-            fs.writeFile('./database' + guildId + '.json', JSON.stringify(workingData[guildId], null, 2), error => {
-                if (error) console.log("Error writing to file: \n" + error);
+//===================================================
+//===================================================
+//
+//             Interaction Event Handlers
+//
+//===================================================
+//===================================================
+
+function mainMenu_showStats(interaction) {
+    let requester = workingData[interaction.guildId].users.find(obj => {
+        return obj.tag == interaction.user.tag;
+    });
+
+    let lastAwarded = requester.lastAwarded > 0 ? time(requester.lastAwarded, "R") : inlineCode("Never");
+
+    interaction.reply({
+        content: `
+${bold('============\nYOUR STATS\n============')}
+Edbuck Balance: ${requester.balance}
+Last Edbuck Awarded: ${lastAwarded}
+        `,
+        ephemeral: true
+    });
+}
+
+function mainMenu_findTreasure(interaction) {
+    //on click, award treasure, deactivate this button for a random amount of hours, and then reactivate
+    let user = workingData[interaction.guildId].users.find(obj => {
+        return obj.tag == interaction.user.tag;
+    });
+
+    let treasure = Math.floor(Math.random() * (treasureUR - treasureLR)) + treasureLR;
+    user.balance += treasure;
+
+    interaction.reply({
+        content: `
+You've found ${treasure} edbucks dropped by a wild Edwin!
+All the local Edwins have been spooked back into hiding.
+Check back again later to see if they've come back!
+        `,
+        ephemeral: true
+    });
+
+    interaction.channel.messages.fetch(workingData[interaction.guildId].activeMenuId).then(result => {
+        //disable pick up edbucks button
+        result.edit(openMenu(true));
+        
+        //set async function to wait until cooldown is over then re-enable button
+        (async (menu) => {
+            let timeoutDuration = Math.floor(Math.random() * (treasureCDUR - treasureCDLR)) + treasureCDLR;
+            await setTimeout(() => menu.edit(openMenu()), timeoutDuration * 1000);
+        })(result);
+    });
+}
+
+function mainMenu_shop(interaction) {
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(intShopCategoryPrefix + "usables")
+                .setLabel("Usables")
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId(intShopCategoryPrefix + "equipment")
+                .setLabel("Equipment")
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId(intShopCategoryPrefix + "others")
+                .setLabel("Others")
+                .setStyle(ButtonStyle.Danger)
+        )
+
+    interaction.reply({
+        content: bold("==================\nSHOP CATEGORIES\n=================="),
+        ephemeral: true,
+        components: [row]
+    });
+}
+
+function mainMenu_help(interaction) {
+    interaction.reply({
+        content:`
+${bold('=====\nHELP\n=====')}
+
+${underscore('Main Sources Of Edbucks')}
+- Having people react to your messages with the :edbuck: emote.
+- Being the first person to click on the "Pick Up Edbucks" button when it's randomly enabled.
+- Winning minigames (WIP)
+
+${underscore('Ways To Use Your Edbucks')}
+- Spend them on items in the store.
+- Trade them with other players through the "Trade" button.
+- Wager them against other players through the "Wager Edbucks" button.
+
+${underscore('How To Use Purchased Items')}
+1. Access your inventory through the "Open Inventory" button.
+2. Click on the item you want to use.
+3. Select the user you want to use the item on from the drop down menu.
+        `,
+        ephemeral: true
+    });
+}
+
+function mainMenu_userLeaderboard(interaction) {
+    let sortedLeaderboard = workingData[interaction.guildId].users.sort((a, b) => (a.balance > b.balance) ? -1 : 1);
+    let leaderboard = "";
+
+    sortedLeaderboard = sortedLeaderboard.slice(0, userLeaderboardLimit);
+
+    sortedLeaderboard.forEach((user, index) => {
+        leaderboard += "(" + (index + 1) + ") " + user.tag + ": " + user.balance + " EB \n"
+    })
+
+    interaction.reply({
+        content: bold("====================\nUSER LEADERBOARD\n====================") + "\n" + leaderboard,
+        ephemeral: true
+    })
+}
+
+async function mainMenu_msgLeaderboard(interaction) {
+    //populate leaderboardEntries with embed fields holding info on the leaderboard messages
+    let leaderboardEntries = [];
+
+    for (let i in workingData[interaction.guildId].msgLeaderboard) {
+        //this is such a bad way to handle deleted messages xd but fuck it
+        try {
+            await client.channels.cache.get(workingData[interaction.guildId].msgLeaderboard[i].channelid).messages.fetch(workingData[interaction.guildId].msgLeaderboard[i].id).then(message => {
+                leaderboardEntries.push(
+                    {
+                        name: `[${parseInt(i) + 1}] ` + underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
+                        value: "[" + workingData[interaction.guildId].msgLeaderboard[i].snippet + "]" + "(" + message.url + ")"
+                    }
+                );
             });
+        } catch(e) {
+            leaderboardEntries.push(
+                {
+                    name: `[${parseInt(i) + 1}] ` + underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
+                    value: "(Original Message Deleted)"
+                }
+            );
         }
+    }
+    
+    //create embed to send with ephemeral message
+    let leaderboardEmbed = new EmbedBuilder()
+    .setColor(0x0099FF)
+    .setTitle(bold(underscore('MESSAGE LEADERBOARD')))
+    .setDescription('The top earning messages sent in the server!')
+    .addFields(leaderboardEntries);
+
+    //send leaderboard message
+    interaction.reply({
+        embeds: [leaderboardEmbed],
+        ephemeral: true
+    });
+}
+
+function usablesShop_selectShelf(interaction) {
+    //get item display name
+    let itemInfo = items.find(entry => {
+        return entry.name == interaction.customId.substring(intUsablesShopSelectShelfPrefix.length);
+    });
+
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(intUsablesShopPurchaseMenuPrefix + "BACK")
+                .setLabel("Back")
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId(intUsablesShopPurchaseMenuPrefix + itemInfo.name)
+                .setLabel("Purchase")
+                .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+                .setCustomId(intUsablesShopPurchaseMenuPrefix + "x5" + itemInfo.name)
+                .setLabel("Purchase x5")
+                .setStyle(ButtonStyle.Success),
+        );
+
+    interaction.update({
+        content: bold("===============\nUSABLES SHOP\n===============") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock("Description: " + itemInfo.description + "\nEffect: " + itemInfo.effect + "\nPrice: " + itemInfo.price + " EB"),
+        components: [row],
+        ephemeral: true
+    });
+}
+
+function usablesShop_purchase(interaction) {
+    //change purchase count if purchasing more than 1 of the item
+    let pCount = 1;
+    if (interaction.customId.substring(intUsablesShopPurchaseMenuPrefix.length).substring(0, 2) == "x5") pCount = 5;
+
+    //fetch item and customer info
+    let itemInfo = items.find(obj => {
+        return obj.name == pCount > 1 ? interaction.customId.substring(intUsablesShopPurchaseMenuPrefix.length + 2) : interaction.customId.substring(intUsablesShopPurchaseMenuPrefix.length);
+    });
+
+    let customer = workingData[interaction.guildId].users.find(obj => {
+        return obj.tag == interaction.user.tag;
+    });
+
+    //do a balance check for the customer
+    if (customer.balance < (itemInfo.price * pCount)) {
+        interaction.reply({
+            content: "Insufficient Edbucks!",
+            ephemeral: true
+        });
+        return;
+    }
+
+    //deduct balance and give customer the purchased item(s)
+    customer.balance -= (itemInfo.price * pCount);
+
+    let existingInventoryEntry = customer.itemInventory.find(obj => {
+        obj.name == itemInfo.name;
+    });
+
+    if (existingInventoryEntry) {
+        existingInventoryEntry.count += pCount;
+    } else {
+        customer.itemInventory.push(
+            {
+                name: itemInfo.name,
+                count: pCount
+            }
+        )
+    }
+
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(intUsablesShopPurchaseMenuPrefix + "BACK")
+                .setStyle(ButtonStyle.Danger)
+                .setLabel("Back")
+        )
+
+    interaction.update({
+        content: bold("===================\nPurchase Complete!\n==================="),
+        ephemeral: true,
+        components: [row]
     });
 }

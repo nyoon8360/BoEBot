@@ -9,12 +9,7 @@
       "fStatReactionsReceived": 11,
       "fStatItemsUsed": 0,
       "fStatHighestBal": 0,
-      "itemInventory": [
-        {
-          "name": "item_kick",
-          "count": 1
-        }
-      ]
+      "itemInventory": []
     },
     {
       "tag": "BoE Bot#1195",

@@ -5,12 +5,5 @@
         "description": "A weirdly fragile boot used to kick someone from voice chat that breaks after a single kick.",
         "effect": "Kicks a specified user from the voice chat they're in.",
         "price": 5
-    },
-    {
-        "name": "item_test",
-        "displayName": "Test Item",
-        "description": "A weirdly fragile boot used to kick someone from voice chat that breaks after a single kick.",
-        "effect": "Kicks a specified user from the voice chat they're in.",
-        "price": 10
     }
 ]
