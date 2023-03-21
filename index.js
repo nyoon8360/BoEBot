@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, parseEmoji, inlineCode, bold, underscore, Options, Sweepers, EmbedBuilder, italic, codeBlock, TextInputBuilder, TextInputStyle } = require('discord.js');
+const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, parseEmoji, inlineCode, bold, underscore, Options, Sweepers, EmbedBuilder, italic, codeBlock, TextInputBuilder, TextInputStyle, GuildScheduledEventPrivacyLevel } = require('discord.js');
 const fs = require('fs');
 const config = require('./config.json');
 const items = require('./items.json');
@@ -23,10 +23,20 @@ database.json format:
                     "count": 0
                 }
             ],
-            "equipmentInventory": [],
-            "equipped": {
-                "head": 
-            },
+            "equipmentInventory": [
+                {
+                    "name": "mirror_ring",
+                    "equipped": true
+                }
+            ],
+            "equipped": [
+                {
+                    "slot": "head",
+                    "name": "mirror_ring",
+                    "effectingStat": "reflect",
+                    "effectAmount": 5
+                }
+            ],
             settings: {
                 "itemsPerInventoryRow": 5
             }
@@ -40,25 +50,18 @@ database.json format:
     "msgLeaderboardFloor": 0
 }
 
-====================
-Inventory Categories
-====================
-[Items] [Equipment] [Others]
- |
- V
 =========
 Inventory
 =========
-Usables
+Usables Page 1
 [Item1] [Item2] [Item3]
 [Item1] [Item2] [Item3]
 [Item1] [Item2] [Item3]
 [Item1] [Item2] [Item3]
-[Prev] [Page 1] [Next]
+[Prev] [Equips] [Next]
  |
  V
 Item Display Name
-Lore
 Description
 Effect
 Stock: 5
@@ -68,6 +71,16 @@ Stock: 5
 Item Display Name
 Target: _______________
 
+
+[Equips]
+ |
+ V
+head, body, accessory, shoes
+[bold("E* item1")] [Item2] [Item3]
+[Item1] [Item2] [Item3]
+[Item1] [Item2] [Item3]
+[Item1] [Item2] [Item3]
+[Prev] [Equips] [Next]
 */
 
 // NOTE: Make sure to update intents if new events not in current intents are needed to be listened to
@@ -106,22 +119,30 @@ const currencyEmojiName = config.common.currencyEmojiName; //the name of the emo
 const botAdmins = config.common.admins; //list of user tags that are able to run admin commands for the bot
 const saveInterval = config.common.saveInterval; //the interval between json file autosaves
 const usablesShopItemsPerRow = config.common.usablesShopItemsPerRow > 5 ? 5 : config.common.usablesShopItemsPerRow; //the number of items displayed per row in the item shop. maxed at 5
+const usablesInventoryItemsPerRow = config.common.usablesInventoryItemsPerRow > 5 ? 5 : config.common.usablesInventoryItemsPerRow; //number of items displayed per row in player inventories. maxed at 5
 
+//===================================================
+//             Interact Event Tokens
+//===================================================
+//String tokens to be sent on emitted interact events that will be parsed and handled accordingly by event handlers
 
-//Interact event constants
-const intMainMenuPrefix = "MAINMENU_";
-const intShopCategoryPrefix = "SELECTSHOPCATEGORY_";
+//Common tokens
+const intMainMenuPrefix = "MAINMENU-";
+const intShopCategoryPrefix = "SELECTSHOPCATEGORY-";
 
-//Usables shop interact event constants
-const intUsablesShopSelectShelfPrefix = "USABLESSHOPSELECTSHELF_";
-const intUsablesShopPurchaseMenuPrefix = "USABLESSHOPPURCHASEMENU_";
-const intUsablesShopNavPagesPrefix = "USABLESSHOPNAVPAGES_";
+//Usables shop tokens
+const intUsablesShopSelectShelfPrefix = "USABLESSHOPSELECTSHELF-";
+const intUsablesShopPurchaseMenuPrefix = "USABLESSHOPPURCHASEMENU-";
+const intUsablesShopNavPagesPrefix = "USABLESSHOPNAVPAGES-";
 
-//Equip shop interact event constants
-const intEquipShopSelectShelfPrefix = "EQUIPSHOPSELECTSHELF_";
+//Equip shop tokens
+const intEquipShopSelectShelfPrefix = "EQUIPSHOPSELECTSHELF-";
 
-//Others shop interact event constants
-const intOtherShopSelectShelfPrefix = "OTHERSHOPSELECTSHELF_";
+//Others shop tokens
+const intOtherShopSelectShelfPrefix = "OTHERSHOPSELECTSHELF-";
+
+//Player usables inventory tokens
+const intPlayerUsablesInventorySelectSlotPrefix = "PUSABLESINVSELECTSLOT-";
 
 //Shop pages and helper variables
 var shopPages_usables = [];
@@ -199,23 +220,23 @@ client.on('ready', () => {
 
     
     //Populate usables shop pages
-    for (let pageIndex = 0; pageIndex < Math.ceil(items.length / 20); pageIndex++) {
+    for (let pageIndex = 0; pageIndex < Math.ceil(items.length / (4 * usablesShopItemsPerRow)); pageIndex++) {
         let newPage = [];
         for (let rowIndex = 0; rowIndex < 4; rowIndex ++) {
             let row = new ActionRowBuilder();
             for (let shelfIndex = 0; shelfIndex < usablesShopItemsPerRow; shelfIndex++) {
-                if (items[(pageIndex * 20) + (rowIndex * usablesShopItemsPerRow) + shelfIndex] != undefined) {
+                if (items[(pageIndex * (4 * usablesShopItemsPerRow)) + (rowIndex * usablesShopItemsPerRow) + shelfIndex] != undefined) {
                     row.addComponents(
                         new ButtonBuilder()
-                            .setCustomId(intUsablesShopSelectShelfPrefix + items[(pageIndex * 20) + (rowIndex * usablesShopItemsPerRow) + shelfIndex].name)
-                            .setLabel(items[(pageIndex * 20) + (rowIndex * usablesShopItemsPerRow) + shelfIndex].displayName)
+                            .setCustomId(intUsablesShopSelectShelfPrefix + items[(pageIndex * (4 * usablesShopItemsPerRow)) + (rowIndex * usablesShopItemsPerRow) + shelfIndex].name)
+                            .setLabel(items[(pageIndex * (4 * usablesShopItemsPerRow)) + (rowIndex * usablesShopItemsPerRow) + shelfIndex].displayName)
                             .setStyle(ButtonStyle.Success)
                     )
                 } else {
                     row.addComponents(
                         new ButtonBuilder()
                             .setLabel("Empty Shelf")
-                            .setCustomId(intUsablesShopSelectShelfPrefix + "EMPTYSHELF_" + ((pageIndex * 20) + (rowIndex * usablesShopItemsPerRow) + shelfIndex))
+                            .setCustomId(intUsablesShopSelectShelfPrefix + "EMPTYSHELF-" + ((pageIndex * (4 * usablesShopItemsPerRow)) + (rowIndex * usablesShopItemsPerRow) + shelfIndex))
                             .setStyle(ButtonStyle.Secondary)
                             .setDisabled(true)
                     )
@@ -375,113 +396,129 @@ client.on('messageReactionAdd', (messageReaction, user) => {
                 }
             }
         } else {
-            // TODO: create a msg only seen by the reactor that says the message has expired
+            //TODO: Find a way to send a non-spammy message saying the reacted to message is expired
         }
     } else {
-        //TODO: create a message to reactor saying that they cant awards edbucks yet
+        //TODO: Find a way to send a non-spammy message saying that you cant award edbucks yet
     }
 });
 
 //===================================================
-//              Button Event Listeners
+//             BUTTON EVENT LISTENERS
 //===================================================
 client.on('interactionCreate', async (interaction) => {
     //if interaction is not a button or doesnt have a guildId then return
     if (!interaction.isButton()) return;
     if (!interaction.guildId) return;
 
+    let eventTokens = interaction.customId.split("-");
+
     //handlers for main menu interaction events
-    if (interaction.customId.substring(0, intMainMenuPrefix.length) == intMainMenuPrefix) {
-        switch(interaction.customId.substring(intMainMenuPrefix.length)) {
-            case "showstats":
+
+    switch (eventTokens.shift()) {
+        //Main menu events
+        case intMainMenuPrefix.slice(0, -1):
+            switch(eventTokens.shift()) {
+                case "showstats":
                 //show user stats
                 mainMenu_showStats(interaction);
                 break;
             
-            case "openinv":
-                break;
-    
-            case "trade":
-                break;
-    
-            case "findtreasure":
-                //Pick up edbucks button
-                mainMenu_findTreasure(interaction);
-                break;
-            
-            case "minigames":
-                break;
-    
-            case "challenge":
-                break;
-    
-            case "wager":
-                break;
-    
-            case "shop":
-                //Open shop categories
-                mainMenu_shop(interaction);
-                break;
-    
-            case "help":
-                //Show help text for the bot
-                mainMenu_help(interaction);
-                break;
-            
-            case "userleaderboard":
-                //Display leaderboard for top balance users
-                mainMenu_userLeaderboard(interaction);
-                break;
-            
-            case "msgleaderboard":
-                //Display leaderboard for top earning messages
-                mainMenu_msgLeaderboard(interaction);
-                break;
-        }
-    //handlers for usables shop shelf interaction events
-    } else if (interaction.customId.substring(0, intUsablesShopSelectShelfPrefix.length) == intUsablesShopSelectShelfPrefix) {
+                case "openinv":
+                    mainMenu_openInv(interaction);
+                    break;
+        
+                case "trade":
+                    break;
+        
+                case "findtreasure":
+                    //Pick up edbucks button
+                    mainMenu_findTreasure(interaction);
+                    break;
+                
+                case "minigames":
+                    break;
+        
+                case "challenge":
+                    break;
+        
+                case "wager":
+                    break;
+        
+                case "shop":
+                    //Open shop categories
+                    mainMenu_shop(interaction);
+                    break;
+        
+                case "help":
+                    //Show help text for the bot
+                    mainMenu_help(interaction);
+                    break;
+                
+                case "userleaderboard":
+                    //Display leaderboard for top balance users
+                    mainMenu_userLeaderboard(interaction);
+                    break;
+                
+                case "msgleaderboard":
+                    //Display leaderboard for top earning messages
+                    mainMenu_msgLeaderboard(interaction);
+                    break;c
+            }
+            break;
 
-        //Open window displaying selected item's purchase page
-        usablesShop_selectShelf(interaction);
+        //Shop category menu events
+        case intShopCategoryPrefix.slice(0, -1):
+            switch (eventTokens.shift()) {
+                case "usables":
+                    //open page 1 of the usables shop
+                    interaction.update(openUsablesShop(1));
+                    break;
+                
+                case "equipment":
+                    //TODO: implement equipment store
+                    break;
+    
+                case "others":
+                    //TODO: figure out what other items to implement then implement store
+                    break;
+            }
+            break;
+        
+        //Usables shop shelf select events
+        case intUsablesShopSelectShelfPrefix.slice(0, -1):
+            //Open window displaying selected item's purchase page
+            usablesShop_selectShelf(interaction, eventTokens);
+            break;
 
-    } else if (interaction.customId.substring(0, intShopCategoryPrefix.length) == intShopCategoryPrefix) {
-        switch(interaction.customId.substring(intShopCategoryPrefix.length)) {
-            case "usables":
-                //open page 1 of the usables shop
+        //Usables shop nav buttons events
+        case intUsablesShopNavPagesPrefix.slice(0, -1):
+            //Navigate pages of usables shop
+
+            switch(eventTokens.shift()) {
+                case "prev":
+                    interaction.update(openUsablesShop(parseInt(eventTokens.shift()) - 1));
+                    break;
+
+                case "next":
+                    interaction.update(openUsablesShop(parseInt(eventTokens.shift()) + 1));
+                    break;
+            }
+            break;
+
+        //Usables shop purchase menu events
+        case intUsablesShopPurchaseMenuPrefix.slice(0, -1):
+            if (eventTokens.shift() == "BACK") {
+                //Open page 1 of the usables shop if the BACK button is pressed in an item's purchase window
                 interaction.update(openUsablesShop(1));
-                break;
-            
-            case "equipment":
-                //TODO: implement equipment store
-                break;
+            } else {
+                usablesShop_purchase(interaction, eventTokens);
+            }
+            break;
 
-            case "others":
-                //TODO: figure out what other items to implement then implement store
-                break;
-        }
-    } else if (interaction.customId.substring(0, intEquipShopSelectShelfPrefix.length) == intEquipShopSelectShelfPrefix) {
-
-    } else if (interaction.customId.substring(0, intUsablesShopNavPagesPrefix.length) == intUsablesShopNavPagesPrefix) {
-        //Navigate pages of usables shop
-        let curPageNum = parseInt(interaction.customId.substring(intUsablesShopNavPagesPrefix.length + 4));
-
-        switch(interaction.customId.substring(intUsablesShopNavPagesPrefix.length, intUsablesShopNavPagesPrefix.length + 4)) {
-            case "prev":
-                interaction.update(openUsablesShop(curPageNum - 1));
-                break;
-
-            case "next":
-                interaction.update(openUsablesShop(curPageNum + 1));
-                break;
-        }
-
-    } else if (interaction.customId.substring(0, intUsablesShopPurchaseMenuPrefix.length) == intUsablesShopPurchaseMenuPrefix) {
-        if (interaction.customId.substring(intUsablesShopPurchaseMenuPrefix.length) == "BACK") {
-            //Open page 1 of the usables shop if the BACK button is pressed in an item's purchase window
-            interaction.update(openUsablesShop(1));
-        } else {
-            usablesShop_purchase(interaction);
-        }
+        //Equipment shop select shelf events 
+        case intEquipShopSelectShelfPrefix.slice(0, -1):
+            break;
     }
 });
 
@@ -543,22 +580,23 @@ function saveData(sync) {
 function openMenu(tButtonDisabled) {
     let row1 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'showstats')
+            .setCustomId(intMainMenuPrefix + 'showstats-')
             .setLabel('Show Stats')
             .setStyle(ButtonStyle.Primary)
             .setEmoji('📜'),
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'openinv')
+            .setCustomId(intMainMenuPrefix + 'openinv-')
             .setLabel('Open Inventory')
             .setStyle(ButtonStyle.Primary)
             .setEmoji('📦'),
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'trade')
+            .setCustomId(intMainMenuPrefix + 'trade-')
             .setLabel('Trade')
             .setStyle(ButtonStyle.Primary)
-            .setEmoji('🤝'),
+            .setEmoji('🤝')
+            .setDisabled(true),
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'findtreasure')
+            .setCustomId(intMainMenuPrefix + 'findtreasure-')
             .setLabel('Pick Up Edbucks')
             .setStyle(ButtonStyle.Primary)
             .setEmoji('💸')
@@ -567,25 +605,28 @@ function openMenu(tButtonDisabled) {
 
     let row2 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'minigames')
+            .setCustomId(intMainMenuPrefix + 'minigames-')
             .setLabel('Minigames')
             .setStyle(ButtonStyle.Success)
-            .setEmoji('🎮'),
+            .setEmoji('🎮')
+            .setDisabled(true),
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'challenge')
+            .setCustomId(intMainMenuPrefix + 'challenge-')
             .setLabel('Challenge')
             .setStyle(ButtonStyle.Success)
-            .setEmoji('🙌'),
+            .setEmoji('🙌')
+            .setDisabled(true),
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'wager')
+            .setCustomId(intMainMenuPrefix + 'wager-')
             .setLabel('Wager Edbucks')
             .setStyle(ButtonStyle.Success)
             .setEmoji('🎲')
+            .setDisabled(true)
     );
 
     let row3 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'shop')
+            .setCustomId(intMainMenuPrefix + 'shop-')
             .setLabel('Shop')
             .setStyle(ButtonStyle.Danger)
             .setEmoji('🛒')
@@ -593,22 +634,22 @@ function openMenu(tButtonDisabled) {
 
     let row4 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'userleaderboard')
+            .setCustomId(intMainMenuPrefix + 'userleaderboard-')
             .setLabel('User Leaderboard')
             .setStyle(ButtonStyle.Secondary)
             .setEmoji('🏆'),
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'msgleaderboard')
+            .setCustomId(intMainMenuPrefix + 'msgleaderboard-')
             .setLabel('Message Leaderboard')
             .setStyle(ButtonStyle.Secondary)
             .setEmoji('🥇'),
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'settings')
+            .setCustomId(intMainMenuPrefix + 'settings-')
             .setLabel('Settings')
             .setStyle(ButtonStyle.Secondary)
             .setEmoji('⚙️'),
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'help')
+            .setCustomId(intMainMenuPrefix + 'help-')
             .setLabel('Help')
             .setStyle(ButtonStyle.Secondary)
             .setEmoji('❓')
@@ -627,7 +668,7 @@ function openUsablesShop(pagenum) {
     let pageNavRow = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intUsablesShopNavPagesPrefix + "prev" + pagenum)
+                .setCustomId(intUsablesShopNavPagesPrefix + "prev-" + pagenum)
                 .setLabel("Prev")
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(!(pagenum > 1)),
@@ -637,7 +678,7 @@ function openUsablesShop(pagenum) {
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(true),
             new ButtonBuilder()
-                .setCustomId(intUsablesShopNavPagesPrefix + "next" + pagenum)
+                .setCustomId(intUsablesShopNavPagesPrefix + "next-" + pagenum)
                 .setLabel("Next")
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(!(shopPages_usables.length > pagenum))
@@ -677,6 +718,83 @@ Edbuck Balance: ${requester.balance}
 Last Edbuck Awarded: ${lastAwarded}
         `,
         ephemeral: true
+    });
+}
+
+function mainMenu_openInv(interaction, eventTokens) {
+    //build inventory UI
+    /*
+    =========
+    Inventory
+    =========
+    Usables Page 1
+    [Item1] [Item2] [Item3]
+    [Item1] [Item2] [Item3]
+    [Item1] [Item2] [Item3]
+    [Item1] [Item2] [Item3]
+    [Prev] [Equips] [Next]
+    |
+    V
+    Item Display Name
+    Description
+    Effect
+    Stock: 5
+    [Back] [Use]
+            |
+            V
+    Item Display Name
+    Target: _______________
+
+    [Equips]
+    |
+    V
+    head, body, accessory, shoes
+    [bold("E* item1")] [Item2] [Item3]
+    [Item1] [Item2] [Item3]
+    [Item1] [Item2] [Item3]
+    [Item1] [Item2] [Item3]
+    [Prev] [Equips] [Next]
+    */
+    let accessingUser = workingData[interaction.guildId].users.find(obj => {
+        obj.tag == interaction.user.tag;
+    });
+
+    let inventoryPages = [];
+
+    //TODO: FINISH THIS AFTER INTERACTION HANDLING REWORK
+    /*
+
+    for (let pageIndex = 0; pageIndex < Math.ceil(accessingUser.itemInventory.length / (4 * usablesInventoryItemsPerRow)); pageIndex++) {
+        let newPage = [];
+        for (let rowIndex = 0; rowIndex < 4; rowIndex ++) {
+            let row = new ActionRowBuilder();
+            for (let shelfIndex = 0; shelfIndex < (4 * usablesInventoryItemsPerRow); shelfIndex++) {
+                if (accessingUser.itemInventory[(pageIndex * (4 * usablesInventoryItemsPerRow)) + (rowIndex * usablesInventoryItemsPerRow) + shelfIndex] != undefined) {
+                    row.addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(intUsablesShopSelectShelfPrefix + accessingUser.itemInventory[(pageIndex * (4 * usablesInventoryItemsPerRow)) + (rowIndex * usablesInventoryItemsPerRow) + shelfIndex].name)
+                            .setLabel(accessingUser.itemInventory[(pageIndex * (4 * usablesInventoryItemsPerRow)) + (rowIndex * usablesInventoryItemsPerRow) + shelfIndex].displayName)
+                            .setStyle(ButtonStyle.Success)
+                    )
+                } else {
+                    row.addComponents(
+                        new ButtonBuilder()
+                            .setLabel("Empty Space")
+                            .setCustomId(intUsablesShopSelectShelfPrefix + "EMPTYSPACE-" + ((pageIndex * (4 * usablesInventoryItemsPerRow)) + (rowIndex * usablesInventoryItemsPerRow) + shelfIndex))
+                            .setStyle(ButtonStyle.Secondary)
+                            .setDisabled(true)
+                    )
+                }
+            }
+            newPage.push(row);
+        }
+        inventoryPages.push(newPage);
+    }
+    */
+
+    interaction.reply({
+        content: bold("=========\nInventory\n=========") + "\nUsables Page " + 1,
+
     });
 }
 
@@ -813,24 +931,25 @@ async function mainMenu_msgLeaderboard(interaction) {
     });
 }
 
-function usablesShop_selectShelf(interaction) {
+function usablesShop_selectShelf(interaction, eventTokens) {
+    let itemName = eventTokens.shift();
     //get item display name
     let itemInfo = items.find(entry => {
-        return entry.name == interaction.customId.substring(intUsablesShopSelectShelfPrefix.length);
+        return entry.name == itemName;
     });
 
     let row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intUsablesShopPurchaseMenuPrefix + "BACK")
+                .setCustomId(intUsablesShopPurchaseMenuPrefix + "BACK-")
                 .setLabel("Back")
                 .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
-                .setCustomId(intUsablesShopPurchaseMenuPrefix + itemInfo.name)
+                .setCustomId(intUsablesShopPurchaseMenuPrefix + "BUY-" + itemInfo.name + "-1")
                 .setLabel("Purchase")
                 .setStyle(ButtonStyle.Success),
             new ButtonBuilder()
-                .setCustomId(intUsablesShopPurchaseMenuPrefix + "x5" + itemInfo.name)
+                .setCustomId(intUsablesShopPurchaseMenuPrefix + "BUY-" + itemInfo.name + "-5")
                 .setLabel("Purchase x5")
                 .setStyle(ButtonStyle.Success),
         );
@@ -842,19 +961,20 @@ function usablesShop_selectShelf(interaction) {
     });
 }
 
-function usablesShop_purchase(interaction) {
-    //change purchase count if purchasing more than 1 of the item
-    let pCount = 1;
-    if (interaction.customId.substring(intUsablesShopPurchaseMenuPrefix.length).substring(0, 2) == "x5") pCount = 5;
+function usablesShop_purchase(interaction, eventTokens) {
 
+    let itemName = eventTokens.shift();
     //fetch item and customer info
     let itemInfo = items.find(obj => {
-        return obj.name == pCount > 1 ? interaction.customId.substring(intUsablesShopPurchaseMenuPrefix.length + 2) : interaction.customId.substring(intUsablesShopPurchaseMenuPrefix.length);
+        return obj.name == itemName;
     });
 
     let customer = workingData[interaction.guildId].users.find(obj => {
         return obj.tag == interaction.user.tag;
     });
+
+    //get purchase count from event tokens
+    let pCount = eventTokens.shift();
 
     //do a balance check for the customer
     if (customer.balance < (itemInfo.price * pCount)) {
@@ -878,6 +998,9 @@ function usablesShop_purchase(interaction) {
         customer.itemInventory.push(
             {
                 name: itemInfo.name,
+                displayName: itemInfo.displayName,
+                description: itemInfo.description,
+                effect: itemInfo.effect,
                 count: pCount
             }
         )
@@ -886,13 +1009,13 @@ function usablesShop_purchase(interaction) {
     let row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intUsablesShopPurchaseMenuPrefix + "BACK")
+                .setCustomId(intUsablesShopPurchaseMenuPrefix + "BACK-")
                 .setStyle(ButtonStyle.Danger)
                 .setLabel("Back")
         )
 
     interaction.update({
-        content: bold("===================\nPurchase Complete!\n==================="),
+        content: bold("===================\nPurchase Complete!\n===================\nObtained " + pCount + "x " + itemInfo.displayName + ".\nLost " + (pCount*itemInfo.price) + " EB."),
         ephemeral: true,
         components: [row]
     });

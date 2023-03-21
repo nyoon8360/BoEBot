@@ -5,5 +5,61 @@
         "description": "A weirdly fragile boot used to kick someone from voice chat that breaks after a single kick.",
         "effect": "Kicks a specified user from the voice chat they're in.",
         "price": 5
+    },
+    {
+        "name": "item_mute",
+        "displayName": "Duct Tape",
+        "description": "An ungodly amount of duct tape you can use to shut someone up for a bit.",
+        "effect": "Server mutes a specified user for 10 seconds.",
+        "price": 10
+    },
+    {
+        "name": "item_steal",
+        "displayName": "Goose With a Knife",
+        "description": "An intimidating goose with beady soul-less eyes, a worn-down knife, and an insatiable thirst for violence. Send him out to mug someone.",
+        "effect": "Steals a random item from a specified user.",
+        "price": 12
+    },
+    {
+        "name": "item_deleteMsg",
+        "displayName": "Bottle of Whiteout",
+        "description": "Use it to erase someone's message...or huff it to get high. We dont judge.",
+        "effect": "Deletes the last sent message of a specified user.",
+        "price": 5
+    },
+    {
+        "name": "item_polymorph",
+        "displayName": "Semi-permanent Nametag",
+        "description": "A giant ass \"Hello My Name Is\" nametag with a heaping glob of mousetrap glue on the back.",
+        "effect": "Changes the nickname of a specified user and enforces it for 10 minutes.",
+        "price": 22
+    },
+    {
+        "name": "item_reflect",
+        "displayName": "no u",
+        "description": "no u.",
+        "effect": "Reflects the next item used within 10 seconds on you onto the user instead.",
+        "price": 7
+    },
+    {
+        "name": "item_expose",
+        "displayName": "4K HD Wide-angle Lens Camera",
+        "description": "Caught in 4k.",
+        "effect": "Shows the latest message deleted/edited by a specified user.",
+        "price": 8
+    },
+    {
+        "name": "item_edwindinner",
+        "displayName": "Edwin Dinner ™",
+        "description": "A 4-course meal, 3 hour movie, full season of Breaking Bad, 30 minute nap, 2 hour study session, 4 online quizzes, 100% Hearts of Iron IV achievement run, 10 day wedding, 2 week honeymoon, 1 month vacation, and eventual heat death of the universe all in one easily microwaveable package.",
+        "effect": ".",
+        "price": 20
+    },
+    {
+        "name": "item_emp",
+        "displayName": "EMP",
+        "description": "A small EMP that nukes the .",
+        "effect": "Lowers the bitrate of the voice channel you are in for 20 seconds.",
+        "price": 30
     }
 ]
