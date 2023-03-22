@@ -1121,7 +1121,9 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 });
             } else {
                 //enact effect on target
-                client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]).voice.disconnect();
+                let target = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
+
+                target.voice.disconnect();
 
                 //consume item
                 let caster = workingData[interaction.guildId].users.find(obj => {
@@ -1141,7 +1143,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 //Send notification message to bot notifs channel
                 //TODO: change whether this mentions the user based on their settings to avoid annoying pings
                 client.guilds.cache.get(interaction.guildId).channels.cache.get(botNotifsChannelId).send({
-                    content: userMention(interaction.user.id) + " has used a Comically Large Boot on " + userMention(interaction.values[0]) + "."
+                    content: `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag} has used a Comically Large Boot on ${target.nickname ? `${target.nickname}(${target.user.tag})` : target.tag}.`
                 });
 
                 //update UI
