@@ -4,6 +4,7 @@ const fs = require('fs');
 const config = require('./config.json');
 const items = require('./items.json');
 const equipment = require('./equipment.json');
+const changelog = require('./changelog.json');
 
 /*
 axios for easy HTTP promises with node.js
@@ -39,7 +40,13 @@ database.json format:
             ],
             settings: {
                 "itemsPerInventoryRow": 5
-            }
+            },
+            statusEffects: [
+                {
+                    name: "Reflect",
+                    expires: 1456346124 this number will be an epoch timestamp in seconds
+                }
+            ]
         }
     ],
     "msgLeaderboard": [
@@ -49,28 +56,6 @@ database.json format:
     ],
     "msgLeaderboardFloor": 0
 }
-
-=========
-Inventory
-=========
-Usables Page 1
-[Item1] [Item2] [Item3]
-[Item1] [Item2] [Item3]
-[Item1] [Item2] [Item3]
-[Item1] [Item2] [Item3]
-[Prev] [Equips] [Next]
- |
- V
-Item Display Name
-Description
-Effect
-Stock: 5
-[Back] [Use]
-         |
-         V
-Item Display Name
-Target: _______________
-
 
 [Equips]
  |
@@ -209,7 +194,10 @@ client.on('ready', () => {
             });
 
             memberManager.forEach((gMember) => {
-                guildUsersArray.push(gMember.user.tag);
+                guildUsersArray.push({
+                    tag: gMember.user.tag,
+                    id: gMember.id
+                });
             });
 
             guildUsersArray.filter(user => !existingArray.includes(user)).forEach((newUser) => {
@@ -250,7 +238,6 @@ client.on('ready', () => {
         }
         shopPages_usables.push(newPage);
     }
-    
 
     //Set interval for autosaving workingData to json database files
     setInterval(() => {
@@ -557,15 +544,17 @@ client.login(process.env.CLIENT_TOKEN);
 //===================================================
 
 //return object with default values for new users in database
-function getNewUserJSON(userTag) {
+function getNewUserJSON(userTag, userId) {
     userObj = {
         tag: userTag,
+        id: userId,
         lastAwarded: 0,
         balance: 0,
         birthday: "",
         lastChangedMsg: "",
         itemInventory: [],
         equipmentInventory: [],
+        statusEffects: [],
         equipped: {},
         settings: {},
         fStatReactionsAwarded: 0,
@@ -588,6 +577,39 @@ function saveData(sync) {
             });
         }
     });
+}
+
+function checkStatsAndEffects(interaction, targetTag) {
+    //instantiate return array with passed stat checks/status effects
+    let passedStatsAndEffects = [];
+
+    //get the target's data
+    let targetData = workingData[interaction.guildId].users.find(obj => {
+        return obj.tag == targetTag;
+    });
+
+    //get current time in seconds since epoch
+    let currentTime = Date.now()/1000;
+
+    //TODO: once equips are implemented, aggregate stats and do roll checks on them
+
+    //check status effects and roll for checks if applicable
+    let statusEffects = targetData.statusEffects;
+
+    for (let i = 0; i < statusEffects.length; i++) {
+        switch(statusEffects[i].name) {
+            case "reflect":
+                if (statusEffects[i].expires >= currentTime) {
+                    passedStatsAndEffects.push("reflect");
+                } else {
+                    statusEffects.splice(i, 1);
+                    i--;
+                }
+                break;
+        }
+    }
+
+    return passedStatsAndEffects;
 }
 
 //===================================================
@@ -757,7 +779,8 @@ function openUsablesInv(interaction, pageNum) {
             new ButtonBuilder()
                 .setCustomId(intPlayerUsablesInvNavPrefix + "equips")
                 .setStyle(ButtonStyle.Danger)
-                .setLabel("Equips"),
+                .setLabel("Equips")
+                .setDisabled(true),
             new ButtonBuilder()
                 .setLabel("Next")
                 .setCustomId(intPlayerUsablesInvNavPrefix + "next")
@@ -800,29 +823,7 @@ Last Edbuck Awarded: ${lastAwarded}
 }
 
 function mainMenu_openInv(interaction) {
-    //build inventory UI
     /*
-    =========
-    Inventory
-    =========
-    Usables Page 1
-    [Item1] [Item2] [Item3]
-    [Item1] [Item2] [Item3]
-    [Item1] [Item2] [Item3]
-    [Item1] [Item2] [Item3]
-    [Prev] [Equips] [Next]
-    |
-    V
-    Item Display Name
-    Description
-    Effect
-    Stock: 5
-    [Back] [Use]
-            |
-            V
-    Item Display Name
-    Target: _______________
-
     [Equips]
     |
     V
@@ -876,11 +877,13 @@ function mainMenu_shop(interaction) {
             new ButtonBuilder()
                 .setCustomId(intShopCategoryPrefix + "equipment")
                 .setLabel("Equipment")
-                .setStyle(ButtonStyle.Danger),
+                .setStyle(ButtonStyle.Danger)
+                .setDisabled(true),
             new ButtonBuilder()
                 .setCustomId(intShopCategoryPrefix + "others")
                 .setLabel("Others")
                 .setStyle(ButtonStyle.Danger)
+                .setDisabled(true)
         )
 
     interaction.reply({
@@ -1120,10 +1123,11 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     ephemeral: true
                 });
             } else {
-                //enact effect on target
+                //get target data
                 let target = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
 
-                target.voice.disconnect();
+                //do stats and effects check
+                let passedModifiers = checkStatsAndEffects(interaction, target.tag);
 
                 //consume item
                 let caster = workingData[interaction.guildId].users.find(obj => {
@@ -1140,10 +1144,26 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     caster.itemInventory[itemEntryIndex].count -= 1;
                 }
 
+                //instantiate server/caster notification message
+                let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
+                let targetString = `${target.nickname ? `${target.nickname}(${target.user.tag})` : target.tag}`;
+                let sNotifMsg = `${casterString} has used a Comically Large Boot on ${targetString}.`;
+                let cNotifMsg = "You've used a Comically Large Boot on " + userMention(interaction.values[0]) + ".";
+
+                //handle passed modifiers
+                passedModifiers.forEach(effect => {
+                    switch (effect) {
+                        case "reflect":
+
+                            break;
+                    }
+                });
+                target.voice.disconnect();
+
                 //Send notification message to bot notifs channel
                 //TODO: change whether this mentions the user based on their settings to avoid annoying pings
                 client.guilds.cache.get(interaction.guildId).channels.cache.get(botNotifsChannelId).send({
-                    content: `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag} has used a Comically Large Boot on ${target.nickname ? `${target.nickname}(${target.user.tag})` : target.tag}.`
+                    content: sNotifMsg
                 });
 
                 //update UI
@@ -1156,7 +1176,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     );
                 
                 interaction.update({
-                    content: "You've used a Comically Large Boot on " + userMention(interaction.values[0]) + ".",
+                    content: cNotifMsg,
                     components: [row],
                     ephemeral: true
                 });
@@ -1164,6 +1184,27 @@ function usableItemsFunctionalities(interaction, eventTokens) {
             break;
         
         case "item_mute":
+            break;
+        
+        case "item_steal":
+            break;
+
+        case "item_deleteMsg":
+            break;
+
+        case "item_polymorph":
+            break;
+
+        case "item_reflect":
+            break;
+
+        case "item_expose":
+            break;
+
+        case "item_edwinDinner":
+            break;
+
+        case "item_emp":
             break;
     }
 }

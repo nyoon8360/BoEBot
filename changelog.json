@@ -1,0 +1,14 @@
+[
+    {
+        "version": "1.0.1",
+        "changes": [
+            "test line"
+        ]
+    },
+    {
+        "version": "1.0.0",
+        "changes": [
+            "-Initial release"
+        ]
+    }
+]
