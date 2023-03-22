@@ -142,7 +142,10 @@ const intEquipShopSelectShelfPrefix = "EQUIPSHOPSELECTSHELF-";
 const intOtherShopSelectShelfPrefix = "OTHERSHOPSELECTSHELF-";
 
 //Player usables inventory tokens
-const intPlayerUsablesInventorySelectSlotPrefix = "PUSABLESINVSELECTSLOT-";
+const intPlayerUsablesInvSelectSlotPrefix = "PUSABLESINVSELECTSLOT-";
+const intPlayerUsablesInvInfoPrefix = "PUSABLESINVINFO-"
+const intPlayerUsablesInvNavPrefix = "PUSABLESINVNAV-";
+
 
 //Shop pages and helper variables
 var shopPages_usables = [];
@@ -467,6 +470,23 @@ client.on('interactionCreate', async (interaction) => {
             }
             break;
 
+        //Inventory slot select events
+        case intPlayerUsablesInvSelectSlotPrefix.slice(0, -1):
+            usablesInventory_selectSlot(interaction, eventTokens);
+            break;
+
+        case intPlayerUsablesInvInfoPrefix.slice(0, -1):
+            switch(eventTokens.shift()) {
+                case "BACK":
+                    interaction.update(openUsablesInv(interaction, 0));
+                    break;
+                
+                case "USE":
+                    //TODO: implement switch case for all item functionalities when used.
+                    break;
+            }
+            break;
+
         //Shop category menu events
         case intShopCategoryPrefix.slice(0, -1):
             switch (eventTokens.shift()) {
@@ -519,6 +539,7 @@ client.on('interactionCreate', async (interaction) => {
         //Equipment shop select shelf events 
         case intEquipShopSelectShelfPrefix.slice(0, -1):
             break;
+
     }
 });
 
@@ -696,6 +717,63 @@ function openUsablesShop(pagenum) {
     return shopMessage;
 }
 
+function openUsablesInv(interaction, pageNum) {
+    let accessingUser = workingData[interaction.guildId].users.find(obj => {
+        return obj.tag == interaction.user.tag;
+    });
+
+    let page = [];
+    for (let rowIndex = 0; rowIndex < 4; rowIndex ++) {
+        let row = new ActionRowBuilder();
+        for (let shelfIndex = 0; shelfIndex < usablesInventoryItemsPerRow; shelfIndex++) {
+            if (accessingUser.itemInventory[(pageNum * (4 * usablesInventoryItemsPerRow)) + (rowIndex * usablesInventoryItemsPerRow) + shelfIndex] != undefined) {
+                row.addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(intPlayerUsablesInvSelectSlotPrefix + accessingUser.itemInventory[(pageNum * (4 * usablesInventoryItemsPerRow)) + (rowIndex * usablesInventoryItemsPerRow) + shelfIndex].name)
+                        .setLabel(accessingUser.itemInventory[(pageNum * (4 * usablesInventoryItemsPerRow)) + (rowIndex * usablesInventoryItemsPerRow) + shelfIndex].displayName)
+                        .setStyle(ButtonStyle.Success)
+                )
+                console.log(intPlayerUsablesInvSelectSlotPrefix + accessingUser.itemInventory[(pageNum * (4 * usablesInventoryItemsPerRow)) + (rowIndex * usablesInventoryItemsPerRow) + shelfIndex].name);
+            } else {
+                row.addComponents(
+                    new ButtonBuilder()
+                        .setLabel("Empty Space")
+                        .setCustomId(intPlayerUsablesInvSelectSlotPrefix + "EMPTYSPACE-" + ((pageNum * (4 * usablesInventoryItemsPerRow)) + (rowIndex * usablesInventoryItemsPerRow) + shelfIndex))
+                        .setStyle(ButtonStyle.Secondary)
+                        .setDisabled(true)
+                )
+            }
+        }
+        page.push(row);
+    }
+    
+    let navRow = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(intPlayerUsablesInvNavPrefix + "prev")
+                .setLabel("Prev")
+                .setStyle(ButtonStyle.Primary)
+                .setDisabled(pageNum <= 0),
+            new ButtonBuilder()
+                .setCustomId(intPlayerUsablesInvNavPrefix + "equips")
+                .setStyle(ButtonStyle.Danger)
+                .setLabel("Equips"),
+            new ButtonBuilder()
+                .setLabel("Next")
+                .setCustomId(intPlayerUsablesInvNavPrefix + "next")
+                .setStyle(ButtonStyle.Primary)
+                .setDisabled(!(accessingUser.itemInventory.length > ((pageNum + 1) * (4 * usablesInventoryItemsPerRow))))
+        )
+
+    page.push(navRow);
+
+    return {
+        content: bold("=========\nInventory\n=========") + underscore("\nUsables Page " + (pageNum + 1)),
+        components: page,
+        ephemeral: true
+    }
+}
+
 //===================================================
 //===================================================
 //
@@ -721,7 +799,7 @@ Last Edbuck Awarded: ${lastAwarded}
     });
 }
 
-function mainMenu_openInv(interaction, eventTokens) {
+function mainMenu_openInv(interaction) {
     //build inventory UI
     /*
     =========
@@ -755,47 +833,7 @@ function mainMenu_openInv(interaction, eventTokens) {
     [Item1] [Item2] [Item3]
     [Prev] [Equips] [Next]
     */
-    let accessingUser = workingData[interaction.guildId].users.find(obj => {
-        obj.tag == interaction.user.tag;
-    });
-
-    let inventoryPages = [];
-
-    //TODO: FINISH THIS AFTER INTERACTION HANDLING REWORK
-    /*
-
-    for (let pageIndex = 0; pageIndex < Math.ceil(accessingUser.itemInventory.length / (4 * usablesInventoryItemsPerRow)); pageIndex++) {
-        let newPage = [];
-        for (let rowIndex = 0; rowIndex < 4; rowIndex ++) {
-            let row = new ActionRowBuilder();
-            for (let shelfIndex = 0; shelfIndex < (4 * usablesInventoryItemsPerRow); shelfIndex++) {
-                if (accessingUser.itemInventory[(pageIndex * (4 * usablesInventoryItemsPerRow)) + (rowIndex * usablesInventoryItemsPerRow) + shelfIndex] != undefined) {
-                    row.addComponents(
-                        new ButtonBuilder()
-                            .setCustomId(intUsablesShopSelectShelfPrefix + accessingUser.itemInventory[(pageIndex * (4 * usablesInventoryItemsPerRow)) + (rowIndex * usablesInventoryItemsPerRow) + shelfIndex].name)
-                            .setLabel(accessingUser.itemInventory[(pageIndex * (4 * usablesInventoryItemsPerRow)) + (rowIndex * usablesInventoryItemsPerRow) + shelfIndex].displayName)
-                            .setStyle(ButtonStyle.Success)
-                    )
-                } else {
-                    row.addComponents(
-                        new ButtonBuilder()
-                            .setLabel("Empty Space")
-                            .setCustomId(intUsablesShopSelectShelfPrefix + "EMPTYSPACE-" + ((pageIndex * (4 * usablesInventoryItemsPerRow)) + (rowIndex * usablesInventoryItemsPerRow) + shelfIndex))
-                            .setStyle(ButtonStyle.Secondary)
-                            .setDisabled(true)
-                    )
-                }
-            }
-            newPage.push(row);
-        }
-        inventoryPages.push(newPage);
-    }
-    */
-
-    interaction.reply({
-        content: bold("=========\nInventory\n=========") + "\nUsables Page " + 1,
-
-    });
+    interaction.reply(openUsablesInv(interaction, 0));
 }
 
 function mainMenu_findTreasure(interaction) {
@@ -974,7 +1012,7 @@ function usablesShop_purchase(interaction, eventTokens) {
     });
 
     //get purchase count from event tokens
-    let pCount = eventTokens.shift();
+    let pCount = parseInt(eventTokens.shift());
 
     //do a balance check for the customer
     if (customer.balance < (itemInfo.price * pCount)) {
@@ -989,7 +1027,7 @@ function usablesShop_purchase(interaction, eventTokens) {
     customer.balance -= (itemInfo.price * pCount);
 
     let existingInventoryEntry = customer.itemInventory.find(obj => {
-        obj.name == itemInfo.name;
+        return obj.name == itemInfo.name;
     });
 
     if (existingInventoryEntry) {
@@ -1018,5 +1056,36 @@ function usablesShop_purchase(interaction, eventTokens) {
         content: bold("===================\nPurchase Complete!\n===================\nObtained " + pCount + "x " + itemInfo.displayName + ".\nLost " + (pCount*itemInfo.price) + " EB."),
         ephemeral: true,
         components: [row]
+    });
+}
+
+function usablesInventory_selectSlot(interaction, eventTokens) {
+    let itemName = eventTokens.shift();
+    //get user data
+    let accessingUser = workingData[interaction.guildId].users.find(obj => {
+        return obj.tag == interaction.user.tag;
+    });
+
+    //get item display name
+    let itemInfo = accessingUser.itemInventory.find(entry => {
+        return entry.name == itemName;
+    });
+
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(intPlayerUsablesInvInfoPrefix + "BACK-")
+                .setLabel("Back")
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + itemInfo.name + "-1")
+                .setLabel("Use")
+                .setStyle(ButtonStyle.Success)
+        );
+
+    interaction.update({
+        content: bold("===================\nUSABLES INVENTORY\n===================") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock("Description: " + itemInfo.description + "\nEffect: " + itemInfo.effect + "\nCount: " + itemInfo.count),
+        components: [row],
+        ephemeral: true
     });
 }
