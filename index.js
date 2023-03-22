@@ -200,9 +200,8 @@ client.on('ready', () => {
                 });
             });
 
-            guildUsersArray.filter(user => !existingArray.includes(user)).forEach((newUser) => {
-                console.log(newUser);
-                workingData[guildId].users.push(getNewUserJSON(newUser));
+            guildUsersArray.filter(user => !existingArray.includes(user.tag)).forEach((newUser) => {
+                workingData[guildId].users.push(getNewUserJSON(newUser.tag, newUser.id));
             });
 
             fs.writeFileSync('./database' + guildId + ".json", JSON.stringify(workingData[guildId], null, 2));
@@ -1154,7 +1153,9 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 passedModifiers.forEach(effect => {
                     switch (effect) {
                         case "reflect":
-
+                            target = client.guilds.cache.get(interaction.guildId).members.cache.get(caster.id);
+                            sNotifMsg = `${casterString} has used a Comically Large Boot on ${targetString} but it was reflected.`;
+                            cNotifMsg = "You've used a Comically Large Boot on " + userMention(interaction.values[0]) + " but it was reflected."
                             break;
                     }
                 });
