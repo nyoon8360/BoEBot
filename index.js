@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, parseEmoji, inlineCode, bold, underscore, Options, Sweepers, EmbedBuilder, italic, codeBlock, TextInputBuilder, TextInputStyle, GuildScheduledEventPrivacyLevel } = require('discord.js');
+const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, parseEmoji, inlineCode, bold, underscore, Options, Sweepers, EmbedBuilder, italic, codeBlock, TextInputBuilder, TextInputStyle, GuildScheduledEventPrivacyLevel, MentionableSelectMenuBuilder, userMention } = require('discord.js');
 const fs = require('fs');
 const config = require('./config.json');
 const items = require('./items.json');
@@ -120,6 +120,7 @@ const botAdmins = config.common.admins; //list of user tags that are able to run
 const saveInterval = config.common.saveInterval; //the interval between json file autosaves
 const usablesShopItemsPerRow = config.common.usablesShopItemsPerRow > 5 ? 5 : config.common.usablesShopItemsPerRow; //the number of items displayed per row in the item shop. maxed at 5
 const usablesInventoryItemsPerRow = config.common.usablesInventoryItemsPerRow > 5 ? 5 : config.common.usablesInventoryItemsPerRow; //number of items displayed per row in player inventories. maxed at 5
+const botNotifsChannelId = config.common.botNotifsChannelId;
 
 //===================================================
 //             Interact Event Tokens
@@ -411,7 +412,6 @@ client.on('messageReactionAdd', (messageReaction, user) => {
 //===================================================
 client.on('interactionCreate', async (interaction) => {
     //if interaction is not a button or doesnt have a guildId then return
-    if (!interaction.isButton()) return;
     if (!interaction.guildId) return;
 
     let eventTokens = interaction.customId.split("-");
@@ -482,7 +482,7 @@ client.on('interactionCreate', async (interaction) => {
                     break;
                 
                 case "USE":
-                    //TODO: implement switch case for all item functionalities when used.
+                    usableItemsFunctionalities(interaction, eventTokens);
                     break;
             }
             break;
@@ -563,6 +563,7 @@ function getNewUserJSON(userTag) {
         lastAwarded: 0,
         balance: 0,
         birthday: "",
+        lastChangedMsg: "",
         itemInventory: [],
         equipmentInventory: [],
         equipped: {},
@@ -733,7 +734,6 @@ function openUsablesInv(interaction, pageNum) {
                         .setLabel(accessingUser.itemInventory[(pageNum * (4 * usablesInventoryItemsPerRow)) + (rowIndex * usablesInventoryItemsPerRow) + shelfIndex].displayName)
                         .setStyle(ButtonStyle.Success)
                 )
-                console.log(intPlayerUsablesInvSelectSlotPrefix + accessingUser.itemInventory[(pageNum * (4 * usablesInventoryItemsPerRow)) + (rowIndex * usablesInventoryItemsPerRow) + shelfIndex].name);
             } else {
                 row.addComponents(
                     new ButtonBuilder()
@@ -1078,7 +1078,7 @@ function usablesInventory_selectSlot(interaction, eventTokens) {
                 .setLabel("Back")
                 .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
-                .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + itemInfo.name + "-1")
+                .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + itemInfo.name)
                 .setLabel("Use")
                 .setStyle(ButtonStyle.Success)
         );
@@ -1088,4 +1088,80 @@ function usablesInventory_selectSlot(interaction, eventTokens) {
         components: [row],
         ephemeral: true
     });
+}
+
+//===================================================
+//===================================================
+//
+//        Item Functionalities Implementations
+//
+//===================================================
+//===================================================
+
+//All code relating to the functionalities of usable items
+function usableItemsFunctionalities(interaction, eventTokens) {
+    //TODO: implement item functionalities
+    switch(eventTokens.shift()) {
+        case "item_kick":
+            if (eventTokens.length <= 0) {
+                //select target
+                let row = new ActionRowBuilder()
+                    .addComponents(
+                        new MentionableSelectMenuBuilder()
+                            .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + "item_kick-" + "targetted")
+                            .setMinValues(1)
+                            .setMaxValues(1)
+                            .setPlaceholder("Choose a target.")
+                    )
+
+                interaction.update({
+                    content: underscore("Select a target for: Comically Large Boot"),
+                    components: [row],
+                    ephemeral: true
+                });
+            } else {
+                //enact effect on target
+                client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]).voice.disconnect();
+
+                //consume item
+                let caster = workingData[interaction.guildId].users.find(obj => {
+                    return obj.tag == interaction.user.tag;
+                });
+
+                let itemEntryIndex = caster.itemInventory.findIndex(obj => {
+                    return obj.name == "item_kick";
+                });
+
+                if (caster.itemInventory[itemEntryIndex].count == 1) {
+                    caster.itemInventory.splice(itemEntryIndex, 1);
+                } else {
+                    caster.itemInventory[itemEntryIndex].count -= 1;
+                }
+
+                //Send notification message to bot notifs channel
+                //TODO: change whether this mentions the user based on their settings to avoid annoying pings
+                client.guilds.cache.get(interaction.guildId).channels.cache.get(botNotifsChannelId).send({
+                    content: userMention(interaction.user.id) + " has used a Comically Large Boot on " + userMention(interaction.values[0]) + "."
+                });
+
+                //update UI
+                let row = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setLabel("Back")
+                            .setStyle(ButtonStyle.Danger)
+                            .setCustomId(intPlayerUsablesInvInfoPrefix + "BACK")
+                    );
+                
+                interaction.update({
+                    content: "You've used a Comically Large Boot on " + userMention(interaction.values[0]) + ".",
+                    components: [row],
+                    ephemeral: true
+                });
+            }
+            break;
+        
+        case "item_mute":
+            break;
+    }
 }

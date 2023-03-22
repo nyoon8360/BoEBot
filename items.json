@@ -10,7 +10,7 @@
         "name": "item_mute",
         "displayName": "Duct Tape",
         "description": "An ungodly amount of duct tape you can use to shut someone up for a bit.",
-        "effect": "Server mutes a specified user for 10 seconds.",
+        "effect": "Server mutes a specified user for 8 seconds.",
         "price": 10
     },
     {
@@ -51,15 +51,15 @@
     {
         "name": "item_edwindinner",
         "displayName": "Edwin Dinner ™",
-        "description": "A 4-course meal, 3 hour movie, full season of Breaking Bad, 30 minute nap, 2 hour study session, 4 online quizzes, 100% Hearts of Iron IV achievement run, 10 day wedding, 2 week honeymoon, 1 month vacation, and eventual heat death of the universe all in one easily microwaveable package.",
-        "effect": ".",
+        "description": "A 4-course meal, 3 hour movie, full season of Breaking Bad, 30 minute nap, 2 hour study session, 4 online quizzes, 100% Hearts of Iron IV achievement run, 10 day wedding, 2 week honeymoon, 1 month vacation, and eventual heat death of the universe all in one easily microwaveable package! Force-feed this to anyone of your choice!",
+        "effect": "Timeout a specified user for 10 seconds.",
         "price": 20
     },
     {
         "name": "item_emp",
-        "displayName": "EMP",
-        "description": "A small EMP that nukes the .",
+        "displayName": "150 Tech-savy Apes",
+        "description": "Hire 150 tech-savy apes to DDOS the discord servers. They accept payments in edbucks, bananas, Madagascan treasury bonds, and Bored-ape Yacht Club NFTs.",
         "effect": "Lowers the bitrate of the voice channel you are in for 20 seconds.",
-        "price": 30
+        "price": 25
     }
 ]
