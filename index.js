@@ -91,6 +91,7 @@ const client = new Client({
 
 var workingData = {}; //In-memory data
 
+//common config consts
 const reactCooldown = config.common.reactCooldown; //how long users must wait in between awarding edbucks in seconds
 const msgExpiration = config.common.msgExpiration; //how long a message can be awarded edbucks for in seconds
 const reactAward = config.common.reactAward; //how many edbucks awarded for reactions
@@ -106,6 +107,9 @@ const saveInterval = config.common.saveInterval; //the interval between json fil
 const usablesShopItemsPerRow = config.common.usablesShopItemsPerRow > 5 ? 5 : config.common.usablesShopItemsPerRow; //the number of items displayed per row in the item shop. maxed at 5
 const usablesInventoryItemsPerRow = config.common.usablesInventoryItemsPerRow > 5 ? 5 : config.common.usablesInventoryItemsPerRow; //number of items displayed per row in player inventories. maxed at 5
 const botNotifsChannelId = config.common.botNotifsChannelId;
+
+//item config consts
+const itemMuteDuration = config.items.itemMuteDuration;
 
 //===================================================
 //             Interact Event Tokens
@@ -254,7 +258,7 @@ client.on("guildMemberAdd", member => {
     });
 
     if (!existingEntry) {
-        workingData[member.guild.id].users.push(getNewUserJSON(member.user.tag));
+        workingData[member.guild.id].users.push(getNewUserJSON(member.user.tag, member.user.id));
     }
 });
 
@@ -1126,7 +1130,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 let target = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
 
                 //do stats and effects check
-                let passedModifiers = checkStatsAndEffects(interaction, target.tag);
+                let passedModifiers = checkStatsAndEffects(interaction, target.user.tag);
 
                 //consume item
                 let caster = workingData[interaction.guildId].users.find(obj => {
@@ -1153,17 +1157,19 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 passedModifiers.forEach(effect => {
                     switch (effect) {
                         case "reflect":
-                            target = client.guilds.cache.get(interaction.guildId).members.cache.get(caster.id);
+                            target = interaction.member;
                             sNotifMsg = `${casterString} has used a Comically Large Boot on ${targetString} but it was reflected.`;
                             cNotifMsg = "You've used a Comically Large Boot on " + userMention(interaction.values[0]) + " but it was reflected."
                             break;
                     }
                 });
+
+                //ennact item effect
                 target.voice.disconnect();
 
                 //Send notification message to bot notifs channel
                 //TODO: change whether this mentions the user based on their settings to avoid annoying pings
-                client.guilds.cache.get(interaction.guildId).channels.cache.get(botNotifsChannelId).send({
+                interaction.member.guild.channels.cache.get(botNotifsChannelId).send({
                     content: sNotifMsg
                 });
 
@@ -1185,6 +1191,89 @@ function usableItemsFunctionalities(interaction, eventTokens) {
             break;
         
         case "item_mute":
+            if (eventTokens.length <= 0) {
+                //select target
+                let row = new ActionRowBuilder()
+                    .addComponents(
+                        new MentionableSelectMenuBuilder()
+                            .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + "item_mute-" + "targetted")
+                            .setMinValues(1)
+                            .setMaxValues(1)
+                            .setPlaceholder("Choose a target.")
+                    )
+
+                interaction.update({
+                    content: underscore("Select a target for: Duct Tape"),
+                    components: [row],
+                    ephemeral: true
+                });
+            } else {
+                //get target data
+                let target = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
+
+                //do stats and effects check
+                let passedModifiers = checkStatsAndEffects(interaction, target.user.tag);
+
+                //consume item
+                let caster = workingData[interaction.guildId].users.find(obj => {
+                    return obj.tag == interaction.user.tag;
+                });
+
+                let itemEntryIndex = caster.itemInventory.findIndex(obj => {
+                    return obj.name == "item_mute";
+                });
+
+                if (caster.itemInventory[itemEntryIndex].count == 1) {
+                    caster.itemInventory.splice(itemEntryIndex, 1);
+                } else {
+                    caster.itemInventory[itemEntryIndex].count -= 1;
+                }
+
+                //instantiate server/caster notification message
+                let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
+                let targetString = `${target.nickname ? `${target.nickname}(${target.user.tag})` : target.tag}`;
+                let sNotifMsg = `${casterString} has used Duct Tape on ${targetString}.`;
+                let cNotifMsg = "You've used Duct Tape on " + userMention(interaction.values[0]) + ".";
+
+                //handle passed modifiers
+                passedModifiers.forEach(effect => {
+                    switch (effect) {
+                        case "reflect":
+                            target = interaction.member;
+                            sNotifMsg = `${casterString} has used Duct Tape on ${targetString} but it was reflected.`;
+                            cNotifMsg = "You've used Duct Tape on " + userMention(interaction.values[0]) + " but it was reflected."
+                            break;
+                    }
+                });
+                
+                //enact item effect
+                target.voice.setMute(true);
+
+                (async (mutedTarget) => {
+                    let timeoutDuration = itemMuteDuration;
+                    await setTimeout(() => mutedTarget.voice.setMute(false), timeoutDuration * 1000);
+                })(target)
+
+                //send msg to notifs channel
+                interaction.member.guild.channels.cache.get(botNotifsChannelId).send({
+                    content: sNotifMsg
+                });
+
+                //update UI
+                let row = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setLabel("Back")
+                            .setStyle(ButtonStyle.Danger)
+                            .setCustomId(intPlayerUsablesInvInfoPrefix + "BACK")
+                    );
+                
+                interaction.update({
+                    content: cNotifMsg,
+                    components: [row],
+                    ephemeral: true
+                });
+            }
             break;
         
         case "item_steal":

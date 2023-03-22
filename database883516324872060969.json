@@ -10,7 +10,8 @@
       "fStatReactionsReceived": 11,
       "fStatItemsUsed": 0,
       "fStatHighestBal": 0,
-      "itemInventory": []
+      "itemInventory": [],
+      "statusEffects": []
     },
     {
       "tag": "BoE Bot#1195",
@@ -21,7 +22,8 @@
       "fStatReactionsReceived": 0,
       "fStatItemsUsed": 0,
       "fStatHighestBal": 0,
-      "itemInventory": []
+      "itemInventory": [],
+      "statusEffects": []
     },
     {
       "tag": "Dummy User#1234",
@@ -32,7 +34,8 @@
       "fStatReactionsReceived": 0,
       "fStatItemsUsed": 0,
       "fStatHighestBal": 0,
-      "itemInventory": []
+      "itemInventory": [],
+      "statusEffects": []
     }
   ],
   "activeMenuId": "1087860264617119835",
