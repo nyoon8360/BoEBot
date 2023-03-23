@@ -110,6 +110,7 @@ const botNotifsChannelId = config.common.botNotifsChannelId;
 
 //item config consts
 const itemMuteDuration = config.items.itemMuteDuration;
+const itemReflectDuration = config.items.itemReflectDuration;
 
 //===================================================
 //             Interact Event Tokens
@@ -592,7 +593,7 @@ function checkStatsAndEffects(interaction, targetTag) {
     });
 
     //get current time in seconds since epoch
-    let currentTime = Date.now()/1000;
+    let currentTime = Math.floor(Date.now()/1000);
 
     //TODO: once equips are implemented, aggregate stats and do roll checks on them
 
@@ -1132,6 +1133,8 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 //do stats and effects check
                 let passedModifiers = checkStatsAndEffects(interaction, target.user.tag);
 
+                console.log(passedModifiers);
+
                 //consume item
                 let caster = workingData[interaction.guildId].users.find(obj => {
                     return obj.tag == interaction.user.tag;
@@ -1149,7 +1152,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
 
                 //instantiate server/caster notification message
                 let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
-                let targetString = `${target.nickname ? `${target.nickname}(${target.user.tag})` : target.tag}`;
+                let targetString = `${target.nickname ? `${target.nickname}(${target.user.tag})` : target.user.tag}`;
                 let sNotifMsg = `${casterString} has used a Comically Large Boot on ${targetString}.`;
                 let cNotifMsg = "You've used a Comically Large Boot on " + userMention(interaction.values[0]) + ".";
 
@@ -1231,7 +1234,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
 
                 //instantiate server/caster notification message
                 let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
-                let targetString = `${target.nickname ? `${target.nickname}(${target.user.tag})` : target.tag}`;
+                let targetString = `${target.nickname ? `${target.nickname}(${target.user.tag})` : target.user.tag}`;
                 let sNotifMsg = `${casterString} has used Duct Tape on ${targetString}.`;
                 let cNotifMsg = "You've used Duct Tape on " + userMention(interaction.values[0]) + ".";
 
@@ -1286,6 +1289,50 @@ function usableItemsFunctionalities(interaction, eventTokens) {
             break;
 
         case "item_reflect":
+            //get caster's data entry
+            let casterData = workingData[interaction.guildId].users.find(obj => {
+                return obj.tag == interaction.user.tag;
+            });
+
+            //apply reflect status effect
+            let existingStatusEffect = casterData.statusEffects.find(obj => {
+                obj.name == "reflect";
+            });
+
+            if (existingStatusEffect) {
+                existingStatusEffect.expires = Math.floor(Date.now()/1000) + itemReflectDuration;
+            } else {
+                casterData.statusEffects.push({
+                    name: "reflect",
+                    expires: Math.floor(Date.now()/1000) + itemReflectDuration
+                });
+            }
+
+            //consume item
+            let itemEntryIndex = casterData.itemInventory.findIndex(obj => {
+                return obj.name == "item_reflect";
+            });
+
+            if (casterData.itemInventory[itemEntryIndex].count == 1) {
+                casterData.itemInventory.splice(itemEntryIndex, 1);
+            } else {
+                casterData.itemInventory[itemEntryIndex].count -= 1;
+            }
+
+            //update UI
+            let row = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setLabel("Back")
+                        .setStyle(ButtonStyle.Danger)
+                        .setCustomId(intPlayerUsablesInvInfoPrefix + "BACK")
+                );
+            
+            interaction.update({
+                content: "You've used a no u.",
+                components: [row],
+                ephemeral: true
+            });
             break;
 
         case "item_expose":
