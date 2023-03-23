@@ -333,6 +333,37 @@ client.on('guildMemberUpdate', (oldMember, newMember) => {
     }
 })
 
+client.on('messageDelete', (message) => {
+    if (!message.guildId) return;
+
+    let messageAuthorData = workingData[message.guildId].users.find(obj => {
+        return obj.tag == message.author.tag;
+    });
+
+    messageAuthorData.lastChangedMsg = {
+        time: Math.floor(message.createdTimestamp/1000),
+        oldContent: message.content,
+        newContent: "",
+        channel: message.channel.id
+    };
+})
+
+client.on('messageUpdate', (oldMessage, newMessage) => {
+    if (!newMessage.guildId) return;
+    if (newMessage.author.bot) return;
+
+    let messageAuthorData = workingData[newMessage.guildId].users.find(obj => {
+        return obj.tag == newMessage.author.tag;
+    });
+
+    messageAuthorData.lastChangedMsg = {
+        time: Math.floor(newMessage.createdTimestamp/1000),
+        oldContent: oldMessage.content,
+        newContent: newMessage.content,
+        channel: newMessage.channel.id
+    };
+})
+
 client.on('messageReactionAdd', (messageReaction, user) => {
     //base system for awarding edbucks to users whose msgs get edbuck reactions
     if (messageReaction.emoji.name != 'edbuck') return;
@@ -351,7 +382,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
     if (currTime - storedUserData.lastAwarded >= reactCooldown) {
 
         //do a time check for the reacted to message
-        if (currTime - messageReaction.message.createdTimestamp <= msgExpiration) {
+        if (currTime - Math.floor(messageReaction.message.createdTimestamp/1000) <= msgExpiration) {
             //find recipient user's data object in working data var
             let recipient = workingData[messageReaction.message.guildId].users.find(obj => {
                 return obj.tag == messageReaction.message.author.tag;
@@ -589,7 +620,7 @@ function getNewUserJSON(userTag, userId) {
         lastAwarded: 0,
         balance: 0,
         birthday: "",
-        lastChangedMsg: "",
+        lastChangedMsg: {},
         itemInventory: [],
         equipmentInventory: [],
         statusEffects: [],
@@ -1141,7 +1172,6 @@ function usablesInventory_selectSlot(interaction, eventTokens) {
 
 //All code relating to the functionalities of usable items
 function usableItemsFunctionalities(interaction, eventTokens) {
-    //TODO: implement item functionalities
     switch(eventTokens.shift()) {
         case "item_kick":
             if (eventTokens.length <= 0) {
@@ -1205,7 +1235,6 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 target.voice.disconnect();
 
                 //Send notification message to bot notifs channel
-                //TODO: change whether this mentions the user based on their settings to avoid annoying pings
                 interaction.member.guild.channels.cache.get(botNotifsChannelId).send({
                     content: sNotifMsg
                 });
@@ -1331,7 +1360,6 @@ function usableItemsFunctionalities(interaction, eventTokens) {
             break;
 
         case "item_polymorph":
-            //TODO: Implement
             let nextToken = eventTokens.shift();
             if (!nextToken) {
                 //select polymorph target
@@ -1498,8 +1526,121 @@ function usableItemsFunctionalities(interaction, eventTokens) {
             break;
 
         case "item_expose":
-            //TODO: Implement
+            //TODO: FINISH THIS
             //lastChangedMsg
+            if (eventTokens.length <= 0) {
+                //select target
+                let row = new ActionRowBuilder()
+                    .addComponents(
+                        new MentionableSelectMenuBuilder()
+                            .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + "item_expose-" + "targetted")
+                            .setMinValues(1)
+                            .setMaxValues(1)
+                            .setPlaceholder("Choose a target.")
+                    )
+
+                interaction.update({
+                    content: underscore("Select a target for: 4K HD Wide-angle Lens Camera"),
+                    components: [row],
+                    ephemeral: true
+                });
+            } else {
+                //get target data
+                let targetMemberData = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
+
+                let targetData = workingData[interaction.guildId].users.find(obj => {
+                    return obj.tag == targetMemberData.user.tag;
+                })
+
+                //consume item
+                let caster = workingData[interaction.guildId].users.find(obj => {
+                    return obj.tag == interaction.user.tag;
+                });
+
+                let itemEntryIndex = caster.itemInventory.findIndex(obj => {
+                    return obj.name == "item_expose";
+                });
+
+                if (caster.itemInventory[itemEntryIndex].count == 1) {
+                    caster.itemInventory.splice(itemEntryIndex, 1);
+                } else {
+                    caster.itemInventory[itemEntryIndex].count -= 1;
+                }
+
+                let passedModifiers = checkStatsAndEffects(interaction, targetData.tag);
+
+                //instantiate server/caster notification message
+                let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
+                let targetString = `${targetMemberData.nickname ? `${targetMemberData.nickname}(${targetMemberData.user.tag})` : targetMemberData.user.tag}`;
+                let sNotifMsg = `${casterString} has used 4K HD Wide-angle Lens Camera on ${targetString}.`;
+                let cNotifMsg = "You've used 4K HD Wide-angle Lens Camera on " + userMention(interaction.values[0]) + ".";
+                let reflected = false;
+
+                //handle passed modifiers
+                passedModifiers.forEach(effect => {
+                    switch (effect) {
+                        case "reflect":
+                            targetData = caster;
+                            sNotifMsg = `${casterString} has used Duct Tape on ${targetString} but it was reflected.`;
+                            cNotifMsg = "You've used Duct Tape on " + userMention(interaction.values[0]) + " but it was reflected."
+                            reflected = true;
+                            break;
+                    }
+                });
+
+                let exposedMsg = targetData.lastChangedMsg;
+                let embed;
+
+                if (exposedMsg) {
+                    embed = new EmbedBuilder()
+                        .setAuthor({name: reflected ? casterString : targetString, iconURL: reflected ? interaction.member.avatarURL() : targetMemberData.avatarURL()})
+                        .setTitle("Time Sent")
+                        .setDescription(time(exposedMsg.time,"F"))
+                
+                    if (exposedMsg.newContent) {
+                        embed.addFields(
+                            {name: "Old Message", value: exposedMsg.oldContent},
+                            {name: "New Message", value: exposedMsg.newContent}
+                        )
+                    } else {
+                        embed.addFields(
+                            {name: "Deleted Message", value: exposedMsg.oldContent}
+                        )
+                    }
+                } else {
+                    embed = new EmbedBuilder()
+                        .setAuthor(reflected ? casterString : targetString)
+                        .setTitle("Modified Message")
+                        .setDescription("No Message To Expose")
+                        .addFields({
+                            name: "No Message To Expose"
+                        })
+                }
+
+                client.guilds.cache.get(interaction.guildId).channels.cache.get(exposedMsg.channel).send({
+                    embeds: [embed]
+                });
+
+                //send msg to notifs channel
+                interaction.member.guild.channels.cache.get(botNotifsChannelId).send({
+                    content: sNotifMsg
+                });
+
+                //update UI
+                let row = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setLabel("Back")
+                            .setStyle(ButtonStyle.Danger)
+                            .setCustomId(intPlayerUsablesInvInfoPrefix + "BACK")
+                    );
+                
+                interaction.update({
+                    content: cNotifMsg,
+                    components: [row],
+                    ephemeral: true
+                });
+            }
             break;
 
         case "item_edwinDinner":

@@ -10,13 +10,14 @@
       "fStatItemsUsed": 0,
       "fStatHighestBal": 0,
       "itemInventory": [],
-      "statusEffects": []
+      "statusEffects": [],
+      "lastChangedMsg": {}
     },
     {
       "tag": "Inspirasian#2923",
       "lastAwarded": 1679181319,
       "balance": 40,
-      "lastChangedMsg": "",
+      "lastChangedMsg": {},
       "birthday": "",
       "fStatReactionsAwarded": 11,
       "fStatReactionsReceived": 11,
@@ -35,7 +36,8 @@
       "fStatItemsUsed": 0,
       "fStatHighestBal": 0,
       "itemInventory": [],
-      "statusEffects": []
+      "statusEffects": [],
+      "lastChangedMsg": {}
     }
   ],
   "activeMenuId": "1087860264617119835",
