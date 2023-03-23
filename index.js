@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, parseEmoji, inlineCode, bold, underscore, Options, Sweepers, EmbedBuilder, italic, codeBlock, TextInputBuilder, TextInputStyle, GuildScheduledEventPrivacyLevel, MentionableSelectMenuBuilder, userMention } = require('discord.js');
+const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, parseEmoji, inlineCode, bold, underscore, Options, Sweepers, EmbedBuilder, italic, codeBlock, TextInputBuilder, TextInputStyle, GuildScheduledEventPrivacyLevel, MentionableSelectMenuBuilder, userMention, ModalBuilder, ClientVoiceManager } = require('discord.js');
 const fs = require('fs');
 const config = require('./config.json');
 const items = require('./items.json');
@@ -111,6 +111,7 @@ const botNotifsChannelId = config.common.botNotifsChannelId;
 //item config consts
 const itemMuteDuration = config.items.itemMuteDuration;
 const itemReflectDuration = config.items.itemReflectDuration;
+const itemPolymorphDuration = config.items.itemPolymorphDuration;
 
 //===================================================
 //             Interact Event Tokens
@@ -298,6 +299,39 @@ client.on('messageCreate', (message) => {
             break;
     }
 });
+
+//listen for updates on guild members
+client.on('guildMemberUpdate', (oldMember, newMember) => {
+    //enforce polymorph status effect on those afflicted
+
+    //check if the member update was to nickname
+    if (oldMember.displayName != newMember.displayName) {
+        //get member data and existing polymorph status effect on member if it exists
+        let memberData = workingData[newMember.guild.id].users.find(obj => {
+            return obj.tag == newMember.user.tag;
+        });
+
+        let existingPolyIndex = memberData.statusEffects.findIndex(obj => {
+            return obj.name == 'polymorph';
+        });
+
+        let existingPoly = memberData.statusEffects[existingPolyIndex];
+
+        //if no polymorph status effect exists then return
+        if (!existingPoly) return;
+
+        console.log("cur: " + newMember.displayName);
+        console.log("poly: " + existingPoly.polyName);
+        if (newMember.displayName == existingPoly.polyName) return;
+
+        //if the polymorph has not expired then enforce it else remove the expired effect
+        if (existingPoly.expires >= Math.floor(Date.now()/1000)) {
+            newMember.setNickname(existingPoly.polyName);
+        } else {
+            memberData.statusEffects.splice(existingPolyIndex, 1);
+        }
+    }
+})
 
 client.on('messageReactionAdd', (messageReaction, user) => {
     //base system for awarding edbucks to users whose msgs get edbuck reactions
@@ -1280,12 +1314,140 @@ function usableItemsFunctionalities(interaction, eventTokens) {
             break;
         
         case "item_steal":
+            //TODO: Implement
             break;
 
         case "item_deleteMsg":
+            //temporarily canceled due to current plans for implementation nuking performance and the fact that this item will most likely rarely be used
+            /*
+                {
+                    "name": "item_deleteMsg",
+                    "displayName": "Bottle of Whiteout",
+                    "description": "Use it to erase someone's message...or huff it to get high. We dont judge.",
+                    "effect": "Deletes the last sent message of a specified user.",
+                    "price": 5
+                },
+            */
             break;
 
         case "item_polymorph":
+            //TODO: Implement
+            let nextToken = eventTokens.shift();
+            if (!nextToken) {
+                //select polymorph target
+                let row = new ActionRowBuilder()
+                    .addComponents(
+                        new MentionableSelectMenuBuilder()
+                            .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + "item_polymorph-" + "targetted")
+                            .setMinValues(1)
+                            .setMaxValues(1)
+                            .setPlaceholder("Choose a target.")
+                    )
+
+                interaction.update({
+                    content: underscore("Select a target for: Semi-permanent Nametag"),
+                    components: [row],
+                    ephemeral: true
+                });
+
+            } else if (nextToken == "targetted") {
+                //input polymorph name
+                let modal = new ModalBuilder()
+                    .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + "item_polymorph-" + interaction.values[0])
+                    .setTitle("Semi-permanent Nametag")
+                    .addComponents(
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId("newNickname")
+                            .setStyle(TextInputStyle.Short)
+                            .setLabel("New Nickname")
+                    )
+                )
+
+                interaction.showModal(modal);
+            } else {
+                //get target and new nickname
+                let newNickname = interaction.fields.getTextInputValue('newNickname');
+                let target = client.guilds.cache.get(interaction.guildId).members.cache.get(nextToken);
+
+                //do stats and effects check
+                let passedModifiers = checkStatsAndEffects(interaction, target.user.tag);
+
+                //consume item
+                let caster = workingData[interaction.guildId].users.find(obj => {
+                    return obj.tag == interaction.user.tag;
+                });
+
+                let itemEntryIndex = caster.itemInventory.findIndex(obj => {
+                    return obj.name == "item_polymorph";
+                });
+
+                if (caster.itemInventory[itemEntryIndex].count == 1) {
+                    caster.itemInventory.splice(itemEntryIndex, 1);
+                } else {
+                    caster.itemInventory[itemEntryIndex].count -= 1;
+                }
+
+                //instantiate server/caster notification message
+                let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
+                let targetString = `${target.nickname ? `${target.nickname}(${target.user.tag})` : target.user.tag}`;
+                let sNotifMsg = `${casterString} has used Semi-permanent Nametag on ${targetString}.`;
+                let cNotifMsg = "You've used Semi-permanent Nametag on " + userMention(nextToken) + ".";
+
+                //handle passed modifiers
+                passedModifiers.forEach(effect => {
+                    switch (effect) {
+                        case "reflect":
+                            target = interaction.member;
+                            sNotifMsg = `${casterString} has used Semi-permanent Nametag on ${targetString} but it was reflected.`;
+                            cNotifMsg = "You've used Semi-permanent Nametag on " + userMention(nextToken) + " but it was reflected."
+                            break;
+                    }
+                });
+                
+                //apply polymorph status effect
+                let targetData = workingData[interaction.guildId].users.find(obj => {
+                    return obj.tag == target.user.tag;
+                });
+
+                let existingStatusEffect = targetData.statusEffects.find(obj => {
+                    obj.name == "polymorph";
+                });
+
+                if (existingStatusEffect) {
+                    existingStatusEffect.expires = Math.floor(Date.now()/1000) + itemPolymorphDuration;
+                    existingStatusEffect.polyName = newNickname;
+                } else {
+                    targetData.statusEffects.push({
+                        name: "polymorph",
+                        expires: Math.floor(Date.now()/1000) + itemPolymorphDuration,
+                        polyName: newNickname
+                    });
+                }
+
+                //enact item effects
+                target.setNickname(newNickname);
+
+                //send msg to notifs channel
+                interaction.member.guild.channels.cache.get(botNotifsChannelId).send({
+                    content: sNotifMsg
+                });
+
+                //update UI
+                let row = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setLabel("Back")
+                            .setStyle(ButtonStyle.Danger)
+                            .setCustomId(intPlayerUsablesInvInfoPrefix + "BACK")
+                    );
+                
+                interaction.update({
+                    content: cNotifMsg,
+                    components: [row],
+                    ephemeral: true
+                });
+            }
             break;
 
         case "item_reflect":
@@ -1329,19 +1491,23 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 );
             
             interaction.update({
-                content: "You've used a no u.",
+                content: "You've used a \"no u\".",
                 components: [row],
                 ephemeral: true
             });
             break;
 
         case "item_expose":
+            //TODO: Implement
+            //lastChangedMsg
             break;
 
         case "item_edwinDinner":
+            //TODO: Implement
             break;
 
         case "item_emp":
+            //TODO: Implement
             break;
     }
 }

@@ -1,6 +1,18 @@
 {
   "users": [
     {
+      "tag": "Dummy User#1234",
+      "lastAwarded": 0,
+      "balance": 420,
+      "birthday": "",
+      "fStatReactionsAwarded": 0,
+      "fStatReactionsReceived": 0,
+      "fStatItemsUsed": 0,
+      "fStatHighestBal": 0,
+      "itemInventory": [],
+      "statusEffects": []
+    },
+    {
       "tag": "Inspirasian#2923",
       "lastAwarded": 1679181319,
       "balance": 40,
@@ -17,18 +29,6 @@
       "tag": "BoE Bot#1195",
       "lastAwarded": 0,
       "balance": 0,
-      "birthday": "",
-      "fStatReactionsAwarded": 0,
-      "fStatReactionsReceived": 0,
-      "fStatItemsUsed": 0,
-      "fStatHighestBal": 0,
-      "itemInventory": [],
-      "statusEffects": []
-    },
-    {
-      "tag": "Dummy User#1234",
-      "lastAwarded": 0,
-      "balance": 420,
       "birthday": "",
       "fStatReactionsAwarded": 0,
       "fStatReactionsReceived": 0,

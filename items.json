@@ -21,13 +21,6 @@
         "price": 12
     },
     {
-        "name": "item_deleteMsg",
-        "displayName": "Bottle of Whiteout",
-        "description": "Use it to erase someone's message...or huff it to get high. We dont judge.",
-        "effect": "Deletes the last sent message of a specified user.",
-        "price": 5
-    },
-    {
         "name": "item_polymorph",
         "displayName": "Semi-permanent Nametag",
         "description": "A giant ass \"Hello My Name Is\" nametag with a heaping glob of mousetrap glue on the back.",
