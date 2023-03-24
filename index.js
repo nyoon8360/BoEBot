@@ -1107,15 +1107,9 @@ function usablesShop_purchase(interaction, eventTokens) {
     if (existingInventoryEntry) {
         existingInventoryEntry.count += pCount;
     } else {
-        customer.itemInventory.push(
-            {
-                name: itemInfo.name,
-                displayName: itemInfo.displayName,
-                description: itemInfo.description,
-                effect: itemInfo.effect,
-                count: pCount
-            }
-        )
+        let newItemEntry = {...itemInfo};
+        newItemEntry.count = pCount;
+        customer.itemInventory.push(newItemEntry);
     }
 
     let row = new ActionRowBuilder()
@@ -1345,7 +1339,6 @@ function usableItemsFunctionalities(interaction, eventTokens) {
             break;
         
         case "item_steal":
-            //TODO: Implement
             if (eventTokens.length <= 0) {
                 //select target
                 let row = new ActionRowBuilder()
@@ -1364,10 +1357,10 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 });
             } else {
                 //get target data
-                let target = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
+                let targetMemberObject = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
 
                 //do stats and effects check
-                let passedModifiers = checkStatsAndEffects(interaction, target.user.tag);
+                let passedModifiers = checkStatsAndEffects(interaction, targetMemberObject.user.tag);
 
                 //consume item
                 let caster = workingData[interaction.guildId].users.find(obj => {
@@ -1387,7 +1380,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 //instantiate server/caster notification message
                 let reflected = false;
                 let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
-                let targetString = `${target.nickname ? `${target.nickname}(${target.user.tag})` : target.user.tag}`;
+                let targetString = `${targetMemberObject.nickname ? `${targetMemberObject.nickname}(${targetMemberObject.user.tag})` : targetMemberObject.user.tag}`;
                 let sNotifMsg = "";
                 let cNotifMsg = "";
 
@@ -1396,7 +1389,6 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     switch (effect) {
                         case "reflect":
                             reflected = true;
-                            target = interaction.member;
                             break;
                     }
                 });
@@ -1404,7 +1396,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 //enact item effect
                 let randomInvSlot;
                 let targettedData = workingData[guildId].users.find(obj => {
-                    return obj.tag == target.user.tag;
+                    return obj.tag == reflected ? interaction.user.tag : targetMemberObject.user.tag;
                 });
                 let targettedInv = targettedData.itemInventory;
 
@@ -1415,26 +1407,54 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 if (itemInventory.length > 0 && !reflected) {
                     //item inventory NOT empty AND item NOT reflected
                     randomInvSlot = Math.round(Math.random() * (itemInventory.length - 1));
-                    let stolenItemName = targettedInv[randomInvSlot].displayName;
+                    let stolenItem = targettedInv[randomInvSlot];
                     if (targettedInv[randomInvSlot].count > 1) {
                         targettedInv[randomInvSlot].count -= 1;
                     } else {
                         targettedInv.slice(randomInvSlot, 1);
                     }
 
-                    cNotifMsg = "You've used a Goose with a Knife on " + userMention(interaction.values[0]) + " and stole 1x " + stolenItemName + ".";
+                    let existingItemEntry = caster.itemInventory.find(obj => {
+                        return obj.name == stolenItem.name;
+                    });
+
+                    if (existingItemEntry) {
+                        existingItemEntry.count += 1;
+                    } else {
+                        let newItemEntry = {...stolenItem};
+                        newItemEntry.count = 1;
+                        caster.itemInventory.push(newItemEntry);
+                    }
+
+                    cNotifMsg = "You've used a Goose with a Knife on " + userMention(interaction.values[0]) + " and stole 1x " + stolenItem.displayName + ".";
                     sNotifMsg = `${casterString} has used Goose with a Knife on ${targetString}.`;
                 } else if (itemInventory.length > 0 && reflected) {
                     //item inventory NOT empty and item IS reflected
                     randomInvSlot = Math.round(Math.random() * (itemInventory.length - 1));
-                    let stolenItemName = targettedInv[randomInvSlot].displayName;
+                    let stolenItem = targettedInv[randomInvSlot];
                     if (targettedInv[randomInvSlot].count > 1) {
                         targettedInv[randomInvSlot].count -= 1;
                     } else {
                         targettedInv.slice(randomInvSlot, 1);
                     }
 
-                    cNotifMsg = "You've used a Goose with a Knife on " + userMention(interaction.values[0]) + " but it was reflected (paid off). Now you're missing 1x " + stolenItemName + ".";
+                    let targetWorkingDataObj = workingData[interaction.guildId].users.find(obj => {
+                        return obj.tag == targetMemberObject.user.tag;
+                    });
+
+                    let existingItemEntry = targetWorkingDataObj.itemInventory.find(obj => {
+                        return obj.name == stolenItem.name;
+                    });
+
+                    if (existingItemEntry) {
+                        existingItemEntry.count += 1;
+                    } else {
+                        let newItemEntry = {...stolenItem};
+                        newItemEntry.count = 1;
+                        targetWorkingDataObj.itemInventory.push(newItemEntry);
+                    }
+
+                    cNotifMsg = "You've used a Goose with a Knife on " + userMention(interaction.values[0]) + " but it was reflected (paid off). Now you're missing 1x " + stolenItem.displayName + ".";
                     sNotifMsg = `${casterString} has used Goose with a Knife on ${targetString} but it was reflected (paid off).`;
 
                 } else if (itemInventory.length <= 0 && !reflected) {
