@@ -1395,8 +1395,8 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 
                 //enact item effect
                 let randomInvSlot;
-                let targettedData = workingData[guildId].users.find(obj => {
-                    return obj.tag == reflected ? interaction.user.tag : targetMemberObject.user.tag;
+                let targettedData = workingData[interaction.guildId].users.find(obj => {
+                    return obj.tag == (reflected ? interaction.user.tag : targetMemberObject.user.tag);
                 });
                 let targettedInv = targettedData.itemInventory;
 
@@ -1404,9 +1404,9 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     "kidney", "liver", "leg", "wallet", "pokemon card collection", "V-bucks", "toes"
                 ];
 
-                if (itemInventory.length > 0 && !reflected) {
+                if (targettedInv.length > 0 && !reflected) {
                     //item inventory NOT empty AND item NOT reflected
-                    randomInvSlot = Math.round(Math.random() * (itemInventory.length - 1));
+                    randomInvSlot = Math.round(Math.random() * (targettedInv.length - 1));
                     let stolenItem = targettedInv[randomInvSlot];
                     if (targettedInv[randomInvSlot].count > 1) {
                         targettedInv[randomInvSlot].count -= 1;
@@ -1428,9 +1428,9 @@ function usableItemsFunctionalities(interaction, eventTokens) {
 
                     cNotifMsg = "You've used a Goose with a Knife on " + userMention(interaction.values[0]) + " and stole 1x " + stolenItem.displayName + ".";
                     sNotifMsg = `${casterString} has used Goose with a Knife on ${targetString}.`;
-                } else if (itemInventory.length > 0 && reflected) {
+                } else if (targettedInv.length > 0 && reflected) {
                     //item inventory NOT empty and item IS reflected
-                    randomInvSlot = Math.round(Math.random() * (itemInventory.length - 1));
+                    randomInvSlot = Math.round(Math.random() * (targettedInv.length - 1));
                     let stolenItem = targettedInv[randomInvSlot];
                     if (targettedInv[randomInvSlot].count > 1) {
                         targettedInv[randomInvSlot].count -= 1;
@@ -1457,9 +1457,9 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     cNotifMsg = "You've used a Goose with a Knife on " + userMention(interaction.values[0]) + " but it was reflected (paid off). Now you're missing 1x " + stolenItem.displayName + ".";
                     sNotifMsg = `${casterString} has used Goose with a Knife on ${targetString} but it was reflected (paid off).`;
 
-                } else if (itemInventory.length <= 0 && !reflected) {
+                } else if (targettedInv.length <= 0 && !reflected) {
                     //item inventory IS empty and item is NOT reflected
-                    let randomStolenItem = randomStealList[Math.round(Math.random * (randomStealList.length - 1))];
+                    let randomStolenItem = randomStealList[Math.round(Math.random() * (randomStealList.length - 1))];
 
                     caster.balance += 1;
 
@@ -1467,7 +1467,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     sNotifMsg = `${casterString} has used Goose with a Knife on ${targetString} but there was nothing to steal so it took his ${randomStolenItem} and sold it on the black market.`;
                 } else {
                     //item inventory IS empty and item IS reflected
-                    let randomStolenItem = randomStealList[Math.round(Math.random * (randomStealList.length - 1))];
+                    let randomStolenItem = randomStealList[Math.round(Math.random() * (randomStealList.length - 1))];
 
                     targettedData.balance += 1;
 
