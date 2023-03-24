@@ -683,6 +683,22 @@ function checkStatsAndEffects(interaction, targetTag) {
     return passedStatsAndEffects;
 }
 
+function preventSelfUse(interaction) {
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setLabel("Back")
+                .setStyle(ButtonStyle.Danger)
+                .setCustomId(intPlayerUsablesInvInfoPrefix + "BACK")
+        );
+    
+    interaction.update({
+        content: "You can't use this item on yourself!",
+        components: [row],
+        ephemeral: true
+    });
+}
+
 //===================================================
 //===================================================
 //
@@ -1190,6 +1206,12 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 //get target data
                 let target = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
 
+                //prevent self use
+                if (target.user.tag == interaction.user.tag) {
+                    preventSelfUse(interaction);
+                    return;
+                }
+
                 //do stats and effects check
                 let passedModifiers = checkStatsAndEffects(interaction, target.user.tag);
 
@@ -1272,6 +1294,12 @@ function usableItemsFunctionalities(interaction, eventTokens) {
             } else {
                 //get target data
                 let target = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
+
+                //prevent self use
+                if (target.user.tag == interaction.user.tag) {
+                    preventSelfUse(interaction);
+                    return;
+                }
 
                 //do stats and effects check
                 let passedModifiers = checkStatsAndEffects(interaction, target.user.tag);
@@ -1358,6 +1386,12 @@ function usableItemsFunctionalities(interaction, eventTokens) {
             } else {
                 //get target data
                 let targetMemberObject = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
+
+                //prevent self use
+                if (target.user.tag == interaction.user.tag) {
+                    preventSelfUse(interaction);
+                    return;
+                }
 
                 //do stats and effects check
                 let passedModifiers = checkStatsAndEffects(interaction, targetMemberObject.user.tag);
@@ -1548,6 +1582,12 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 //get target and new nickname
                 let newNickname = interaction.fields.getTextInputValue('newNickname');
                 let target = client.guilds.cache.get(interaction.guildId).members.cache.get(nextToken);
+
+                //prevent self use
+                if (target.user.tag == interaction.user.tag) {
+                    preventSelfUse(interaction);
+                    return;
+                }
 
                 //do stats and effects check
                 let passedModifiers = checkStatsAndEffects(interaction, target.user.tag);
@@ -1814,6 +1854,12 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 //get target data
                 let target = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
 
+                //prevent self use
+                if (target.user.tag == interaction.user.tag) {
+                    preventSelfUse(interaction);
+                    return;
+                }
+
                 //do stats and effects check
                 let passedModifiers = checkStatsAndEffects(interaction, target.user.tag);
 
@@ -1920,11 +1966,13 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 let cNotifMsg = "You've used Tech-savy Apes on the voice channel: " + targetString + ".";
                 
                 //enact item effect
-                target.setBitrate(8);
+                target.setBitrate(8000);
 
                 (async (targetChannel) => {
                     let timeoutDuration = itemEMPDuration;
-                    await setTimeout(() => targetChannel.setBitrate(64), timeoutDuration * 1000);
+                    await setTimeout(() => {
+                        targetChannel.setBitrate(64000);
+                    }, timeoutDuration * 1000);
                 })(target)
 
                 //send msg to notifs channel
