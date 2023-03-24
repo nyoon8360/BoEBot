@@ -43,7 +43,7 @@
     },
     {
         "name": "item_edwindinner",
-        "displayName": "Edwin Dinner ™",
+        "displayName": "Edwin Dinner™",
         "description": "A 4-course meal, 3 hour movie, full season of Breaking Bad, 30 minute nap, 2 hour study session, 4 online quizzes, 100% Hearts of Iron IV achievement run, 10 day wedding, 2 week honeymoon, 1 month vacation, and eventual heat death of the universe all in one easily microwaveable package! Force-feed this to anyone of your choice!",
         "effect": "Timeout a specified user for 10 seconds.",
         "price": 20

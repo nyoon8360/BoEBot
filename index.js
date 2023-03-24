@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, parseEmoji, inlineCode, bold, underscore, Options, Sweepers, EmbedBuilder, italic, codeBlock, TextInputBuilder, TextInputStyle, GuildScheduledEventPrivacyLevel, MentionableSelectMenuBuilder, userMention, ModalBuilder, ClientVoiceManager } = require('discord.js');
+const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, parseEmoji, inlineCode, bold, underscore, Options, Sweepers, EmbedBuilder, italic, codeBlock, TextInputBuilder, TextInputStyle, GuildScheduledEventPrivacyLevel, MentionableSelectMenuBuilder, userMention, ModalBuilder, ClientVoiceManager, UserSelectMenuBuilder, ChannelSelectMenuBuilder, ChannelType } = require('discord.js');
 const fs = require('fs');
 const config = require('./config.json');
 const items = require('./items.json');
@@ -112,6 +112,8 @@ const botNotifsChannelId = config.common.botNotifsChannelId;
 const itemMuteDuration = config.items.itemMuteDuration;
 const itemReflectDuration = config.items.itemReflectDuration;
 const itemPolymorphDuration = config.items.itemPolymorphDuration;
+const itemTimeoutDuration = config.items.itemTimeoutDuration;
+const itemEMPDuration = config.items.itemEMPDuration;
 
 //===================================================
 //             Interact Event Tokens
@@ -392,7 +394,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
             recipient.balance += reactAward;
 
             //update lastAwarded parameter of the reactor to the current time 
-            storedUserData.lastAwarded = Math.floor(Date.now() / 1000);
+            storedUserData.lastAwarded = currTime;
 
             //update fun stats
             storedUserData.fStatReactionsAwarded += 1;
@@ -1178,7 +1180,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 //select target
                 let row = new ActionRowBuilder()
                     .addComponents(
-                        new MentionableSelectMenuBuilder()
+                        new UserSelectMenuBuilder()
                             .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + "item_kick-" + "targetted")
                             .setMinValues(1)
                             .setMaxValues(1)
@@ -1261,7 +1263,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 //select target
                 let row = new ActionRowBuilder()
                     .addComponents(
-                        new MentionableSelectMenuBuilder()
+                        new UserSelectMenuBuilder()
                             .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + "item_mute-" + "targetted")
                             .setMinValues(1)
                             .setMaxValues(1)
@@ -1365,7 +1367,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 //select polymorph target
                 let row = new ActionRowBuilder()
                     .addComponents(
-                        new MentionableSelectMenuBuilder()
+                        new UserSelectMenuBuilder()
                             .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + "item_polymorph-" + "targetted")
                             .setMinValues(1)
                             .setMaxValues(1)
@@ -1526,13 +1528,12 @@ function usableItemsFunctionalities(interaction, eventTokens) {
             break;
 
         case "item_expose":
-            //TODO: FINISH THIS
             //lastChangedMsg
             if (eventTokens.length <= 0) {
                 //select target
                 let row = new ActionRowBuilder()
                     .addComponents(
-                        new MentionableSelectMenuBuilder()
+                        new UserSelectMenuBuilder()
                             .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + "item_expose-" + "targetted")
                             .setMinValues(1)
                             .setMaxValues(1)
@@ -1643,12 +1644,160 @@ function usableItemsFunctionalities(interaction, eventTokens) {
             }
             break;
 
-        case "item_edwinDinner":
-            //TODO: Implement
+        case "item_edwindinner":
+            if (eventTokens.length <= 0) {
+                //select target
+                let row = new ActionRowBuilder()
+                    .addComponents(
+                        new MentionableSelectMenuBuilder()
+                            .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + "item_edwindinner-" + "targetted")
+                            .setMinValues(1)
+                            .setMaxValues(1)
+                            .setPlaceholder("Choose a target.")
+                    )
+
+                interaction.update({
+                    content: underscore("Select a target for: Edwin Dinner™"),
+                    components: [row],
+                    ephemeral: true
+                });
+            } else {
+                //get target data
+                let target = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
+
+                //do stats and effects check
+                let passedModifiers = checkStatsAndEffects(interaction, target.user.tag);
+
+                //consume item
+                let caster = workingData[interaction.guildId].users.find(obj => {
+                    return obj.tag == interaction.user.tag;
+                });
+
+                let itemEntryIndex = caster.itemInventory.findIndex(obj => {
+                    return obj.name == "item_edwindinner";
+                });
+
+                if (caster.itemInventory[itemEntryIndex].count == 1) {
+                    caster.itemInventory.splice(itemEntryIndex, 1);
+                } else {
+                    caster.itemInventory[itemEntryIndex].count -= 1;
+                }
+
+                //instantiate server/caster notification message
+                let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
+                let targetString = `${target.nickname ? `${target.nickname}(${target.user.tag})` : target.user.tag}`;
+                let sNotifMsg = `${casterString} has used Edwin Dinner™ on ${targetString}.`;
+                let cNotifMsg = "You've used Edwin Dinner™ on " + userMention(interaction.values[0]) + ".";
+
+                //handle passed modifiers
+                passedModifiers.forEach(effect => {
+                    switch (effect) {
+                        case "reflect":
+                            target = interaction.member;
+                            sNotifMsg = `${casterString} has used Edwin Dinner™ on ${targetString} but it was reflected.`;
+                            cNotifMsg = "You've used Edwin Dinner™ on " + userMention(interaction.values[0]) + " but it was reflected."
+                            break;
+                    }
+                });
+                
+                //enact item effect
+                target.timeout(itemTimeoutDuration * 1000);
+
+                //send msg to notifs channel
+                interaction.member.guild.channels.cache.get(botNotifsChannelId).send({
+                    content: sNotifMsg
+                });
+
+                //update UI
+                let row = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setLabel("Back")
+                            .setStyle(ButtonStyle.Danger)
+                            .setCustomId(intPlayerUsablesInvInfoPrefix + "BACK")
+                    );
+                
+                interaction.update({
+                    content: cNotifMsg,
+                    components: [row],
+                    ephemeral: true
+                });
+            }
             break;
+
 
         case "item_emp":
             //TODO: Implement
+            if (eventTokens.length <= 0) {
+                //select target
+                let row = new ActionRowBuilder()
+                    .addComponents(
+                        new ChannelSelectMenuBuilder()
+                            .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + "item_emp-" + "targetted")
+                            .setMinValues(1)
+                            .setMaxValues(1)
+                            .setPlaceholder("Choose a target.")
+                            .setChannelTypes([ChannelType.GuildVoice])
+                    )
+
+                interaction.update({
+                    content: underscore("Select a target for: 150 Tech-savy Apes"),
+                    components: [row],
+                    ephemeral: true
+                });
+            } else {
+                //get targetted channel
+                let target = interaction.channels.get(interaction.values[0]);
+
+                //consume item
+                let caster = workingData[interaction.guildId].users.find(obj => {
+                    return obj.tag == interaction.user.tag;
+                });
+
+                let itemEntryIndex = caster.itemInventory.findIndex(obj => {
+                    return obj.name == "item_edwindinner";
+                });
+
+                if (caster.itemInventory[itemEntryIndex].count == 1) {
+                    caster.itemInventory.splice(itemEntryIndex, 1);
+                } else {
+                    caster.itemInventory[itemEntryIndex].count -= 1;
+                }
+
+                //instantiate server/caster notification message
+                let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
+                let targetString = `${target.name}`;
+                let sNotifMsg = `${casterString} has used 150 Tech-savy Apes on voice channel: ${targetString}.`;
+                let cNotifMsg = "You've used Tech-savy Apes on the voice channel: " + targetString + ".";
+                
+                //enact item effect
+                target.setBitrate(8);
+
+                (async (targetChannel) => {
+                    let timeoutDuration = itemEMPDuration;
+                    await setTimeout(() => targetChannel.setBitrate(64), timeoutDuration * 1000);
+                })(target)
+
+                //send msg to notifs channel
+                interaction.member.guild.channels.cache.get(botNotifsChannelId).send({
+                    content: sNotifMsg
+                });
+
+                //update UI
+                let row = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setLabel("Back")
+                            .setStyle(ButtonStyle.Danger)
+                            .setCustomId(intPlayerUsablesInvInfoPrefix + "BACK")
+                    );
+                
+                interaction.update({
+                    content: cNotifMsg,
+                    components: [row],
+                    ephemeral: true
+                });
+            }
             break;
     }
 }
