@@ -1346,6 +1346,135 @@ function usableItemsFunctionalities(interaction, eventTokens) {
         
         case "item_steal":
             //TODO: Implement
+            if (eventTokens.length <= 0) {
+                //select target
+                let row = new ActionRowBuilder()
+                    .addComponents(
+                        new UserSelectMenuBuilder()
+                            .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + "item_steal-" + "targetted")
+                            .setMinValues(1)
+                            .setMaxValues(1)
+                            .setPlaceholder("Choose a target.")
+                    )
+
+                interaction.update({
+                    content: underscore("Select a target for: Goose with a Knife"),
+                    components: [row],
+                    ephemeral: true
+                });
+            } else {
+                //get target data
+                let target = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
+
+                //do stats and effects check
+                let passedModifiers = checkStatsAndEffects(interaction, target.user.tag);
+
+                //consume item
+                let caster = workingData[interaction.guildId].users.find(obj => {
+                    return obj.tag == interaction.user.tag;
+                });
+
+                let itemEntryIndex = caster.itemInventory.findIndex(obj => {
+                    return obj.name == "item_steal";
+                });
+
+                if (caster.itemInventory[itemEntryIndex].count == 1) {
+                    caster.itemInventory.splice(itemEntryIndex, 1);
+                } else {
+                    caster.itemInventory[itemEntryIndex].count -= 1;
+                }
+
+                //instantiate server/caster notification message
+                let reflected = false;
+                let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
+                let targetString = `${target.nickname ? `${target.nickname}(${target.user.tag})` : target.user.tag}`;
+                let sNotifMsg = "";
+                let cNotifMsg = "";
+
+                //handle passed modifiers
+                passedModifiers.forEach(effect => {
+                    switch (effect) {
+                        case "reflect":
+                            reflected = true;
+                            target = interaction.member;
+                            break;
+                    }
+                });
+                
+                //enact item effect
+                let randomInvSlot;
+                let targettedData = workingData[guildId].users.find(obj => {
+                    return obj.tag == target.user.tag;
+                });
+                let targettedInv = targettedData.itemInventory;
+
+                let randomStealList = [
+                    "kidney", "liver", "leg", "wallet", "pokemon card collection", "V-bucks", "toes"
+                ];
+
+                if (itemInventory.length > 0 && !reflected) {
+                    //item inventory NOT empty AND item NOT reflected
+                    randomInvSlot = Math.round(Math.random() * (itemInventory.length - 1));
+                    let stolenItemName = targettedInv[randomInvSlot].displayName;
+                    if (targettedInv[randomInvSlot].count > 1) {
+                        targettedInv[randomInvSlot].count -= 1;
+                    } else {
+                        targettedInv.slice(randomInvSlot, 1);
+                    }
+
+                    cNotifMsg = "You've used a Goose with a Knife on " + userMention(interaction.values[0]) + " and stole 1x " + stolenItemName + ".";
+                    sNotifMsg = `${casterString} has used Goose with a Knife on ${targetString}.`;
+                } else if (itemInventory.length > 0 && reflected) {
+                    //item inventory NOT empty and item IS reflected
+                    randomInvSlot = Math.round(Math.random() * (itemInventory.length - 1));
+                    let stolenItemName = targettedInv[randomInvSlot].displayName;
+                    if (targettedInv[randomInvSlot].count > 1) {
+                        targettedInv[randomInvSlot].count -= 1;
+                    } else {
+                        targettedInv.slice(randomInvSlot, 1);
+                    }
+
+                    cNotifMsg = "You've used a Goose with a Knife on " + userMention(interaction.values[0]) + " but it was reflected (paid off). Now you're missing 1x " + stolenItemName + ".";
+                    sNotifMsg = `${casterString} has used Goose with a Knife on ${targetString} but it was reflected (paid off).`;
+
+                } else if (itemInventory.length <= 0 && !reflected) {
+                    //item inventory IS empty and item is NOT reflected
+                    let randomStolenItem = randomStealList[Math.round(Math.random * (randomStealList.length - 1))];
+
+                    caster.balance += 1;
+
+                    cNotifMsg = `You've used a Goose with a Knife on ${userMention(interaction.values[0])} but there was nothing to steal so it just took his ${randomStolenItem} and sold it on the black market. He gave you a 1 Edbuck cut.`;
+                    sNotifMsg = `${casterString} has used Goose with a Knife on ${targetString} but there was nothing to steal so it took his ${randomStolenItem} and sold it on the black market.`;
+                } else {
+                    //item inventory IS empty and item IS reflected
+                    let randomStolenItem = randomStealList[Math.round(Math.random * (randomStealList.length - 1))];
+
+                    targettedData.balance += 1;
+
+                    cNotifMsg = `You've used a Goose with a Knife on ${userMention(interaction.values[0])} but it was reflected. There was nothing to steal so it just took your ${randomStolenItem} and sold it on the black market. It gave him a 1 Edbuck cut.`;
+                    sNotifMsg = `${casterString} has used Goose with a Knife on ${targetString} but it was reflected. There was nothing to steal so it just took his ${randomStolenItem} and sold it on the black market.`;
+                }
+
+                //send msg to notifs channel
+                interaction.member.guild.channels.cache.get(botNotifsChannelId).send({
+                    content: sNotifMsg
+                });
+
+                //update UI
+                let row = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setLabel("Back")
+                            .setStyle(ButtonStyle.Danger)
+                            .setCustomId(intPlayerUsablesInvInfoPrefix + "BACK")
+                    );
+                
+                interaction.update({
+                    content: cNotifMsg,
+                    components: [row],
+                    ephemeral: true
+                });
+            }
             break;
 
         case "item_deleteMsg":
@@ -1755,7 +1884,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 });
 
                 let itemEntryIndex = caster.itemInventory.findIndex(obj => {
-                    return obj.name == "item_edwindinner";
+                    return obj.name == "item_emp";
                 });
 
                 if (caster.itemInventory[itemEntryIndex].count == 1) {
