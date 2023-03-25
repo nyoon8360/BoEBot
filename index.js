@@ -106,7 +106,6 @@ const botAdmins = config.common.admins; //list of user tags that are able to run
 const saveInterval = config.common.saveInterval; //the interval between json file autosaves
 const usablesShopItemsPerRow = config.common.usablesShopItemsPerRow > 5 ? 5 : config.common.usablesShopItemsPerRow; //the number of items displayed per row in the item shop. maxed at 5
 const usablesInventoryItemsPerRow = config.common.usablesInventoryItemsPerRow > 5 ? 5 : config.common.usablesInventoryItemsPerRow; //number of items displayed per row in player inventories. maxed at 5
-const botNotifsChannelId = config.common.botNotifsChannelId;
 
 //item config consts
 const itemMuteDuration = config.items.itemMuteDuration;
@@ -179,7 +178,8 @@ client.on('ready', () => {
                     activeMenuId: "",
                     activeMenuChannelId: "",
                     msgLeaderboard: [],
-                    msgLeaderboardFloor: 0
+                    msgLeaderboardFloor: 0,
+                    botNotifsChannelId: ""
                 }
 
                 fs.writeFileSync("./database" + guildId + ".json", JSON.stringify(newData, null, 2));
@@ -1043,7 +1043,7 @@ function mainMenu_findTreasure(interaction) {
         return obj.tag == interaction.user.tag;
     });
 
-    let treasure = Math.floor(Math.random() * (treasureUR - treasureLR)) + treasureLR;
+    let treasure = Math.round(Math.random() * (treasureUR - treasureLR)) + treasureLR;
     user.balance += treasure;
 
     interaction.reply({
@@ -1099,8 +1099,11 @@ function mainMenu_help(interaction) {
 ${bold('=====\nHELP\n=====')}
 
 ${underscore('Main Sources Of Edbucks')}
-- Having people react to your messages with the :edbuck: emote.
+- Having people react to your messages with the :edbuck: emote awards 1 edbuck.
+    - Messages can only gain edbucks within the first hour of posting.
+    - You can only award edbucks once every hour at most.
 - Being the first person to click on the "Pick Up Edbucks" button when it's randomly enabled.
+    - Re-enables randomly between 1-2 hours after being clicked.
 - Winning minigames (WIP)
 
 ${underscore('Ways To Use Your Edbucks')}
@@ -1368,7 +1371,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 target.voice.disconnect();
 
                 //Send notification message to bot notifs channel
-                interaction.member.guild.channels.cache.get(botNotifsChannelId).send({
+                interaction.member.guild.channels.cache.get(workingData[interaction.guildId].botNotifsChannelId).send({
                     content: sNotifMsg
                 });
 
@@ -1460,7 +1463,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 })(target)
 
                 //send msg to notifs channel
-                interaction.member.guild.channels.cache.get(botNotifsChannelId).send({
+                interaction.member.guild.channels.cache.get(workingData[interaction.guildId].botNotifsChannelId).send({
                     content: sNotifMsg
                 });
 
@@ -1625,7 +1628,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 }
 
                 //send msg to notifs channel
-                interaction.member.guild.channels.cache.get(botNotifsChannelId).send({
+                interaction.member.guild.channels.cache.get(workingData[interaction.guildId].botNotifsChannelId).send({
                     content: sNotifMsg
                 });
 
@@ -1764,7 +1767,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 target.setNickname(newNickname);
 
                 //send msg to notifs channel
-                interaction.member.guild.channels.cache.get(botNotifsChannelId).send({
+                interaction.member.guild.channels.cache.get(workingData[interaction.guildId].botNotifsChannelId).send({
                     content: sNotifMsg
                 });
 
@@ -1929,7 +1932,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 });
 
                 //send msg to notifs channel
-                interaction.member.guild.channels.cache.get(botNotifsChannelId).send({
+                interaction.member.guild.channels.cache.get(workingData[interaction.guildId].botNotifsChannelId).send({
                     content: sNotifMsg
                 });
 
@@ -2016,7 +2019,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 target.timeout(itemTimeoutDuration * 1000);
 
                 //send msg to notifs channel
-                interaction.member.guild.channels.cache.get(botNotifsChannelId).send({
+                interaction.member.guild.channels.cache.get(workingData[interaction.guildId].botNotifsChannelId).send({
                     content: sNotifMsg
                 });
 
@@ -2093,7 +2096,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 })(target)
 
                 //send msg to notifs channel
-                interaction.member.guild.channels.cache.get(botNotifsChannelId).send({
+                interaction.member.guild.channels.cache.get(workingData[interaction.guildId].botNotifsChannelId).send({
                     content: sNotifMsg
                 });
 
