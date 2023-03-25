@@ -1,11 +1,11 @@
 [
     {
-        "version": "1.0.2",
+        "version": "1.0.1-HOTFIX",
         "changes": [
             "-Added clarification to reaction restrictions for awarding edbucks in the help UI.",
             "-Added clarification to Pick Up Edbucks button in the help UI.",
             "-Bugfix: Fixed bug causing Pick Up Edbucks button to heavily weigh towards the lower reward range.",
-            "-Bugfix: "
+            "-Bugfix: Changed Bot Notification Channel Id from existing in config to existing in database file."
         ]
     },
     {
