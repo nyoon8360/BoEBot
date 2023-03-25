@@ -289,19 +289,13 @@ client.on('messageCreate', (message) => {
 
         case "save":
             saveData();
-            message.channel.send({
-                content: "Manual Save Requested"
-            });
+            console.log("Manual Save Complete");
             break;
         
         case "shutdown":
             saveData(true);
-            message.channel.send({
-                content: "Bot has been manually shut down for this server."
-            }).then(() => {
-                console.log("Manual shutdown for server: " + message.guild.name);
-                client.destroy();
-            });
+            console.log("Manual shutdown for server: " + message.guild.name);
+            client.destroy();
             break;
 
         case "load":
@@ -328,12 +322,14 @@ client.on('messageCreate', (message) => {
                     console.log(error);
                 }
             });
+            console.log("Manual load complete.")
             break;
 
         case "updatemenu":
             message.guild.channels.cache.get(workingData[message.guildId].activeMenuChannelId).messages.fetch(workingData[message.guildId].activeMenuId).then(result => {
                 result.edit(openMenu());
             });
+            console.log("Manual menu update complete.")
             break;
     }
 });
