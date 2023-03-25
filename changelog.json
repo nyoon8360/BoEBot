@@ -1,21 +1,18 @@
 [
     {
-        "version": "1.0.2",
-        "changes": [
-            "-Added clarification to reaction restrictions for awarding edbucks in the help UI.",
-            "-Added clarification to Pick Up Edbucks button in the help UI.",
-            "-Bugfix: Fixed bug causing Pick Up Edbucks button to heavily weigh towards the lower reward range.",
-            "-Bugfix: "
-        ]
-    },
-    {
         "version": "1.0.1",
         "changes": [
             "-Increased the reward range for the Pick Up Edbucks button from 1-3 to 1-5.",
             "-Added changelog button to view changelog for versions.",
             "-Added status effects section to Show Stats UI.",
             "-Added some admin commands for debugging.",
-            "-Bugfix: Disabled the settings button."
+            "-Added clarification to reaction restrictions for awarding edbucks in the help UI.",
+            "-Added clarification to Pick Up Edbucks button in the help UI.",
+            "-Removed bot messages when manual commands are sent.",
+            "-Bugfix: Disabled the settings button.",
+            "-HOTFIX: Fixed bug causing Pick Up Edbucks button to heavily weigh towards the lower reward range.",
+            "-HOTFIX: Fixed issue causing notification sending items to cause a crash.",
+            "-HOTFIX: Fixed an issue causing crashed when using phantom items while interacting with two open inventories."
         ]
     },
     {

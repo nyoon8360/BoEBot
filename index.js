@@ -289,19 +289,13 @@ client.on('messageCreate', (message) => {
 
         case "save":
             saveData();
-            message.channel.send({
-                content: "Manual Save Requested"
-            });
+            console.log("Manual Save Complete");
             break;
         
         case "shutdown":
             saveData(true);
-            message.channel.send({
-                content: "Bot has been manually shut down for this server."
-            }).then(() => {
-                console.log("Manual shutdown for server: " + message.guild.name);
-                client.destroy();
-            });
+            console.log("Manual shutdown for server: " + message.guild.name);
+            client.destroy();
             break;
 
         case "load":
@@ -328,12 +322,14 @@ client.on('messageCreate', (message) => {
                     console.log(error);
                 }
             });
+            console.log("Manual load complete.")
             break;
 
         case "updatemenu":
             message.guild.channels.cache.get(workingData[message.guildId].activeMenuChannelId).messages.fetch(workingData[message.guildId].activeMenuId).then(result => {
                 result.edit(openMenu());
             });
+            console.log("Manual menu update complete.")
             break;
     }
 });
@@ -746,6 +742,22 @@ function preventSelfUse(interaction) {
     
     interaction.update({
         content: "You can't use this item on yourself!",
+        components: [row],
+        ephemeral: true
+    });
+}
+
+function notifDontHaveItem(interaction) {
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setLabel("Back")
+                .setStyle(ButtonStyle.Danger)
+                .setCustomId(intPlayerUsablesInvInfoPrefix + "BACK")
+        );
+    
+    interaction.update({
+        content: "You don't have this item!",
         components: [row],
         ephemeral: true
     });
@@ -1323,6 +1335,21 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     ephemeral: true
                 });
             } else {
+                //get caster data
+                let caster = workingData[interaction.guildId].users.find(obj => {
+                    return obj.tag == interaction.user.tag;
+                });
+
+                //check if caster still has item
+                let itemEntryIndex = caster.itemInventory.findIndex(obj => {
+                    return obj.name == "item_kick";
+                });
+
+                if (itemEntryIndex < 0) {
+                    notifDontHaveItem(interaction);
+                    return;
+                }
+
                 //get target data
                 let target = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
 
@@ -1336,14 +1363,6 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 let passedModifiers = checkStatsAndEffects(interaction, target.user.tag);
 
                 //consume item
-                let caster = workingData[interaction.guildId].users.find(obj => {
-                    return obj.tag == interaction.user.tag;
-                });
-
-                let itemEntryIndex = caster.itemInventory.findIndex(obj => {
-                    return obj.name == "item_kick";
-                });
-
                 if (caster.itemInventory[itemEntryIndex].count == 1) {
                     caster.itemInventory.splice(itemEntryIndex, 1);
                 } else {
@@ -1419,10 +1438,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     return;
                 }
 
-                //do stats and effects check
-                let passedModifiers = checkStatsAndEffects(interaction, target.user.tag);
-
-                //consume item
+                //check if caster still has item
                 let caster = workingData[interaction.guildId].users.find(obj => {
                     return obj.tag == interaction.user.tag;
                 });
@@ -1431,6 +1447,15 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     return obj.name == "item_mute";
                 });
 
+                if (itemEntryIndex < 0) {
+                    notifDontHaveItem(interaction);
+                    return;
+                }
+
+                //do stats and effects check
+                let passedModifiers = checkStatsAndEffects(interaction, target.user.tag);
+
+                //consume item
                 if (caster.itemInventory[itemEntryIndex].count == 1) {
                     caster.itemInventory.splice(itemEntryIndex, 1);
                 } else {
@@ -1511,10 +1536,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     return;
                 }
 
-                //do stats and effects check
-                let passedModifiers = checkStatsAndEffects(interaction, targetMemberObject.user.tag);
-
-                //consume item
+                //check if caster still has item
                 let caster = workingData[interaction.guildId].users.find(obj => {
                     return obj.tag == interaction.user.tag;
                 });
@@ -1523,6 +1545,15 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     return obj.name == "item_steal";
                 });
 
+                if (itemEntryIndex < 0) {
+                    notifDontHaveItem(interaction);
+                    return;
+                }
+
+                //do stats and effects check
+                let passedModifiers = checkStatsAndEffects(interaction, targetMemberObject.user.tag);
+
+                //consume item
                 if (caster.itemInventory[itemEntryIndex].count == 1) {
                     caster.itemInventory.splice(itemEntryIndex, 1);
                 } else {
@@ -1707,10 +1738,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     return;
                 }
 
-                //do stats and effects check
-                let passedModifiers = checkStatsAndEffects(interaction, target.user.tag);
-
-                //consume item
+                //check if caster still has item
                 let caster = workingData[interaction.guildId].users.find(obj => {
                     return obj.tag == interaction.user.tag;
                 });
@@ -1719,6 +1747,15 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     return obj.name == "item_polymorph";
                 });
 
+                if (itemEntryIndex < 0) {
+                    notifDontHaveItem(interaction);
+                    return;
+                }
+
+                //do stats and effects check
+                let passedModifiers = checkStatsAndEffects(interaction, target.user.tag);
+
+                //consume item
                 if (caster.itemInventory[itemEntryIndex].count == 1) {
                     caster.itemInventory.splice(itemEntryIndex, 1);
                 } else {
@@ -1789,10 +1826,19 @@ function usableItemsFunctionalities(interaction, eventTokens) {
             break;
 
         case "item_reflect":
-            //get caster's data entry
+            //check if caster still has item
             let casterData = workingData[interaction.guildId].users.find(obj => {
                 return obj.tag == interaction.user.tag;
             });
+
+            let itemEntryIndex = caster.itemInventory.findIndex(obj => {
+                return obj.name == "item_reflect";
+            });
+
+            if (itemEntryIndex < 0) {
+                notifDontHaveItem(interaction);
+                return;
+            }
 
             //apply reflect status effect
             let existingStatusEffect = casterData.statusEffects.find(obj => {
@@ -1810,10 +1856,6 @@ function usableItemsFunctionalities(interaction, eventTokens) {
             }
 
             //consume item
-            let itemEntryIndex = casterData.itemInventory.findIndex(obj => {
-                return obj.name == "item_reflect";
-            });
-
             if (casterData.itemInventory[itemEntryIndex].count == 1) {
                 casterData.itemInventory.splice(itemEntryIndex, 1);
             } else {
@@ -1855,14 +1897,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     ephemeral: true
                 });
             } else {
-                //get target data
-                let targetMemberData = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
-
-                let targetData = workingData[interaction.guildId].users.find(obj => {
-                    return obj.tag == targetMemberData.user.tag;
-                })
-
-                //consume item
+                //check if caster still has item
                 let caster = workingData[interaction.guildId].users.find(obj => {
                     return obj.tag == interaction.user.tag;
                 });
@@ -1871,6 +1906,19 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     return obj.name == "item_expose";
                 });
 
+                if (itemEntryIndex < 0) {
+                    notifDontHaveItem(interaction);
+                    return;
+                }
+
+                //get target data
+                let targetMemberData = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
+
+                let targetData = workingData[interaction.guildId].users.find(obj => {
+                    return obj.tag == targetMemberData.user.tag;
+                })
+
+                //consume item
                 if (caster.itemInventory[itemEntryIndex].count == 1) {
                     caster.itemInventory.splice(itemEntryIndex, 1);
                 } else {
@@ -1980,10 +2028,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     return;
                 }
 
-                //do stats and effects check
-                let passedModifiers = checkStatsAndEffects(interaction, target.user.tag);
-
-                //consume item
+                //check if caster still has item
                 let caster = workingData[interaction.guildId].users.find(obj => {
                     return obj.tag == interaction.user.tag;
                 });
@@ -1992,6 +2037,15 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     return obj.name == "item_edwindinner";
                 });
 
+                if (itemEntryIndex < 0) {
+                    notifDontHaveItem(interaction);
+                    return;
+                }
+
+                //do stats and effects check
+                let passedModifiers = checkStatsAndEffects(interaction, target.user.tag);
+
+                //consume item
                 if (caster.itemInventory[itemEntryIndex].count == 1) {
                     caster.itemInventory.splice(itemEntryIndex, 1);
                 } else {
@@ -2061,10 +2115,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     ephemeral: true
                 });
             } else {
-                //get targetted channel
-                let target = interaction.channels.get(interaction.values[0]);
-
-                //consume item
+                //check if caster still has item
                 let caster = workingData[interaction.guildId].users.find(obj => {
                     return obj.tag == interaction.user.tag;
                 });
@@ -2073,6 +2124,15 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     return obj.name == "item_emp";
                 });
 
+                if (itemEntryIndex < 0) {
+                    notifDontHaveItem(interaction);
+                    return;
+                }
+
+                //get targetted channel
+                let target = interaction.channels.get(interaction.values[0]);
+
+                //consume item
                 if (caster.itemInventory[itemEntryIndex].count == 1) {
                     caster.itemInventory.splice(itemEntryIndex, 1);
                 } else {
