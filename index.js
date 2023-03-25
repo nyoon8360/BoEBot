@@ -174,12 +174,13 @@ client.on('ready', () => {
             if (!fs.existsSync("./database" + guildId + ".json")) {
                 //if database file for this guild doesnt exist then make the file and assign the new data to workingData var
                 newData = {
-                    users:[],
                     activeMenuId: "",
                     activeMenuChannelId: "",
-                    msgLeaderboard: [],
                     msgLeaderboardFloor: 0,
-                    botNotifsChannelId: ""
+                    botNotifsChannelId: "",
+                    itemBanishChannelId: "",
+                    users:[],
+                    msgLeaderboard: []
                 }
 
                 fs.writeFileSync("./database" + guildId + ".json", JSON.stringify(newData, null, 2));
@@ -252,10 +253,12 @@ client.on('ready', () => {
     //Set interval for autosaving workingData to json database files
     setInterval(() => {
         saveData();
-        console.log((Date.now()/1000) + " (Epoch Seconds Timestamp): Autosave Complete!");
+        let curDate = new Date(Date.now())
+        console.log("(" + curDate.toLocaleString() + ") Autosave Complete!");
     }, saveInterval * 1000);
 
-    console.log(`${client.user.tag} is ready!`);
+    let curDate = new Date(Date.now());
+    console.log(`(${client.user.tag}) is ready! ${curDate.toLocaleString()}`);
 });
 
 //on new guild user join, add entry to database if not already existing
@@ -277,6 +280,7 @@ client.on('messageCreate', (message) => {
     //if command sender is not a bot admin then do not process command
     if (!botAdmins.includes(message.author.tag)) return;
 
+    let curDate = new Date(Date.now());
     switch(message.content.substring(1)) {
         case "spawnmenu":
 
@@ -289,12 +293,12 @@ client.on('messageCreate', (message) => {
 
         case "save":
             saveData();
-            console.log("Manual Save Complete");
+            console.log(`(${curDate.toLocaleString()}) Manual Save Complete`);
             break;
         
         case "shutdown":
             saveData(true);
-            console.log("Manual shutdown for server: " + message.guild.name);
+            console.log(`(${curDate.toLocaleString()}) Manual Shutdown for Server: ${message.guild.name}`);
             client.destroy();
             break;
 
@@ -322,14 +326,14 @@ client.on('messageCreate', (message) => {
                     console.log(error);
                 }
             });
-            console.log("Manual load complete.")
+            console.log(`(${curDate.toLocaleString()}) Manual Load Complete`)
             break;
 
         case "updatemenu":
             message.guild.channels.cache.get(workingData[message.guildId].activeMenuChannelId).messages.fetch(workingData[message.guildId].activeMenuId).then(result => {
                 result.edit(openMenu());
             });
-            console.log("Manual menu update complete.")
+            console.log(`(${curDate.toLocaleString()}) Manual Menu Update Complete`)
             break;
     }
 });

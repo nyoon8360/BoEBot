@@ -20,7 +20,6 @@
     "items": {
         "itemMuteDuration": 8,
         "itemPolymorphDuration": 600,
-        "itemBanishChannelId": "815839363748462612",
         "itemReflectDuration": 15,
         "itemTimeoutDuration": 10,
         "itemEMPDuration": 20
