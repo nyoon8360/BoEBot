@@ -9,7 +9,7 @@
         "usablesInventoryItemsPerRow": 3,
         "reactAward":1,
         "treasureLowerRange": 1,
-        "treasureUpperRange": 3,
+        "treasureUpperRange": 5,
         "treasureCooldownLowerRange": 3600, 
         "treasureCooldownUpperRange": 7200,
         "msgLeaderboardLimit": 5,
