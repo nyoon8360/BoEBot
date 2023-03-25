@@ -38,6 +38,23 @@
       "itemInventory": [],
       "statusEffects": [],
       "lastChangedMsg": {}
+    },
+    {
+      "tag": "GamesGambit#9952",
+      "id": "150448491330666496",
+      "lastAwarded": 0,
+      "balance": 0,
+      "birthday": "",
+      "lastChangedMsg": {},
+      "itemInventory": [],
+      "equipmentInventory": [],
+      "statusEffects": [],
+      "equipped": {},
+      "settings": {},
+      "fStatReactionsAwarded": 0,
+      "fStatReactionsReceived": 0,
+      "fStatItemsUsed": 0,
+      "fStatHighestBal": 0
     }
   ],
   "activeMenuId": "1087860264617119835",

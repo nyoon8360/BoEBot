@@ -322,8 +322,6 @@ client.on('guildMemberUpdate', (oldMember, newMember) => {
         //if no polymorph status effect exists then return
         if (!existingPoly) return;
 
-        console.log("cur: " + newMember.displayName);
-        console.log("poly: " + existingPoly.polyName);
         if (newMember.displayName == existingPoly.polyName) return;
 
         //if the polymorph has not expired then enforce it else remove the expired effect
@@ -620,7 +618,7 @@ function getNewUserJSON(userTag, userId) {
         tag: userTag,
         id: userId,
         lastAwarded: 0,
-        balance: 0,
+        balance: 10,
         birthday: "",
         lastChangedMsg: {},
         itemInventory: [],
@@ -1215,8 +1213,6 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 //do stats and effects check
                 let passedModifiers = checkStatsAndEffects(interaction, target.user.tag);
 
-                console.log(passedModifiers);
-
                 //consume item
                 let caster = workingData[interaction.guildId].users.find(obj => {
                     return obj.tag == interaction.user.tag;
@@ -1388,7 +1384,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 let targetMemberObject = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
 
                 //prevent self use
-                if (target.user.tag == interaction.user.tag) {
+                if (targetMemberObject.user.tag == interaction.user.tag) {
                     preventSelfUse(interaction);
                     return;
                 }

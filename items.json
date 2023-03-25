@@ -4,14 +4,14 @@
         "displayName": "Comically Large Boot",
         "description": "A weirdly fragile boot used to kick someone from voice chat that breaks after a single kick.",
         "effect": "Kicks a specified user from the voice chat they're in.",
-        "price": 5
+        "price": 10
     },
     {
         "name": "item_mute",
         "displayName": "Duct Tape",
         "description": "An ungodly amount of duct tape you can use to shut someone up for a bit.",
         "effect": "Server mutes a specified user for 8 seconds.",
-        "price": 10
+        "price": 7
     },
     {
         "name": "item_steal",
@@ -31,7 +31,7 @@
         "name": "item_reflect",
         "displayName": "no u",
         "description": "no u.",
-        "effect": "Reflects the next item used within 10 seconds on you onto the user instead.",
+        "effect": "Reflects the next item used within 15 seconds on you onto the user instead.",
         "price": 7
     },
     {
