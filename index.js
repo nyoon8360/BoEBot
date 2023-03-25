@@ -140,6 +140,8 @@ const intPlayerUsablesInvSelectSlotPrefix = "PUSABLESINVSELECTSLOT-";
 const intPlayerUsablesInvInfoPrefix = "PUSABLESINVINFO-"
 const intPlayerUsablesInvNavPrefix = "PUSABLESINVNAV-";
 
+//Changelog navigation tokens
+const intChangelogNavPrefix = "CHANGELOGNAV-"
 
 //Shop pages and helper variables
 var shopPages_usables = [];
@@ -175,6 +177,7 @@ client.on('ready', () => {
                 newData = {
                     users:[],
                     activeMenuId: "",
+                    activeMenuChannelId: "",
                     msgLeaderboard: [],
                     msgLeaderboardFloor: 0
                 }
@@ -279,6 +282,7 @@ client.on('messageCreate', (message) => {
 
             message.channel.send(openMenu()).then(msg => {
                 workingData[message.guildId].activeMenuId = msg.id;
+                workingData[message.guildId].activeMenuChannelId = msg.channelId;
             });
 
             break;
@@ -297,6 +301,38 @@ client.on('messageCreate', (message) => {
             }).then(() => {
                 console.log("Manual shutdown for server: " + message.guild.name);
                 client.destroy();
+            });
+            break;
+
+        case "load":
+            client.guilds.cache.map(guild => guild.id).forEach((guildId) => {
+                try {
+                    if (!fs.existsSync("./database" + guildId + ".json")) {
+                        //if database file for this guild doesnt exist then make the file and assign the new data to workingData var
+                        newData = {
+                            users:[],
+                            activeMenuId: "",
+                            msgLeaderboard: [],
+                            msgLeaderboardFloor: 0
+                        }
+        
+                        fs.writeFileSync("./database" + guildId + ".json", JSON.stringify(newData, null, 2));
+        
+                        workingData[guildId] = newData;
+                    } else {
+                        //read data from json database file and assign it to workingData var synchronously
+        
+                        workingData[guildId] = JSON.parse(fs.readFileSync("./database" + guildId + ".json"));
+                    }
+                } catch(error) {
+                    console.log(error);
+                }
+            });
+            break;
+
+        case "updatemenu":
+            message.guild.channels.cache.get(workingData[message.guildId].activeMenuChannelId).messages.fetch(workingData[message.guildId].activeMenuId).then(result => {
+                result.edit(openMenu());
             });
             break;
     }
@@ -522,7 +558,14 @@ client.on('interactionCreate', async (interaction) => {
                 case "msgleaderboard":
                     //Display leaderboard for top earning messages
                     mainMenu_msgLeaderboard(interaction);
-                    break;c
+                    break;
+
+                case "settings":
+                    break;
+
+                case "changelog":
+                    mainMenu_changelog(interaction);
+                    break;
             }
             break;
 
@@ -596,6 +639,17 @@ client.on('interactionCreate', async (interaction) => {
         case intEquipShopSelectShelfPrefix.slice(0, -1):
             break;
 
+        case intChangelogNavPrefix.slice(0, -1):
+            switch(eventTokens.shift()){
+                case "BACK":
+                    interaction.update(openChangelog(parseInt(eventTokens.shift()) - 1));
+                    break;
+
+                case "NEXT":
+                    interaction.update(openChangelog(parseInt(eventTokens.shift()) + 1));
+                    break;
+            }
+            break;
     }
 });
 
@@ -776,7 +830,13 @@ function openMenu(tButtonDisabled) {
             .setCustomId(intMainMenuPrefix + 'settings-')
             .setLabel('Settings')
             .setStyle(ButtonStyle.Secondary)
-            .setEmoji('⚙️'),
+            .setEmoji('⚙️')
+            .setDisabled(true),
+        new ButtonBuilder()
+            .setCustomId(intMainMenuPrefix + 'changelog-')
+            .setLabel('Changelog')
+            .setStyle(ButtonStyle.Secondary)
+            .setEmoji('📰'),
         new ButtonBuilder()
             .setCustomId(intMainMenuPrefix + 'help-')
             .setLabel('Help')
@@ -878,6 +938,40 @@ function openUsablesInv(interaction, pageNum) {
     return {
         content: bold("=========\nInventory\n=========") + underscore("\nUsables Page " + (pageNum + 1)),
         components: page,
+        ephemeral: true
+    }
+}
+
+function openChangelog(pageNum) {
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(intChangelogNavPrefix + "BACK-" + pageNum)
+                .setDisabled(pageNum > 0 ? false : true)
+                .setStyle(ButtonStyle.Primary)
+                .setLabel("Back"),
+            new ButtonBuilder()
+                .setCustomId(intChangelogNavPrefix + "PAGENUM")
+                .setDisabled(true)
+                .setStyle(ButtonStyle.Primary)
+                .setLabel("Page " + (pageNum + 1)),
+            new ButtonBuilder()
+                .setCustomId(intChangelogNavPrefix + "NEXT-" + pageNum)
+                .setDisabled(pageNum < (changelog.length - 1) ? false : true)
+                .setStyle(ButtonStyle.Primary)
+                .setLabel("Next")
+        )
+
+    let changes = "";
+    let version = underscore("Version: " + changelog[pageNum].version) + "\n";
+
+    changelog[pageNum].changes.forEach(obj => {
+        changes += obj + "\n";
+    });
+    
+    return {
+        content: version + codeBlock(changes),
+        components: [row],
         ephemeral: true
     }
 }
@@ -1055,6 +1149,10 @@ async function mainMenu_msgLeaderboard(interaction) {
         embeds: [leaderboardEmbed],
         ephemeral: true
     });
+}
+
+function mainMenu_changelog(interaction) {
+    interaction.reply(openChangelog(0));
 }
 
 function usablesShop_selectShelf(interaction, eventTokens) {
