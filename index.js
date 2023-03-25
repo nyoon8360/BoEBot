@@ -991,11 +991,32 @@ function mainMenu_showStats(interaction) {
 
     let lastAwarded = requester.lastAwarded > 0 ? time(requester.lastAwarded, "R") : inlineCode("Never");
 
+    //get current time in seconds since epoch
+    let currentTime = Math.floor(Date.now()/1000);
+
+    //check status effects and roll for checks if applicable
+    let statusEffects = requester.statusEffects;
+
+    let afflictedBy = "";
+
+    for (let i = 0; i < statusEffects.length; i++) {
+        if (statusEffects[i].expires >= currentTime) {
+            afflictedBy += "-(" + statusEffects[i].displayName + ") expires: " + time(statusEffects[i].expires, "R") + "\n";
+        } else {
+            statusEffects.splice(i, 1);
+            i--;
+        }
+    }
+
     interaction.reply({
         content: `
 ${bold('============\nYOUR STATS\n============')}
 Edbuck Balance: ${requester.balance}
 Last Edbuck Awarded: ${lastAwarded}
+Edbuck Reactions Awarded: ${requester.fStatReactionsAwarded}
+Edbuck Reactions Received: ${requester.fStatReactionsReceived}
+Status Effects:
+${afflictedBy}
         `,
         ephemeral: true
     });
@@ -1733,6 +1754,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 } else {
                     targetData.statusEffects.push({
                         name: "polymorph",
+                        displayName: "Polymorphed",
                         expires: Math.floor(Date.now()/1000) + itemPolymorphDuration,
                         polyName: newNickname
                     });
@@ -1779,6 +1801,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
             } else {
                 casterData.statusEffects.push({
                     name: "reflect",
+                    displayName: "Reflect",
                     expires: Math.floor(Date.now()/1000) + itemReflectDuration
                 });
             }
