@@ -382,10 +382,12 @@ client.on('messageCreate', (message) => {
             break;
 
         case "updateuserprops":
+            let updatedUsersList = [];
             workingData[message.guildId].users.forEach(obj => {
                 let updatedEntry = getNewUserJSON("","");
-                obj = Object.assign(updatedEntry, obj);
+                updatedUsersList.push(Object.assign(updatedEntry, obj));
             });
+            workingData[message.guildId].users = updatedUsersList;
             console.log(`(${curDate.toLocaleString()}) Manual User Properties Update Complete! Changes in database will take effect on next save.`);
             break;
     }
