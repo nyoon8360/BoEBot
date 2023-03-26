@@ -99,13 +99,16 @@ const treasureLR = config.common.treasureLowerRange; //min possible number of ed
 const treasureUR = config.common.treasureUpperRange; //max possible number of edbucks found on pressing "Pick Up Edbucks" button
 const treasureCDLR = config.common.treasureCooldownLowerRange; //min possible number of seconds the "Pick Up Edbucks" button will be disabled for
 const treasureCDUR = config.common.treasureCooldownUpperRange; //max possible number of seconds the "Pick Up Edbucks" button will be disabled for
-const userLeaderboardLimit = config.common.userLeaderboardLimit; //max number of entries that will show on the user leaderboard
+const userLeaderboardEntriesPerPage = config.common.userLeaderboardEntriesPerPage; //max number of entries that will show on the user leaderboard
 const msgLeaderboardLimit = config.common.msgLeaderboardLimit; //max number of entries that will show on the message leaderboard
 const currencyEmojiName = config.common.currencyEmojiName; //the name of the emoji used to award currency
 const botAdmins = config.common.admins; //list of user tags that are able to run admin commands for the bot
 const saveInterval = config.common.saveInterval; //the interval between json file autosaves
 const usablesShopItemsPerRow = config.common.usablesShopItemsPerRow > 5 ? 5 : config.common.usablesShopItemsPerRow; //the number of items displayed per row in the item shop. maxed at 5
 const usablesInventoryItemsPerRow = config.common.usablesInventoryItemsPerRow > 5 ? 5 : config.common.usablesInventoryItemsPerRow; //number of items displayed per row in player inventories. maxed at 5
+const checkActiveVCInterval = config.common.checkActiveVCInterval;
+const activeVCMemberThreshold = config.common.activeVCMemberThreshold;
+const activeVCReward = config.common.activeVCReward;
 
 //item config consts
 const itemMuteDuration = config.items.itemMuteDuration;
@@ -141,6 +144,9 @@ const intPlayerUsablesInvNavPrefix = "PUSABLESINVNAV-";
 
 //Changelog navigation tokens
 const intChangelogNavPrefix = "CHANGELOGNAV-"
+
+//User leaderboard navigation tokens
+const intUserLeaderboardNavPrefix = "USERLEADERBOARDNAV-";
 
 //Shop pages and helper variables
 var shopPages_usables = [];
@@ -257,6 +263,37 @@ client.on('ready', () => {
         console.log("(" + curDate.toLocaleString() + ") Autosave Complete!");
     }, saveInterval * 1000);
 
+    //Set interval for checking voice channels to award active VCS
+    setInterval(() => {
+        client.guilds.cache.map(guild => guild).forEach(guild => {
+            guild.channels.cache.map(channel => channel).forEach(channel => {
+                //if the channel is not voicebased or is voicebased and has less than activeVCMemberThreshold members then return
+                if (!channel.isVoiceBased()) return;
+                if (channel.members.size < activeVCMemberThreshold) return;
+
+                let awardMembers = [];
+                let numUnmutedMembers = 0;
+
+                channel.members.map(member => member).forEach(member => {
+                    if (!member.voice.mute) {
+                        awardMembers.push(member.id);
+                        numUnmutedMembers += 1;
+                    }
+                });
+
+                if (numUnmutedMembers >= activeVCMemberThreshold) {
+                    awardMembers.forEach(recipient => {
+                        let recipientData = workingData[guild.id].users.find(obj => {
+                            return obj.id == recipient;
+                        });
+
+                        recipientData.balance += activeVCReward;
+                    });
+                }
+            });
+        });
+    }, checkActiveVCInterval * 1000);
+
     let curDate = new Date(Date.now());
     console.log(`(${client.user.tag}) is ready! ${curDate.toLocaleString()}`);
 });
@@ -333,7 +370,15 @@ client.on('messageCreate', (message) => {
             message.guild.channels.cache.get(workingData[message.guildId].activeMenuChannelId).messages.fetch(workingData[message.guildId].activeMenuId).then(result => {
                 result.edit(openMenu());
             });
-            console.log(`(${curDate.toLocaleString()}) Manual Menu Update Complete`)
+            console.log(`(${curDate.toLocaleString()}) Manual Menu Update Complete`);
+            break;
+
+        case "updateuserprops":
+            workingData[message.guildId].users.forEach(obj => {
+                let updatedEntry = getNewUserJSON("","");
+                obj = Object.assign(updatedEntry, obj);
+            });
+            console.log(`(${curDate.toLocaleString()}) Manual User Properties Update Complete! Changes in database will take effect on next save.`);
             break;
     }
 });
@@ -569,6 +614,18 @@ client.on('interactionCreate', async (interaction) => {
             }
             break;
 
+        case intUserLeaderboardNavPrefix.slice(0, -1):
+            switch (eventTokens.shift()) {
+                case "PREV":
+                    interaction.update(openUserLeaderboard(interaction, parseInt(eventTokens.shift()) - 1));
+                    break;
+
+                case "NEXT":
+                    interaction.update(openUserLeaderboard(interaction, parseInt(eventTokens.shift()) + 1));
+                    break;
+            }
+            break;
+
         //Inventory slot select events
         case intPlayerUsablesInvSelectSlotPrefix.slice(0, -1):
             usablesInventory_selectSlot(interaction, eventTokens);
@@ -641,7 +698,7 @@ client.on('interactionCreate', async (interaction) => {
 
         case intChangelogNavPrefix.slice(0, -1):
             switch(eventTokens.shift()){
-                case "BACK":
+                case "PREV":
                     interaction.update(openChangelog(parseInt(eventTokens.shift()) - 1));
                     break;
 
@@ -962,10 +1019,10 @@ function openChangelog(pageNum) {
     let row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intChangelogNavPrefix + "BACK-" + pageNum)
+                .setCustomId(intChangelogNavPrefix + "PREV-" + pageNum)
                 .setDisabled(pageNum > 0 ? false : true)
                 .setStyle(ButtonStyle.Primary)
-                .setLabel("Back"),
+                .setLabel("Prev"),
             new ButtonBuilder()
                 .setCustomId(intChangelogNavPrefix + "PAGENUM")
                 .setDisabled(true)
@@ -990,6 +1047,44 @@ function openChangelog(pageNum) {
         components: [row],
         ephemeral: true
     }
+}
+
+function openUserLeaderboard(interaction, pageNum) {
+    let sortedLeaderboard = workingData[interaction.guildId].users.sort((a, b) => (a.balance > b.balance) ? -1 : 1);
+    let leaderboard = "";
+    let userEntriesNum = sortedLeaderboard.length;
+
+    sortedLeaderboard = sortedLeaderboard.slice(pageNum * userLeaderboardEntriesPerPage, (pageNum + 1) * userLeaderboardEntriesPerPage);
+
+    sortedLeaderboard.forEach((user, index) => {
+        leaderboard += "(" + (index + 1 + (pageNum * userLeaderboardEntriesPerPage)) + ") " + user.tag + ": " + user.balance + " EB \n"
+    })
+
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(intUserLeaderboardNavPrefix + "PREV-" + pageNum)
+                .setDisabled(pageNum > 0 ? false : true)
+                .setStyle(ButtonStyle.Primary)
+                .setLabel("Prev"),
+            new ButtonBuilder()
+                .setCustomId(intUserLeaderboardNavPrefix + "PAGENUM")
+                .setDisabled(true)
+                .setStyle(ButtonStyle.Primary)
+                .setLabel("Page " + (pageNum + 1)),
+            new ButtonBuilder()
+                .setCustomId(intUserLeaderboardNavPrefix + "NEXT-" + pageNum)
+                .setDisabled(pageNum < (Math.ceil(userEntriesNum / userLeaderboardEntriesPerPage) - 1) ? false : true)
+                .setStyle(ButtonStyle.Primary)
+                .setLabel("Next")
+        );
+    
+    return {
+        content: bold("====================\nUSER LEADERBOARD\n====================") + "\n" + leaderboard,
+        components: [row],
+        ephemeral: true
+    }
+    
 }
 
 //===================================================
@@ -1137,19 +1232,7 @@ ${underscore('How To Use Purchased Items')}
 }
 
 function mainMenu_userLeaderboard(interaction) {
-    let sortedLeaderboard = workingData[interaction.guildId].users.sort((a, b) => (a.balance > b.balance) ? -1 : 1);
-    let leaderboard = "";
-
-    sortedLeaderboard = sortedLeaderboard.slice(0, userLeaderboardLimit);
-
-    sortedLeaderboard.forEach((user, index) => {
-        leaderboard += "(" + (index + 1) + ") " + user.tag + ": " + user.balance + " EB \n"
-    })
-
-    interaction.reply({
-        content: bold("====================\nUSER LEADERBOARD\n====================") + "\n" + leaderboard,
-        ephemeral: true
-    })
+    interaction.reply(openUserLeaderboard(interaction, 0));
 }
 
 async function mainMenu_msgLeaderboard(interaction) {

@@ -2,17 +2,20 @@
     "common": {
         "currencyEmojiName": "edbuck",
         "saveInterval": 1800,
-        "reactCooldown":3600,
+        "reactCooldown":1200,
         "msgExpiration":3600,
         "usablesShopItemsPerRow": 3,
         "usablesInventoryItemsPerRow": 3,
-        "reactAward":1,
-        "treasureLowerRange": 1,
-        "treasureUpperRange": 5,
+        "reactAward": 2,
+        "treasureLowerRange": 2,
+        "treasureUpperRange": 4,
         "treasureCooldownLowerRange": 3600, 
         "treasureCooldownUpperRange": 7200,
         "msgLeaderboardLimit": 5,
-        "userLeaderboardLimit": 5,
+        "userLeaderboardEntriesPerPage": 5,
+        "checkActiveVCInterval": 1500,
+        "activeVCMemberThreshold": 3,
+        "activeVCReward": 1,
         "admins": [
             "Inspirasian#2923"
         ]
