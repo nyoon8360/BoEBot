@@ -225,6 +225,14 @@ client.on('ready', () => {
             fs.writeFileSync('./database' + guildId + ".json", JSON.stringify(workingData[guildId], null, 2));
         }).catch(console.error);
         
+        //update menu in case pick up edbucks button is stuck
+        try {
+            client.guilds.cache.get(guildId).channels.cache.get(workingData[guildId].activeMenuChannelId).messages.fetch(workingData[guildId].activeMenuId).then(result => {
+                result.edit(openMenu());
+            });
+        } catch (exception) {
+            console.log("Automatic menu update failed.");
+        }
     });
 
     
