@@ -1213,6 +1213,8 @@ ${underscore('Main Sources Of Edbucks')}
 - Having people react to your messages with the :edbuck: emote awards 1 edbuck.
     - Messages can only gain edbucks within the first hour of posting.
     - You can only award edbucks once every hour at most.
+- Being unmuted in a voice call with 3 or more unmuted users in it.
+    - This is checked every 25 minutes and awards 1 edbuck.
 - Being the first person to click on the "Pick Up Edbucks" button when it's randomly enabled.
     - Re-enables randomly between 1-2 hours after being clicked.
 - Winning minigames (WIP)

@@ -2,7 +2,7 @@
     {
         "version": "1.0.2",
         "changes": [
-            "-Everyone in a VC with 3 or more unmuted users in it will gain 1 edbuck per 25 minutes.",
+            "-Every unmuted user in a VC with 3 or more unmuted users in it will gain 1 edbuck per 25 minutes.",
             "-Changed the reward range for the Pick Up Edbucks button from 1-5 to 2-4 for better consistency.",
             "-Added pages to user leaderboard.",
             "-Reduced edbuck reward cooldown from 1 hour to 20 minutes."
