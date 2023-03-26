@@ -6,5 +6,5 @@
 #Ignore node modules
 node_modules/
 
-#ignore personal server test database
-database883516324872060969.json
+#ignore database files
+database*.json
