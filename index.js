@@ -102,7 +102,7 @@ const treasureCDUR = config.common.treasureCooldownUpperRange; //max possible nu
 const userLeaderboardEntriesPerPage = config.common.userLeaderboardEntriesPerPage; //max number of entries that will show on the user leaderboard
 const msgLeaderboardLimit = config.common.msgLeaderboardLimit; //max number of entries that will show on the message leaderboard
 const currencyEmojiName = config.common.currencyEmojiName; //the name of the emoji used to award currency
-const botAdmins = config.common.admins; //list of user tags that are able to run admin commands for the bot
+const botAdmins = config.common.admins; //list of user ids that are able to run admin commands for the bot
 const saveInterval = config.common.saveInterval; //the interval between json file autosaves
 const usablesShopItemsPerRow = config.common.usablesShopItemsPerRow > 5 ? 5 : config.common.usablesShopItemsPerRow; //the number of items displayed per row in the item shop. maxed at 5
 const usablesInventoryItemsPerRow = config.common.usablesInventoryItemsPerRow > 5 ? 5 : config.common.usablesInventoryItemsPerRow; //number of items displayed per row in player inventories. maxed at 5
@@ -208,7 +208,7 @@ client.on('ready', () => {
             let guildUsersArray = [];
     
             workingData[guildId].users.forEach((eUser) => {
-                existingArray.push(eUser.tag);
+                existingArray.push(eUser.id);
             });
 
             memberManager.forEach((gMember) => {
@@ -218,7 +218,7 @@ client.on('ready', () => {
                 });
             });
 
-            guildUsersArray.filter(user => !existingArray.includes(user.tag)).forEach((newUser) => {
+            guildUsersArray.filter(user => !existingArray.includes(user.id)).forEach((newUser) => {
                 workingData[guildId].users.push(getNewUserJSON(newUser.tag, newUser.id));
             });
 
@@ -309,7 +309,7 @@ client.on('ready', () => {
 //on new guild user join, add entry to database if not already existing
 client.on("guildMemberAdd", member => {
     let existingEntry = workingData[member.guild.id].users.find(entry => {
-        entry.tag == member.user.tag
+        return entry.id == member.id;
     });
 
     if (!existingEntry) {
@@ -323,7 +323,7 @@ client.on('messageCreate', (message) => {
     if (message.author.bot) return;
 
     //if command sender is not a bot admin then do not process command
-    if (!botAdmins.includes(message.author.tag)) return;
+    if (!botAdmins.includes(message.author.id)) return;
 
     let curDate = new Date(Date.now());
     switch(message.content.substring(1)) {
@@ -401,7 +401,7 @@ client.on('guildMemberUpdate', (oldMember, newMember) => {
     if (oldMember.displayName != newMember.displayName) {
         //get member data and existing polymorph status effect on member if it exists
         let memberData = workingData[newMember.guild.id].users.find(obj => {
-            return obj.tag == newMember.user.tag;
+            return obj.id == newMember.user.id;
         });
 
         let existingPolyIndex = memberData.statusEffects.findIndex(obj => {
@@ -428,7 +428,7 @@ client.on('messageDelete', (message) => {
     if (!message.guildId) return;
 
     let messageAuthorData = workingData[message.guildId].users.find(obj => {
-        return obj.tag == message.author.tag;
+        return obj.id == message.author.id;
     });
 
     messageAuthorData.lastChangedMsg = {
@@ -444,7 +444,7 @@ client.on('messageUpdate', (oldMessage, newMessage) => {
     if (newMessage.author.bot) return;
 
     let messageAuthorData = workingData[newMessage.guildId].users.find(obj => {
-        return obj.tag == newMessage.author.tag;
+        return obj.id == newMessage.author.id;
     });
 
     messageAuthorData.lastChangedMsg = {
@@ -461,11 +461,11 @@ client.on('messageReactionAdd', (messageReaction, user) => {
     if (!messageReaction.message.guildId) return;
 
     //If the reactor and the reacted to are the same person then dont award anything.
-    if (user.tag == messageReaction.message.author.tag) return;
+    if (user.id == messageReaction.message.author.id) return;
 
     //do a time check for the reactor
     let storedUserData = workingData[messageReaction.message.guildId].users.find(obj => {
-        return obj.tag == user.tag;
+        return obj.id == user.id;
     })
 
     let currTime = Math.floor(Date.now() / 1000);
@@ -476,7 +476,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
         if (currTime - Math.floor(messageReaction.message.createdTimestamp/1000) <= msgExpiration) {
             //find recipient user's data object in working data var
             let recipient = workingData[messageReaction.message.guildId].users.find(obj => {
-                return obj.tag == messageReaction.message.author.tag;
+                return obj.id == messageReaction.message.author.id;
             });
 
             //award recipient edbucks
@@ -544,6 +544,9 @@ client.on('messageReactionAdd', (messageReaction, user) => {
 
                     //pop any excess entries above the leaderboard limit
                     while (currLeaderboard.length > msgLeaderboardLimit) currLeaderboard.pop();
+
+                    //update leaderboard floor
+                    workingData[messageReaction.message.guildId].msgLeaderboardFloor = currLeaderboard[currLeaderboard.length - 1].score;
                 }
             }
         } else {
@@ -769,13 +772,13 @@ function saveData(sync) {
     });
 }
 
-function checkStatsAndEffects(interaction, targetTag) {
+function checkStatsAndEffects(interaction, targetId) {
     //instantiate return array with passed stat checks/status effects
     let passedStatsAndEffects = [];
 
     //get the target's data
     let targetData = workingData[interaction.guildId].users.find(obj => {
-        return obj.tag == targetTag;
+        return obj.id == targetId;
     });
 
     //get current time in seconds since epoch
@@ -970,7 +973,7 @@ function openUsablesShop(pagenum) {
 
 function openUsablesInv(interaction, pageNum) {
     let accessingUser = workingData[interaction.guildId].users.find(obj => {
-        return obj.tag == interaction.user.tag;
+        return obj.id == interaction.user.id;
     });
 
     let page = [];
@@ -1107,7 +1110,7 @@ function openUserLeaderboard(interaction, pageNum) {
 
 function mainMenu_showStats(interaction) {
     let requester = workingData[interaction.guildId].users.find(obj => {
-        return obj.tag == interaction.user.tag;
+        return obj.id == interaction.user.id;
     });
 
     let lastAwarded = requester.lastAwarded > 0 ? time(requester.lastAwarded, "R") : inlineCode("Never");
@@ -1161,7 +1164,7 @@ function mainMenu_openInv(interaction) {
 function mainMenu_findTreasure(interaction) {
     //on click, award treasure, deactivate this button for a random amount of hours, and then reactivate
     let user = workingData[interaction.guildId].users.find(obj => {
-        return obj.tag == interaction.user.tag;
+        return obj.id == interaction.user.id;
     });
 
     let treasure = Math.round(Math.random() * (treasureUR - treasureLR)) + treasureLR;
@@ -1331,7 +1334,7 @@ function usablesShop_purchase(interaction, eventTokens) {
     });
 
     let customer = workingData[interaction.guildId].users.find(obj => {
-        return obj.tag == interaction.user.tag;
+        return obj.id == interaction.user.id;
     });
 
     //get purchase count from event tokens
@@ -1380,7 +1383,7 @@ function usablesInventory_selectSlot(interaction, eventTokens) {
     let itemName = eventTokens.shift();
     //get user data
     let accessingUser = workingData[interaction.guildId].users.find(obj => {
-        return obj.tag == interaction.user.tag;
+        return obj.id == interaction.user.id;
     });
 
     //get item display name
@@ -1438,7 +1441,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
             } else {
                 //get caster data
                 let caster = workingData[interaction.guildId].users.find(obj => {
-                    return obj.tag == interaction.user.tag;
+                    return obj.id == interaction.user.id;
                 });
 
                 //check if caster still has item
@@ -1455,13 +1458,13 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 let target = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
 
                 //prevent self use
-                if (target.user.tag == interaction.user.tag) {
+                if (target.user.id == interaction.user.id) {
                     preventSelfUse(interaction);
                     return;
                 }
 
                 //do stats and effects check
-                let passedModifiers = checkStatsAndEffects(interaction, target.user.tag);
+                let passedModifiers = checkStatsAndEffects(interaction, target.user.id);
 
                 //consume item
                 if (caster.itemInventory[itemEntryIndex].count == 1) {
@@ -1534,14 +1537,14 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 let target = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
 
                 //prevent self use
-                if (target.user.tag == interaction.user.tag) {
+                if (target.user.id == interaction.user.id) {
                     preventSelfUse(interaction);
                     return;
                 }
 
                 //check if caster still has item
                 let caster = workingData[interaction.guildId].users.find(obj => {
-                    return obj.tag == interaction.user.tag;
+                    return obj.id == interaction.user.id;
                 });
 
                 let itemEntryIndex = caster.itemInventory.findIndex(obj => {
@@ -1554,7 +1557,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 }
 
                 //do stats and effects check
-                let passedModifiers = checkStatsAndEffects(interaction, target.user.tag);
+                let passedModifiers = checkStatsAndEffects(interaction, target.user.id);
 
                 //consume item
                 if (caster.itemInventory[itemEntryIndex].count == 1) {
@@ -1632,14 +1635,14 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 let targetMemberObject = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
 
                 //prevent self use
-                if (targetMemberObject.user.tag == interaction.user.tag) {
+                if (targetMemberObject.user.id == interaction.user.id) {
                     preventSelfUse(interaction);
                     return;
                 }
 
                 //check if caster still has item
                 let caster = workingData[interaction.guildId].users.find(obj => {
-                    return obj.tag == interaction.user.tag;
+                    return obj.id == interaction.user.id;
                 });
 
                 let itemEntryIndex = caster.itemInventory.findIndex(obj => {
@@ -1652,7 +1655,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 }
 
                 //do stats and effects check
-                let passedModifiers = checkStatsAndEffects(interaction, targetMemberObject.user.tag);
+                let passedModifiers = checkStatsAndEffects(interaction, targetMemberObject.user.id);
 
                 //consume item
                 if (caster.itemInventory[itemEntryIndex].count == 1) {
@@ -1680,7 +1683,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 //enact item effect
                 let randomInvSlot;
                 let targettedData = workingData[interaction.guildId].users.find(obj => {
-                    return obj.tag == (reflected ? interaction.user.tag : targetMemberObject.user.tag);
+                    return obj.id == (reflected ? interaction.user.id : targetMemberObject.user.id);
                 });
                 let targettedInv = targettedData.itemInventory;
 
@@ -1723,7 +1726,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     }
 
                     let targetWorkingDataObj = workingData[interaction.guildId].users.find(obj => {
-                        return obj.tag == targetMemberObject.user.tag;
+                        return obj.id == targetMemberObject.user.id;
                     });
 
                     let existingItemEntry = targetWorkingDataObj.itemInventory.find(obj => {
@@ -1834,14 +1837,14 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 let target = client.guilds.cache.get(interaction.guildId).members.cache.get(nextToken);
 
                 //prevent self use
-                if (target.user.tag == interaction.user.tag) {
+                if (target.user.id == interaction.user.id) {
                     preventSelfUse(interaction);
                     return;
                 }
 
                 //check if caster still has item
                 let caster = workingData[interaction.guildId].users.find(obj => {
-                    return obj.tag == interaction.user.tag;
+                    return obj.id == interaction.user.id;
                 });
 
                 let itemEntryIndex = caster.itemInventory.findIndex(obj => {
@@ -1854,7 +1857,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 }
 
                 //do stats and effects check
-                let passedModifiers = checkStatsAndEffects(interaction, target.user.tag);
+                let passedModifiers = checkStatsAndEffects(interaction, target.user.id);
 
                 //consume item
                 if (caster.itemInventory[itemEntryIndex].count == 1) {
@@ -1882,7 +1885,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 
                 //apply polymorph status effect
                 let targetData = workingData[interaction.guildId].users.find(obj => {
-                    return obj.tag == target.user.tag;
+                    return obj.id == target.user.id;
                 });
 
                 let existingStatusEffect = targetData.statusEffects.find(obj => {
@@ -1929,7 +1932,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
         case "item_reflect":
             //check if caster still has item
             let casterData = workingData[interaction.guildId].users.find(obj => {
-                return obj.tag == interaction.user.tag;
+                return obj.id == interaction.user.id;
             });
 
             let itemEntryIndex = caster.itemInventory.findIndex(obj => {
@@ -2000,7 +2003,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
             } else {
                 //check if caster still has item
                 let caster = workingData[interaction.guildId].users.find(obj => {
-                    return obj.tag == interaction.user.tag;
+                    return obj.id == interaction.user.id;
                 });
 
                 let itemEntryIndex = caster.itemInventory.findIndex(obj => {
@@ -2016,7 +2019,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 let targetMemberData = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
 
                 let targetData = workingData[interaction.guildId].users.find(obj => {
-                    return obj.tag == targetMemberData.user.tag;
+                    return obj.id == targetMemberData.user.id;
                 })
 
                 //consume item
@@ -2026,7 +2029,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     caster.itemInventory[itemEntryIndex].count -= 1;
                 }
 
-                let passedModifiers = checkStatsAndEffects(interaction, targetData.tag);
+                let passedModifiers = checkStatsAndEffects(interaction, targetData.id);
 
                 //instantiate server/caster notification message
                 let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
@@ -2124,14 +2127,14 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 let target = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
 
                 //prevent self use
-                if (target.user.tag == interaction.user.tag) {
+                if (target.user.id == interaction.user.id) {
                     preventSelfUse(interaction);
                     return;
                 }
 
                 //check if caster still has item
                 let caster = workingData[interaction.guildId].users.find(obj => {
-                    return obj.tag == interaction.user.tag;
+                    return obj.id == interaction.user.id;
                 });
 
                 let itemEntryIndex = caster.itemInventory.findIndex(obj => {
@@ -2144,7 +2147,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 }
 
                 //do stats and effects check
-                let passedModifiers = checkStatsAndEffects(interaction, target.user.tag);
+                let passedModifiers = checkStatsAndEffects(interaction, target.user.id);
 
                 //consume item
                 if (caster.itemInventory[itemEntryIndex].count == 1) {
@@ -2218,7 +2221,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
             } else {
                 //check if caster still has item
                 let caster = workingData[interaction.guildId].users.find(obj => {
-                    return obj.tag == interaction.user.tag;
+                    return obj.id == interaction.user.id;
                 });
 
                 let itemEntryIndex = caster.itemInventory.findIndex(obj => {

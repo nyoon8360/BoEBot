@@ -1,5 +1,12 @@
 [
     {
+        "version": "1.0.3",
+        "changes": [
+            "-Bugfix: Fixed issue causing duplicate msg leaderboard entries if the existing entry was in first place.",
+            "-Bugfix: Fixed issue causing de-coupling of user to user stats data if user changes their discord username or discriminator."
+        ]
+    },
+    {
         "version": "1.0.2",
         "changes": [
             "-Every unmuted user in a VC with 3 or more unmuted users in it will gain 1 edbuck per 25 minutes.",
