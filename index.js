@@ -24,12 +24,14 @@ database.json format:
                     "count": 0
                 }
             ],
-            "equipmentInventory": [
-                {
-                    "name": "mirror_ring",
-                    "equipped": true
-                }
-            ],
+            "equipmentInventory": {
+                head: [
+
+                ],
+                body: [],
+                accessories: [],
+                shoes: []
+            },
             "equipped": [
                 {
                     "slot": "head",
@@ -1225,9 +1227,9 @@ function mainMenu_help(interaction) {
 ${bold('=====\nHELP\n=====')}
 
 ${underscore('Main Sources Of Edbucks')}
-- Having people react to your messages with the :edbuck: emote awards 1 edbuck.
+- Having people react to your messages with the :edbuck: emote awards 2 edbucks.
     - Messages can only gain edbucks within the first hour of posting.
-    - You can only award edbucks once every hour at most.
+    - You can only award edbucks once every 20 minutes at most.
 - Being unmuted in a voice call with 3 or more unmuted users in it.
     - This is checked every 25 minutes and awards 1 edbuck.
 - Being the first person to click on the "Pick Up Edbucks" button when it's randomly enabled.
