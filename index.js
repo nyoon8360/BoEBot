@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, parseEmoji, inlineCode, bold, underscore, Options, Sweepers, EmbedBuilder, italic, codeBlock, TextInputBuilder, TextInputStyle, GuildScheduledEventPrivacyLevel, MentionableSelectMenuBuilder, userMention, ModalBuilder, ClientVoiceManager, UserSelectMenuBuilder, ChannelSelectMenuBuilder, ChannelType } = require('discord.js');
+const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, inlineCode, bold, underscore, Options, EmbedBuilder, codeBlock, TextInputBuilder, TextInputStyle, MentionableSelectMenuBuilder, userMention, ModalBuilder, UserSelectMenuBuilder, ChannelSelectMenuBuilder, ChannelType } = require('discord.js');
 const fs = require('fs');
 const config = require('./config.json');
 const items = require('./items.json');
@@ -246,7 +246,7 @@ client.on('ready', () => {
                     row.addComponents(
                         new ButtonBuilder()
                             .setCustomId(intUsablesShopSelectShelfPrefix + items[(pageIndex * (4 * usablesShopItemsPerRow)) + (rowIndex * usablesShopItemsPerRow) + shelfIndex].name)
-                            .setLabel(items[(pageIndex * (4 * usablesShopItemsPerRow)) + (rowIndex * usablesShopItemsPerRow) + shelfIndex].displayName)
+                            .setLabel(items[(pageIndex * (4 * usablesShopItemsPerRow)) + (rowIndex * usablesShopItemsPerRow) + shelfIndex].displayName + `|$${items[(pageIndex * (4 * usablesShopItemsPerRow)) + (rowIndex * usablesShopItemsPerRow) + shelfIndex].price}`)
                             .setStyle(ButtonStyle.Success)
                     )
                 } else {
