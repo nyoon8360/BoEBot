@@ -505,7 +505,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
                     entry.id == messageReaction.message.id;
                 });
 
-                if (dupeIndex > 0) {
+                if (dupeIndex >= 0) {
                     currLeaderboard.splice(dupeIndex, 1);
                 }
 
