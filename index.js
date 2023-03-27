@@ -267,7 +267,7 @@ client.on('ready', () => {
     //Set interval for autosaving workingData to json database files
     setInterval(() => {
         saveData();
-        let curDate = new Date(Date.now())
+        let curDate = new Date(Date.now());
         console.log("(" + curDate.toLocaleString() + ") Autosave Complete!");
     }, saveInterval * 1000);
 
@@ -1180,6 +1180,8 @@ Check back again later to see if they've come back!
         //disable pick up edbucks button
         result.edit(openMenu(true));
         
+        let curDate = new Date(Date.now());
+        console.log(`(${curDate.toLocaleString()}) Edbucks Button Looted By: ${interaction.user.tag}`);
         //set async function to wait until cooldown is over then re-enable button
         (async (menu) => {
             let timeoutDuration = Math.floor(Math.random() * (treasureCDUR - treasureCDLR)) + treasureCDLR;
