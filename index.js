@@ -504,7 +504,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
 
                 //Check if current message is already on leaderboard and if so then remove it from the leaderboard before processing where to update its position
                 let dupeIndex = currLeaderboard.findIndex((entry) => {
-                    entry.id == messageReaction.message.id;
+                    return entry.id == messageReaction.message.id;
                 });
 
                 if (dupeIndex >= 0) {
@@ -1750,17 +1750,17 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     //item inventory IS empty and item is NOT reflected
                     let randomStolenItem = randomStealList[Math.round(Math.random() * (randomStealList.length - 1))];
 
-                    caster.balance += 1;
+                    caster.balance += 3;
 
-                    cNotifMsg = `You've used a Goose with a Knife on ${userMention(interaction.values[0])} but there was nothing to steal so it just took his ${randomStolenItem} and sold it on the black market. He gave you a 1 Edbuck cut.`;
+                    cNotifMsg = `You've used a Goose with a Knife on ${userMention(interaction.values[0])} but there was nothing to steal so it just took his ${randomStolenItem} and sold it on the black market. He gave you a 3 Edbuck cut.`;
                     sNotifMsg = `${casterString} has used Goose with a Knife on ${targetString} but there was nothing to steal so it took his ${randomStolenItem} and sold it on the black market.`;
                 } else {
                     //item inventory IS empty and item IS reflected
                     let randomStolenItem = randomStealList[Math.round(Math.random() * (randomStealList.length - 1))];
 
-                    targettedData.balance += 1;
+                    targettedData.balance += 3;
 
-                    cNotifMsg = `You've used a Goose with a Knife on ${userMention(interaction.values[0])} but it was reflected. There was nothing to steal so it just took your ${randomStolenItem} and sold it on the black market. It gave him a 1 Edbuck cut.`;
+                    cNotifMsg = `You've used a Goose with a Knife on ${userMention(interaction.values[0])} but it was reflected. There was nothing to steal so it just took your ${randomStolenItem} and sold it on the black market. It gave him a 3 Edbuck cut.`;
                     sNotifMsg = `${casterString} has used Goose with a Knife on ${targetString} but it was reflected. There was nothing to steal so it just took his ${randomStolenItem} and sold it on the black market.`;
                 }
 
