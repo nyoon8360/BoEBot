@@ -1,12 +1,11 @@
 require('dotenv').config();
-const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, inlineCode, bold, underscore, Options, EmbedBuilder, codeBlock, TextInputBuilder, TextInputStyle, MentionableSelectMenuBuilder, userMention, ModalBuilder, UserSelectMenuBuilder, ChannelSelectMenuBuilder, ChannelType } = require('discord.js');
+const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, inlineCode, bold, underscore, Options, EmbedBuilder, codeBlock, TextInputBuilder, TextInputStyle, MentionableSelectMenuBuilder, userMention, ModalBuilder, UserSelectMenuBuilder, ChannelSelectMenuBuilder, ChannelType, DiscordAPIError } = require('discord.js');
 const fs = require('fs');
-const config = require('./config.json');
 const items = require('./items.json');
 const equipment = require('./equipment.json');
 const changelog = require('./changelog.json');
-require('./constants/intEventTokens.js');
-require('./constants/configConsts.js');
+const intEventTokens = require('./constants/intEventTokens.js');
+const config = require('./constants/configConsts.js');
 
 /*
 axios for easy HTTP promises with node.js
@@ -184,23 +183,23 @@ client.on('ready', () => {
 
     
     //Populate usables shop pages
-    for (let pageIndex = 0; pageIndex < Math.ceil(items.length / (4 * usablesShopItemsPerRow)); pageIndex++) {
+    for (let pageIndex = 0; pageIndex < Math.ceil(items.length / (4 * config.usablesShopItemsPerRow)); pageIndex++) {
         let newPage = [];
         for (let rowIndex = 0; rowIndex < 4; rowIndex ++) {
             let row = new ActionRowBuilder();
-            for (let shelfIndex = 0; shelfIndex < usablesShopItemsPerRow; shelfIndex++) {
-                if (items[(pageIndex * (4 * usablesShopItemsPerRow)) + (rowIndex * usablesShopItemsPerRow) + shelfIndex] != undefined) {
+            for (let shelfIndex = 0; shelfIndex < config.usablesShopItemsPerRow; shelfIndex++) {
+                if (items[(pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex] != undefined) {
                     row.addComponents(
                         new ButtonBuilder()
-                            .setCustomId(intUsablesShopSelectShelfPrefix + items[(pageIndex * (4 * usablesShopItemsPerRow)) + (rowIndex * usablesShopItemsPerRow) + shelfIndex].name)
-                            .setLabel(items[(pageIndex * (4 * usablesShopItemsPerRow)) + (rowIndex * usablesShopItemsPerRow) + shelfIndex].displayName + `|$${items[(pageIndex * (4 * usablesShopItemsPerRow)) + (rowIndex * usablesShopItemsPerRow) + shelfIndex].price}`)
+                            .setCustomId(intEventTokens.usablesShopSelectShelfPrefix + items[(pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex].name)
+                            .setLabel(items[(pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex].displayName + `|$${items[(pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex].price}`)
                             .setStyle(ButtonStyle.Success)
                     )
                 } else {
                     row.addComponents(
                         new ButtonBuilder()
                             .setLabel("Empty Shelf")
-                            .setCustomId(intUsablesShopSelectShelfPrefix + "EMPTYSHELF-" + ((pageIndex * (4 * usablesShopItemsPerRow)) + (rowIndex * usablesShopItemsPerRow) + shelfIndex))
+                            .setCustomId(intEventTokens.usablesShopSelectShelfPrefix + "EMPTYSHELF-" + ((pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex))
                             .setStyle(ButtonStyle.Secondary)
                             .setDisabled(true)
                     )
@@ -216,7 +215,7 @@ client.on('ready', () => {
         saveData();
         let curDate = new Date(Date.now());
         console.log("(" + curDate.toLocaleString() + ") Autosave Complete!");
-    }, saveInterval * 1000);
+    }, config.saveInterval * 1000);
 
     //Set interval for checking voice channels to award active VCS
     setInterval(() => {
@@ -224,7 +223,7 @@ client.on('ready', () => {
             guild.channels.cache.map(channel => channel).forEach(channel => {
                 //if the channel is not voicebased or is voicebased and has less than activeVCMemberThreshold members then return
                 if (!channel.isVoiceBased()) return;
-                if (channel.members.size < activeVCMemberThreshold) return;
+                if (channel.members.size < config.activeVCMemberThreshold) return;
 
                 let awardMembers = [];
                 let numUnmutedMembers = 0;
@@ -236,18 +235,18 @@ client.on('ready', () => {
                     }
                 });
 
-                if (numUnmutedMembers >= activeVCMemberThreshold) {
+                if (numUnmutedMembers >= config.activeVCMemberThreshold) {
                     awardMembers.forEach(recipient => {
                         let recipientData = workingData[guild.id].users.find(obj => {
                             return obj.id == recipient;
                         });
 
-                        recipientData.balance += activeVCReward;
+                        recipientData.balance += config.activeVCReward;
                     });
                 }
             });
         });
-    }, checkActiveVCInterval * 1000);
+    }, config.checkActiveVCInterval * 1000);
 
     let curDate = new Date(Date.now());
     console.log(`(${client.user.tag}) is ready! ${curDate.toLocaleString()}`);
@@ -270,7 +269,7 @@ client.on('messageCreate', (message) => {
     if (message.author.bot) return;
 
     //if command sender is not a bot admin then do not process command
-    if (!botAdmins.includes(message.author.id)) return;
+    if (!config.botAdmins.includes(message.author.id)) return;
 
     let curDate = new Date(Date.now());
     switch(message.content.substring(1)) {
@@ -402,9 +401,34 @@ client.on('messageUpdate', (oldMessage, newMessage) => {
     };
 })
 
+client.on('voiceStateUpdate', (oldState, newState) => {
+    //only if user was not in any vc and now joined a vc
+    if (!oldState.channelId && newState.channelId) {
+        //get member data
+        let memberData = workingData[newState.guild.id].users.find(obj => {
+            return obj.id == newState.member.id;
+        });
+
+        //mute if this member has mute status effect
+        let mutedStatusEffect = memberData.statusEffects.find(obj => {
+            return obj.name == "muted";
+        })
+
+        if (mutedStatusEffect && mutedStatusEffect.expires > Math.floor(Date.now()/1000)) {
+            newState.member.voice.setMute(true);
+        }
+
+        //unmute if this member is queued for an unmute
+        if (memberData.queuedForUnmute) {
+            newState.member.voice.setMute(false);
+            memberData.queuedForUnmute = false;
+        }
+    }
+});
+
 client.on('messageReactionAdd', (messageReaction, user) => {
     //base system for awarding edbucks to users whose msgs get edbuck reactions
-    if (messageReaction.emoji.name != 'edbuck') return;
+    if (messageReaction.emoji.name != config.currencyEmojiName) return;
     if (!messageReaction.message.guildId) return;
 
     //If the reactor and the reacted to are the same person then dont award anything.
@@ -417,17 +441,17 @@ client.on('messageReactionAdd', (messageReaction, user) => {
 
     let currTime = Math.floor(Date.now() / 1000);
 
-    if (currTime - storedUserData.lastAwarded >= reactCooldown) {
+    if (currTime - storedUserData.lastAwarded >= config.reactCooldown) {
 
         //do a time check for the reacted to message
-        if (currTime - Math.floor(messageReaction.message.createdTimestamp/1000) <= msgExpiration) {
+        if (currTime - Math.floor(messageReaction.message.createdTimestamp/1000) <= config.msgExpiration) {
             //find recipient user's data object in working data var
             let recipient = workingData[messageReaction.message.guildId].users.find(obj => {
                 return obj.id == messageReaction.message.author.id;
             });
 
             //award recipient edbucks
-            recipient.balance += reactAward;
+            recipient.balance += config.reactAward;
 
             //update lastAwarded parameter of the reactor to the current time 
             storedUserData.lastAwarded = currTime;
@@ -469,7 +493,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
                 } else {
                     //if leaderboard is populated, iterate through leaderboard to check if current message has
                     //higher or equal score to any of the entries and replace if so
-                    let replaceIndex = msgLeaderboardLimit;
+                    let replaceIndex = config.msgLeaderboardLimit;
 
                     for (i in currLeaderboard) {
                         if (messageScore >= currLeaderboard[i].score) {
@@ -478,7 +502,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
                         }
                     }
 
-                    if (replaceIndex < msgLeaderboardLimit) {
+                    if (replaceIndex < config.msgLeaderboardLimit) {
                         let leaderboardEntry = {
                             id: messageReaction.message.id,
                             score: messageScore,
@@ -490,7 +514,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
                     }
 
                     //pop any excess entries above the leaderboard limit
-                    while (currLeaderboard.length > msgLeaderboardLimit) currLeaderboard.pop();
+                    while (currLeaderboard.length > config.msgLeaderboardLimit) currLeaderboard.pop();
 
                     //update leaderboard floor
                     workingData[messageReaction.message.guildId].msgLeaderboardFloor = currLeaderboard[currLeaderboard.length - 1].score;
@@ -517,7 +541,7 @@ client.on('interactionCreate', async (interaction) => {
 
     switch (eventTokens.shift()) {
         //Main menu events
-        case intMainMenuPrefix.slice(0, -1):
+        case intEventTokens.mainMenuPrefix.slice(0, -1):
             switch(eventTokens.shift()) {
                 case "showstats":
                 //show user stats
@@ -574,7 +598,7 @@ client.on('interactionCreate', async (interaction) => {
             }
             break;
 
-        case intUserLeaderboardNavPrefix.slice(0, -1):
+        case intEventTokens.userLeaderboardNavPrefix.slice(0, -1):
             switch (eventTokens.shift()) {
                 case "PREV":
                     interaction.update(openUserLeaderboard(interaction, parseInt(eventTokens.shift()) - 1));
@@ -587,11 +611,11 @@ client.on('interactionCreate', async (interaction) => {
             break;
 
         //Inventory slot select events
-        case intPlayerUsablesInvSelectSlotPrefix.slice(0, -1):
+        case intEventTokens.playerUsablesInvSelectSlotPrefix.slice(0, -1):
             usablesInventory_selectSlot(interaction, eventTokens);
             break;
 
-        case intPlayerUsablesInvInfoPrefix.slice(0, -1):
+        case intEventTokens.playerUsablesInvInfoPrefix.slice(0, -1):
             switch(eventTokens.shift()) {
                 case "BACK":
                     interaction.update(openUsablesInv(interaction, 0));
@@ -604,7 +628,7 @@ client.on('interactionCreate', async (interaction) => {
             break;
 
         //Shop category menu events
-        case intShopCategoryPrefix.slice(0, -1):
+        case intEventTokens.shopCategoryPrefix.slice(0, -1):
             switch (eventTokens.shift()) {
                 case "usables":
                     //open page 1 of the usables shop
@@ -622,13 +646,13 @@ client.on('interactionCreate', async (interaction) => {
             break;
         
         //Usables shop shelf select events
-        case intUsablesShopSelectShelfPrefix.slice(0, -1):
+        case intEventTokens.usablesShopSelectShelfPrefix.slice(0, -1):
             //Open window displaying selected item's purchase page
             usablesShop_selectShelf(interaction, eventTokens);
             break;
 
         //Usables shop nav buttons events
-        case intUsablesShopNavPagesPrefix.slice(0, -1):
+        case intEventTokens.usablesShopNavPagesPrefix.slice(0, -1):
             //Navigate pages of usables shop
 
             switch(eventTokens.shift()) {
@@ -643,7 +667,7 @@ client.on('interactionCreate', async (interaction) => {
             break;
 
         //Usables shop purchase menu events
-        case intUsablesShopPurchaseMenuPrefix.slice(0, -1):
+        case intEventTokens.usablesShopPurchaseMenuPrefix.slice(0, -1):
             if (eventTokens.shift() == "BACK") {
                 //Open page 1 of the usables shop if the BACK button is pressed in an item's purchase window
                 interaction.update(openUsablesShop(1));
@@ -653,10 +677,10 @@ client.on('interactionCreate', async (interaction) => {
             break;
 
         //Equipment shop select shelf events 
-        case intEquipShopSelectShelfPrefix.slice(0, -1):
+        case intEventTokens.equipShopSelectShelfPrefix.slice(0, -1):
             break;
 
-        case intChangelogNavPrefix.slice(0, -1):
+        case intEventTokens.changelogNavPrefix.slice(0, -1):
             switch(eventTokens.shift()){
                 case "PREV":
                     interaction.update(openChangelog(parseInt(eventTokens.shift()) - 1));
@@ -691,6 +715,7 @@ function getNewUserJSON(userTag, userId) {
         lastAwarded: 0,
         balance: 10,
         birthday: "",
+        queuedForUnmute: false,
         lastChangedMsg: {},
         itemInventory: [],
         equipmentInventory: [],
@@ -752,17 +777,33 @@ function checkStatsAndEffects(interaction, targetId) {
     return passedStatsAndEffects;
 }
 
-function preventSelfUse(interaction) {
+function notifCantSelfUse(interaction) {
     let row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
                 .setLabel("Back")
                 .setStyle(ButtonStyle.Danger)
-                .setCustomId(intPlayerUsablesInvInfoPrefix + "BACK")
+                .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
         );
     
     interaction.update({
         content: "You can't use this item on yourself!",
+        components: [row],
+        ephemeral: true
+    });
+}
+
+function notifTargetNotInVC(interaction) {
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setLabel("Back")
+                .setStyle(ButtonStyle.Danger)
+                .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
+        );
+    
+    interaction.update({
+        content: "Target is not in a voice call!",
         components: [row],
         ephemeral: true
     });
@@ -774,7 +815,7 @@ function notifDontHaveItem(interaction) {
             new ButtonBuilder()
                 .setLabel("Back")
                 .setStyle(ButtonStyle.Danger)
-                .setCustomId(intPlayerUsablesInvInfoPrefix + "BACK")
+                .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
         );
     
     interaction.update({
@@ -782,6 +823,30 @@ function notifDontHaveItem(interaction) {
         components: [row],
         ephemeral: true
     });
+}
+
+function getStatusEffectObject(name, expiration, additionalProps) {
+    let returnedEffectObj = {
+        name: name,
+        expiration: expiration
+    };
+
+    switch (name) {
+        case "reflect":
+            returnedEffectObj.displayName = "Reflect";
+            break;
+
+        case "muted":
+            returnedEffectObj.displayName = "Muted";
+            break;
+
+        case "polymorph":
+            returnedEffectObj.displayName = "Polymorphed";
+            break;
+    }
+
+    Object.assign(returnedEffectObj, additionalProps);
+    return returnedEffectObj;
 }
 
 //===================================================
@@ -796,23 +861,23 @@ function notifDontHaveItem(interaction) {
 function openMenu(tButtonDisabled) {
     let row1 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'showstats-')
+            .setCustomId(intEventTokens.mainMenuPrefix + 'showstats-')
             .setLabel('Show Stats')
             .setStyle(ButtonStyle.Primary)
             .setEmoji('📜'),
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'openinv-')
+            .setCustomId(intEventTokens.mainMenuPrefix + 'openinv-')
             .setLabel('Open Inventory')
             .setStyle(ButtonStyle.Primary)
             .setEmoji('📦'),
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'trade-')
+            .setCustomId(intEventTokens.mainMenuPrefix + 'trade-')
             .setLabel('Trade')
             .setStyle(ButtonStyle.Primary)
             .setEmoji('🤝')
             .setDisabled(true),
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'findtreasure-')
+            .setCustomId(intEventTokens.mainMenuPrefix + 'findtreasure-')
             .setLabel('Pick Up Edbucks')
             .setStyle(ButtonStyle.Primary)
             .setEmoji('💸')
@@ -821,19 +886,19 @@ function openMenu(tButtonDisabled) {
 
     let row2 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'minigames-')
+            .setCustomId(intEventTokens.mainMenuPrefix + 'minigames-')
             .setLabel('Minigames')
             .setStyle(ButtonStyle.Success)
             .setEmoji('🎮')
             .setDisabled(true),
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'challenge-')
+            .setCustomId(intEventTokens.mainMenuPrefix + 'challenge-')
             .setLabel('Challenge')
             .setStyle(ButtonStyle.Success)
             .setEmoji('🙌')
             .setDisabled(true),
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'wager-')
+            .setCustomId(intEventTokens.mainMenuPrefix + 'wager-')
             .setLabel('Wager Edbucks')
             .setStyle(ButtonStyle.Success)
             .setEmoji('🎲')
@@ -842,7 +907,7 @@ function openMenu(tButtonDisabled) {
 
     let row3 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'shop-')
+            .setCustomId(intEventTokens.mainMenuPrefix + 'shop-')
             .setLabel('Shop')
             .setStyle(ButtonStyle.Danger)
             .setEmoji('🛒')
@@ -850,28 +915,28 @@ function openMenu(tButtonDisabled) {
 
     let row4 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'userleaderboard-')
+            .setCustomId(intEventTokens.mainMenuPrefix + 'userleaderboard-')
             .setLabel('User Leaderboard')
             .setStyle(ButtonStyle.Secondary)
             .setEmoji('🏆'),
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'msgleaderboard-')
+            .setCustomId(intEventTokens.mainMenuPrefix + 'msgleaderboard-')
             .setLabel('Message Leaderboard')
             .setStyle(ButtonStyle.Secondary)
             .setEmoji('🥇'),
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'settings-')
+            .setCustomId(intEventTokens.mainMenuPrefix + 'settings-')
             .setLabel('Settings')
             .setStyle(ButtonStyle.Secondary)
             .setEmoji('⚙️')
             .setDisabled(true),
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'changelog-')
+            .setCustomId(intEventTokens.mainMenuPrefix + 'changelog-')
             .setLabel('Changelog')
             .setStyle(ButtonStyle.Secondary)
             .setEmoji('📰'),
         new ButtonBuilder()
-            .setCustomId(intMainMenuPrefix + 'help-')
+            .setCustomId(intEventTokens.mainMenuPrefix + 'help-')
             .setLabel('Help')
             .setStyle(ButtonStyle.Secondary)
             .setEmoji('❓')
@@ -890,17 +955,17 @@ function openUsablesShop(pagenum) {
     let pageNavRow = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intUsablesShopNavPagesPrefix + "prev-" + pagenum)
+                .setCustomId(intEventTokens.usablesShopNavPagesPrefix + "prev-" + pagenum)
                 .setLabel("Prev")
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(!(pagenum > 1)),
             new ButtonBuilder()
-                .setCustomId(intUsablesShopNavPagesPrefix + "pagenum")
+                .setCustomId(intEventTokens.usablesShopNavPagesPrefix + "pagenum")
                 .setLabel("Page " + pagenum)
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(true),
             new ButtonBuilder()
-                .setCustomId(intUsablesShopNavPagesPrefix + "next-" + pagenum)
+                .setCustomId(intEventTokens.usablesShopNavPagesPrefix + "next-" + pagenum)
                 .setLabel("Next")
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(!(shopPages_usables.length > pagenum))
@@ -926,19 +991,19 @@ function openUsablesInv(interaction, pageNum) {
     let page = [];
     for (let rowIndex = 0; rowIndex < 4; rowIndex ++) {
         let row = new ActionRowBuilder();
-        for (let shelfIndex = 0; shelfIndex < usablesInventoryItemsPerRow; shelfIndex++) {
-            if (accessingUser.itemInventory[(pageNum * (4 * usablesInventoryItemsPerRow)) + (rowIndex * usablesInventoryItemsPerRow) + shelfIndex] != undefined) {
+        for (let shelfIndex = 0; shelfIndex < config.usablesInventoryItemsPerRow; shelfIndex++) {
+            if (accessingUser.itemInventory[(pageNum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex] != undefined) {
                 row.addComponents(
                     new ButtonBuilder()
-                        .setCustomId(intPlayerUsablesInvSelectSlotPrefix + accessingUser.itemInventory[(pageNum * (4 * usablesInventoryItemsPerRow)) + (rowIndex * usablesInventoryItemsPerRow) + shelfIndex].name)
-                        .setLabel(accessingUser.itemInventory[(pageNum * (4 * usablesInventoryItemsPerRow)) + (rowIndex * usablesInventoryItemsPerRow) + shelfIndex].displayName)
+                        .setCustomId(intEventTokens.playerUsablesInvSelectSlotPrefix + accessingUser.itemInventory[(pageNum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex].name)
+                        .setLabel(accessingUser.itemInventory[(pageNum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex].displayName)
                         .setStyle(ButtonStyle.Success)
                 )
             } else {
                 row.addComponents(
                     new ButtonBuilder()
                         .setLabel("Empty Space")
-                        .setCustomId(intPlayerUsablesInvSelectSlotPrefix + "EMPTYSPACE-" + ((pageNum * (4 * usablesInventoryItemsPerRow)) + (rowIndex * usablesInventoryItemsPerRow) + shelfIndex))
+                        .setCustomId(intEventTokens.playerUsablesInvSelectSlotPrefix + "EMPTYSPACE-" + ((pageNum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex))
                         .setStyle(ButtonStyle.Secondary)
                         .setDisabled(true)
                 )
@@ -950,20 +1015,20 @@ function openUsablesInv(interaction, pageNum) {
     let navRow = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intPlayerUsablesInvNavPrefix + "prev")
+                .setCustomId(intEventTokens.playerUsablesInvNavPrefix + "prev")
                 .setLabel("Prev")
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(pageNum <= 0),
             new ButtonBuilder()
-                .setCustomId(intPlayerUsablesInvNavPrefix + "equips")
+                .setCustomId(intEventTokens.playerUsablesInvNavPrefix + "equips")
                 .setStyle(ButtonStyle.Danger)
                 .setLabel("Equips")
                 .setDisabled(true),
             new ButtonBuilder()
                 .setLabel("Next")
-                .setCustomId(intPlayerUsablesInvNavPrefix + "next")
+                .setCustomId(intEventTokens.playerUsablesInvNavPrefix + "next")
                 .setStyle(ButtonStyle.Primary)
-                .setDisabled(!(accessingUser.itemInventory.length > ((pageNum + 1) * (4 * usablesInventoryItemsPerRow))))
+                .setDisabled(!(accessingUser.itemInventory.length > ((pageNum + 1) * (4 * config.usablesInventoryItemsPerRow))))
         )
 
     page.push(navRow);
@@ -979,17 +1044,17 @@ function openChangelog(pageNum) {
     let row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intChangelogNavPrefix + "PREV-" + pageNum)
+                .setCustomId(intEventTokens.changelogNavPrefix + "PREV-" + pageNum)
                 .setDisabled(pageNum > 0 ? false : true)
                 .setStyle(ButtonStyle.Primary)
                 .setLabel("Prev"),
             new ButtonBuilder()
-                .setCustomId(intChangelogNavPrefix + "PAGENUM")
+                .setCustomId(intEventTokens.changelogNavPrefix + "PAGENUM")
                 .setDisabled(true)
                 .setStyle(ButtonStyle.Primary)
                 .setLabel("Page " + (pageNum + 1)),
             new ButtonBuilder()
-                .setCustomId(intChangelogNavPrefix + "NEXT-" + pageNum)
+                .setCustomId(intEventTokens.changelogNavPrefix + "NEXT-" + pageNum)
                 .setDisabled(pageNum < (changelog.length - 1) ? false : true)
                 .setStyle(ButtonStyle.Primary)
                 .setLabel("Next")
@@ -1014,27 +1079,27 @@ function openUserLeaderboard(interaction, pageNum) {
     let leaderboard = "";
     let userEntriesNum = sortedLeaderboard.length;
 
-    sortedLeaderboard = sortedLeaderboard.slice(pageNum * userLeaderboardEntriesPerPage, (pageNum + 1) * userLeaderboardEntriesPerPage);
+    sortedLeaderboard = sortedLeaderboard.slice(pageNum * config.userLeaderboardEntriesPerPage, (pageNum + 1) * config.userLeaderboardEntriesPerPage);
 
     sortedLeaderboard.forEach((user, index) => {
-        leaderboard += "(" + (index + 1 + (pageNum * userLeaderboardEntriesPerPage)) + ") " + user.tag + ": " + user.balance + " EB \n"
+        leaderboard += "(" + (index + 1 + (pageNum * config.userLeaderboardEntriesPerPage)) + ") " + user.tag + ": " + user.balance + " EB \n"
     })
 
     let row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intUserLeaderboardNavPrefix + "PREV-" + pageNum)
+                .setCustomId(intEventTokens.userLeaderboardNavPrefix + "PREV-" + pageNum)
                 .setDisabled(pageNum > 0 ? false : true)
                 .setStyle(ButtonStyle.Primary)
                 .setLabel("Prev"),
             new ButtonBuilder()
-                .setCustomId(intUserLeaderboardNavPrefix + "PAGENUM")
+                .setCustomId(intEventTokens.userLeaderboardNavPrefix + "PAGENUM")
                 .setDisabled(true)
                 .setStyle(ButtonStyle.Primary)
                 .setLabel("Page " + (pageNum + 1)),
             new ButtonBuilder()
-                .setCustomId(intUserLeaderboardNavPrefix + "NEXT-" + pageNum)
-                .setDisabled(pageNum < (Math.ceil(userEntriesNum / userLeaderboardEntriesPerPage) - 1) ? false : true)
+                .setCustomId(intEventTokens.userLeaderboardNavPrefix + "NEXT-" + pageNum)
+                .setDisabled(pageNum < (Math.ceil(userEntriesNum / config.userLeaderboardEntriesPerPage) - 1) ? false : true)
                 .setStyle(ButtonStyle.Primary)
                 .setLabel("Next")
         );
@@ -1074,6 +1139,7 @@ function mainMenu_showStats(interaction) {
         if (statusEffects[i].expires >= currentTime) {
             afflictedBy += "-(" + statusEffects[i].displayName + ") expires: " + time(statusEffects[i].expires, "R") + "\n";
         } else {
+            if (statusEffects[i].name == "muted") requester.queuedForUnmute = true;
             statusEffects.splice(i, 1);
             i--;
         }
@@ -1114,7 +1180,7 @@ function mainMenu_findTreasure(interaction) {
         return obj.id == interaction.user.id;
     });
 
-    let treasure = Math.round(Math.random() * (treasureUR - treasureLR)) + treasureLR;
+    let treasure = Math.round(Math.random() * (config.treasureUR - config.treasureLR)) + config.treasureLR;
     user.balance += treasure;
 
     interaction.reply({
@@ -1134,7 +1200,7 @@ Check back again later to see if they've come back!
         console.log(`(${curDate.toLocaleString()}) Edbucks Button Looted By: ${interaction.user.tag}`);
         //set async function to wait until cooldown is over then re-enable button
         (async (menu) => {
-            let timeoutDuration = Math.floor(Math.random() * (treasureCDUR - treasureCDLR)) + treasureCDLR;
+            let timeoutDuration = Math.floor(Math.random() * (config.treasureCDUR - config.treasureCDLR)) + config.treasureCDLR;
             await setTimeout(() => menu.edit(openMenu()), timeoutDuration * 1000);
         })(result);
     });
@@ -1144,16 +1210,16 @@ function mainMenu_shop(interaction) {
     let row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intShopCategoryPrefix + "usables")
+                .setCustomId(intEventTokens.shopCategoryPrefix + "usables")
                 .setLabel("Usables")
                 .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
-                .setCustomId(intShopCategoryPrefix + "equipment")
+                .setCustomId(intEventTokens.shopCategoryPrefix + "equipment")
                 .setLabel("Equipment")
                 .setStyle(ButtonStyle.Danger)
                 .setDisabled(true),
             new ButtonBuilder()
-                .setCustomId(intShopCategoryPrefix + "others")
+                .setCustomId(intEventTokens.shopCategoryPrefix + "others")
                 .setLabel("Others")
                 .setStyle(ButtonStyle.Danger)
                 .setDisabled(true)
@@ -1252,15 +1318,15 @@ function usablesShop_selectShelf(interaction, eventTokens) {
     let row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intUsablesShopPurchaseMenuPrefix + "BACK-")
+                .setCustomId(intEventTokens.usablesShopPurchaseMenuPrefix + "BACK-")
                 .setLabel("Back")
                 .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
-                .setCustomId(intUsablesShopPurchaseMenuPrefix + "BUY-" + itemInfo.name + "-1")
+                .setCustomId(intEventTokens.usablesShopPurchaseMenuPrefix + "BUY-" + itemInfo.name + "-1")
                 .setLabel("Purchase")
                 .setStyle(ButtonStyle.Success),
             new ButtonBuilder()
-                .setCustomId(intUsablesShopPurchaseMenuPrefix + "BUY-" + itemInfo.name + "-5")
+                .setCustomId(intEventTokens.usablesShopPurchaseMenuPrefix + "BUY-" + itemInfo.name + "-5")
                 .setLabel("Purchase x5")
                 .setStyle(ButtonStyle.Success),
         );
@@ -1314,7 +1380,7 @@ function usablesShop_purchase(interaction, eventTokens) {
     let row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intUsablesShopPurchaseMenuPrefix + "BACK-")
+                .setCustomId(intEventTokens.usablesShopPurchaseMenuPrefix + "BACK-")
                 .setStyle(ButtonStyle.Danger)
                 .setLabel("Back")
         )
@@ -1341,11 +1407,11 @@ function usablesInventory_selectSlot(interaction, eventTokens) {
     let row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intPlayerUsablesInvInfoPrefix + "BACK-")
+                .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK-")
                 .setLabel("Back")
                 .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
-                .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + itemInfo.name)
+                .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "USE-" + itemInfo.name)
                 .setLabel("Use")
                 .setStyle(ButtonStyle.Success)
         );
@@ -1374,7 +1440,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 let row = new ActionRowBuilder()
                     .addComponents(
                         new UserSelectMenuBuilder()
-                            .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + "item_kick-" + "targetted")
+                            .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "USE-" + "item_kick-" + "targetted")
                             .setMinValues(1)
                             .setMaxValues(1)
                             .setPlaceholder("Choose a target.")
@@ -1386,43 +1452,50 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     ephemeral: true
                 });
             } else {
-                //get caster data
-                let caster = workingData[interaction.guildId].users.find(obj => {
+                //get caster data and member object
+                let casterData = workingData[interaction.guildId].users.find(obj => {
                     return obj.id == interaction.user.id;
                 });
+                let casterMemberObj = interaction.member;
 
                 //check if caster still has item
-                let itemEntryIndex = caster.itemInventory.findIndex(obj => {
+                let usedItemInvEntryIndex = casterData.itemInventory.findIndex(obj => {
                     return obj.name == "item_kick";
                 });
 
-                if (itemEntryIndex < 0) {
+                if (usedItemInvEntryIndex < 0) {
                     notifDontHaveItem(interaction);
                     return;
                 }
 
                 //get target data
-                let target = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
+                let targetMemberObj = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
 
                 //prevent self use
-                if (target.user.id == interaction.user.id) {
-                    preventSelfUse(interaction);
+                if (targetMemberObj.user.id == casterData.id) {
+                    notifCantSelfUse(interaction);
+                    return;
+                }
+
+                //prevent use on someone not in VC
+                if (!targetMemberObj.voice.channelId) {
+                    notifTargetNotInVC(interaction);
                     return;
                 }
 
                 //do stats and effects check
-                let passedModifiers = checkStatsAndEffects(interaction, target.user.id);
+                let passedModifiers = checkStatsAndEffects(interaction, targetMemberObj.user.id);
 
                 //consume item
-                if (caster.itemInventory[itemEntryIndex].count == 1) {
-                    caster.itemInventory.splice(itemEntryIndex, 1);
+                if (casterData.itemInventory[usedItemInvEntryIndex].count == 1) {
+                    casterData.itemInventory.splice(usedItemInvEntryIndex, 1);
                 } else {
-                    caster.itemInventory[itemEntryIndex].count -= 1;
+                    casterData.itemInventory[usedItemInvEntryIndex].count -= 1;
                 }
 
                 //instantiate server/caster notification message
-                let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
-                let targetString = `${target.nickname ? `${target.nickname}(${target.user.tag})` : target.user.tag}`;
+                let casterString = `${casterMemberObj.nickname ? `${casterMemberObj.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
+                let targetString = `${targetMemberObj.nickname ? `${targetMemberObj.nickname}(${targetMemberObj.user.tag})` : targetMemberObj.user.tag}`;
                 let sNotifMsg = `${casterString} has used a Comically Large Boot on ${targetString}.`;
                 let cNotifMsg = "You've used a Comically Large Boot on " + userMention(interaction.values[0]) + ".";
 
@@ -1430,7 +1503,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 passedModifiers.forEach(effect => {
                     switch (effect) {
                         case "reflect":
-                            target = interaction.member;
+                            target = casterMemberObj;
                             sNotifMsg = `${casterString} has used a Comically Large Boot on ${targetString} but it was reflected.`;
                             cNotifMsg = "You've used a Comically Large Boot on " + userMention(interaction.values[0]) + " but it was reflected."
                             break;
@@ -1438,7 +1511,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 });
 
                 //ennact item effect
-                target.voice.disconnect();
+                targetMemberObj.voice.disconnect();
 
                 //Send notification message to bot notifs channel
                 interaction.member.guild.channels.cache.get(workingData[interaction.guildId].botNotifsChannelId).send({
@@ -1451,7 +1524,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                         new ButtonBuilder()
                             .setLabel("Back")
                             .setStyle(ButtonStyle.Danger)
-                            .setCustomId(intPlayerUsablesInvInfoPrefix + "BACK")
+                            .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
                     );
                 
                 interaction.update({
@@ -1468,7 +1541,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 let row = new ActionRowBuilder()
                     .addComponents(
                         new UserSelectMenuBuilder()
-                            .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + "item_mute-" + "targetted")
+                            .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "USE-" + "item_mute-" + "targetted")
                             .setMinValues(1)
                             .setMaxValues(1)
                             .setPlaceholder("Choose a target.")
@@ -1480,21 +1553,32 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     ephemeral: true
                 });
             } else {
-                //get target data
-                let target = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
+                //get caster data and member obj
+                let casterMemberObj = interaction.member;
+                let casterData = workingData[interaction.guildId].users.find(obj => {
+                    return obj.id == interaction.user.id;
+                });
+
+                //get target data and member obj
+                let targetMemberObj = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
+                let targetData = workingData[interaction.guildId].users.find(obj => {
+                    return obj.id == targetMemberObj.id;
+                });
 
                 //prevent self use
-                if (target.user.id == interaction.user.id) {
-                    preventSelfUse(interaction);
+                if (targetMemberObj.user.id == interaction.user.id) {
+                    notifCantSelfUse(interaction);
+                    return;
+                }
+
+                //prevent use on someone not in VC
+                if (!targetMemberObj.voice.channelId) {
+                    notifTargetNotInVC(interaction);
                     return;
                 }
 
                 //check if caster still has item
-                let caster = workingData[interaction.guildId].users.find(obj => {
-                    return obj.id == interaction.user.id;
-                });
-
-                let itemEntryIndex = caster.itemInventory.findIndex(obj => {
+                let itemEntryIndex = casterData.itemInventory.findIndex(obj => {
                     return obj.name == "item_mute";
                 });
 
@@ -1504,18 +1588,12 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 }
 
                 //do stats and effects check
-                let passedModifiers = checkStatsAndEffects(interaction, target.user.id);
-
-                //consume item
-                if (caster.itemInventory[itemEntryIndex].count == 1) {
-                    caster.itemInventory.splice(itemEntryIndex, 1);
-                } else {
-                    caster.itemInventory[itemEntryIndex].count -= 1;
-                }
+                let passedModifiers = checkStatsAndEffects(interaction, targetMemberObj.id);
+                let reflected = false;
 
                 //instantiate server/caster notification message
-                let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
-                let targetString = `${target.nickname ? `${target.nickname}(${target.user.tag})` : target.user.tag}`;
+                let casterString = `${casterMemberObj.nickname ? `${casterMemberObj.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
+                let targetString = `${targetMemberObj.nickname ? `${targetMemberObj.nickname}(${targetMemberObj.user.tag})` : targetMemberObj.user.tag}`;
                 let sNotifMsg = `${casterString} has used Duct Tape on ${targetString}.`;
                 let cNotifMsg = "You've used Duct Tape on " + userMention(interaction.values[0]) + ".";
 
@@ -1523,23 +1601,65 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 passedModifiers.forEach(effect => {
                     switch (effect) {
                         case "reflect":
-                            target = interaction.member;
+                            targetMemberObj = casterMemberObj;
                             sNotifMsg = `${casterString} has used Duct Tape on ${targetString} but it was reflected.`;
                             cNotifMsg = "You've used Duct Tape on " + userMention(interaction.values[0]) + " but it was reflected."
+                            reflected = true;
                             break;
                     }
                 });
                 
-                //enact item effect
-                target.voice.setMute(true);
+                //enact item effect if possible
+                if (targetMemberObj.voice.channelId) {
+                    targetMemberObj.voice.setMute(true);
+                }
+
+                //consume item
+                if (casterData.itemInventory[itemEntryIndex].count == 1) {
+                    casterData.itemInventory.splice(itemEntryIndex, 1);
+                } else {
+                    casterData.itemInventory[itemEntryIndex].count -= 1;
+                }
+                
+                //apply muted status effect
+                let existingStatusEffect;
+                if (reflected) {
+                    casterData.queuedForUnmute = false;
+                    existingStatusEffect = casterData.statusEffects.find(obj => {
+                        return obj.name == "muted";
+                    });
+                } else {
+                    targetData.queuedForUnmute = false;
+                    existingStatusEffect = targetData.statusEffects.find(obj => {
+                        return obj.name == "muted";
+                    });
+                }
+
+                if (existingStatusEffect) {
+                    existingStatusEffect.expires = Math.floor(Date.now()/1000) + config.itemMuteDuration;
+                } else if (reflected) {
+                    casterData.statusEffects.push(getStatusEffectObject("muted", Math.floor(Date.now()/1000) + config.itemMuteDuration));
+                } else {
+                    targetData.statusEffects.push(getStatusEffectObject("muted", Math.floor(Date.now()/1000) + config.itemMuteDuration));
+                }
 
                 (async (mutedTarget) => {
-                    let timeoutDuration = itemMuteDuration;
-                    await setTimeout(() => mutedTarget.voice.setMute(false), timeoutDuration * 1000);
-                })(target)
+                    let timeoutDuration = config.itemMuteDuration;
+                    await setTimeout(() => {
+                        if (mutedTarget.voice.channelId) {
+                            mutedTarget.voice.setMute(false)
+                        } else {
+                            if (reflected) {
+                                casterData.queuedForUnmute = true;
+                            } else {
+                                targetData.queuedForUnmute = true;
+                            }
+                        }
+                    }, timeoutDuration * 1000);
+                })(targetMemberObj)
 
                 //send msg to notifs channel
-                interaction.member.guild.channels.cache.get(workingData[interaction.guildId].botNotifsChannelId).send({
+                interaction.guild.channels.cache.get(workingData[interaction.guildId].botNotifsChannelId).send({
                     content: sNotifMsg
                 });
 
@@ -1549,7 +1669,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                         new ButtonBuilder()
                             .setLabel("Back")
                             .setStyle(ButtonStyle.Danger)
-                            .setCustomId(intPlayerUsablesInvInfoPrefix + "BACK")
+                            .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
                     );
                 
                 interaction.update({
@@ -1566,7 +1686,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 let row = new ActionRowBuilder()
                     .addComponents(
                         new UserSelectMenuBuilder()
-                            .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + "item_steal-" + "targetted")
+                            .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "USE-" + "item_steal-" + "targetted")
                             .setMinValues(1)
                             .setMaxValues(1)
                             .setPlaceholder("Choose a target.")
@@ -1583,7 +1703,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
 
                 //prevent self use
                 if (targetMemberObject.user.id == interaction.user.id) {
-                    preventSelfUse(interaction);
+                    notifCantSelfUse(interaction);
                     return;
                 }
 
@@ -1720,7 +1840,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                         new ButtonBuilder()
                             .setLabel("Back")
                             .setStyle(ButtonStyle.Danger)
-                            .setCustomId(intPlayerUsablesInvInfoPrefix + "BACK")
+                            .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
                     );
                 
                 interaction.update({
@@ -1751,7 +1871,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 let row = new ActionRowBuilder()
                     .addComponents(
                         new UserSelectMenuBuilder()
-                            .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + "item_polymorph-" + "targetted")
+                            .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "USE-" + "item_polymorph-" + "targetted")
                             .setMinValues(1)
                             .setMaxValues(1)
                             .setPlaceholder("Choose a target.")
@@ -1766,7 +1886,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
             } else if (nextToken == "targetted") {
                 //input polymorph name
                 let modal = new ModalBuilder()
-                    .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + "item_polymorph-" + interaction.values[0])
+                    .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "USE-" + "item_polymorph-" + interaction.values[0])
                     .setTitle("Semi-permanent Nametag")
                     .addComponents(
                     new ActionRowBuilder().addComponents(
@@ -1785,7 +1905,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
 
                 //prevent self use
                 if (target.user.id == interaction.user.id) {
-                    preventSelfUse(interaction);
+                    notifCantSelfUse(interaction);
                     return;
                 }
 
@@ -1840,15 +1960,10 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 });
 
                 if (existingStatusEffect) {
-                    existingStatusEffect.expires = Math.floor(Date.now()/1000) + itemPolymorphDuration;
+                    existingStatusEffect.expires = Math.floor(Date.now()/1000) + config.itemPolymorphDuration;
                     existingStatusEffect.polyName = newNickname;
                 } else {
-                    targetData.statusEffects.push({
-                        name: "polymorph",
-                        displayName: "Polymorphed",
-                        expires: Math.floor(Date.now()/1000) + itemPolymorphDuration,
-                        polyName: newNickname
-                    });
+                    targetData.statusEffects.push(getStatusEffectObject("polymorph", Math.floor(Date.now()/1000) + config.itemPolymorphDuration, {polyName: newNickname}));
                 }
 
                 //enact item effects
@@ -1865,7 +1980,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                         new ButtonBuilder()
                             .setLabel("Back")
                             .setStyle(ButtonStyle.Danger)
-                            .setCustomId(intPlayerUsablesInvInfoPrefix + "BACK")
+                            .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
                     );
                 
                 interaction.update({
@@ -1897,13 +2012,9 @@ function usableItemsFunctionalities(interaction, eventTokens) {
             });
 
             if (existingStatusEffect) {
-                existingStatusEffect.expires = Math.floor(Date.now()/1000) + itemReflectDuration;
+                existingStatusEffect.expires = Math.floor(Date.now()/1000) + config.itemReflectDuration;
             } else {
-                casterData.statusEffects.push({
-                    name: "reflect",
-                    displayName: "Reflect",
-                    expires: Math.floor(Date.now()/1000) + itemReflectDuration
-                });
+                casterData.statusEffects.push(getStatusEffectObject("reflect", Math.floor(Date.now()/1000) + config.itemReflectDuration));
             }
 
             //consume item
@@ -1919,7 +2030,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                     new ButtonBuilder()
                         .setLabel("Back")
                         .setStyle(ButtonStyle.Danger)
-                        .setCustomId(intPlayerUsablesInvInfoPrefix + "BACK")
+                        .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
                 );
             
             interaction.update({
@@ -1936,7 +2047,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 let row = new ActionRowBuilder()
                     .addComponents(
                         new UserSelectMenuBuilder()
-                            .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + "item_expose-" + "targetted")
+                            .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "USE-" + "item_expose-" + "targetted")
                             .setMinValues(1)
                             .setMaxValues(1)
                             .setPlaceholder("Choose a target.")
@@ -2041,7 +2152,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                         new ButtonBuilder()
                             .setLabel("Back")
                             .setStyle(ButtonStyle.Danger)
-                            .setCustomId(intPlayerUsablesInvInfoPrefix + "BACK")
+                            .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
                     );
                 
                 interaction.update({
@@ -2058,7 +2169,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 let row = new ActionRowBuilder()
                     .addComponents(
                         new MentionableSelectMenuBuilder()
-                            .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + "item_edwindinner-" + "targetted")
+                            .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "USE-" + "item_edwindinner-" + "targetted")
                             .setMinValues(1)
                             .setMaxValues(1)
                             .setPlaceholder("Choose a target.")
@@ -2075,7 +2186,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
 
                 //prevent self use
                 if (target.user.id == interaction.user.id) {
-                    preventSelfUse(interaction);
+                    notifCantSelfUse(interaction);
                     return;
                 }
 
@@ -2121,7 +2232,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 });
                 
                 //enact item effect
-                target.timeout(itemTimeoutDuration * 1000);
+                target.timeout(config.itemTimeoutDuration * 1000);
 
                 //send msg to notifs channel
                 interaction.member.guild.channels.cache.get(workingData[interaction.guildId].botNotifsChannelId).send({
@@ -2134,7 +2245,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                         new ButtonBuilder()
                             .setLabel("Back")
                             .setStyle(ButtonStyle.Danger)
-                            .setCustomId(intPlayerUsablesInvInfoPrefix + "BACK")
+                            .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
                     );
                 
                 interaction.update({
@@ -2153,7 +2264,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 let row = new ActionRowBuilder()
                     .addComponents(
                         new ChannelSelectMenuBuilder()
-                            .setCustomId(intPlayerUsablesInvInfoPrefix + "USE-" + "item_emp-" + "targetted")
+                            .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "USE-" + "item_emp-" + "targetted")
                             .setMinValues(1)
                             .setMaxValues(1)
                             .setPlaceholder("Choose a target.")
@@ -2200,7 +2311,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                 target.setBitrate(8000);
 
                 (async (targetChannel) => {
-                    let timeoutDuration = itemEMPDuration;
+                    let timeoutDuration = config.itemEMPDuration;
                     await setTimeout(() => {
                         targetChannel.setBitrate(64000);
                     }, timeoutDuration * 1000);
@@ -2217,7 +2328,7 @@ function usableItemsFunctionalities(interaction, eventTokens) {
                         new ButtonBuilder()
                             .setLabel("Back")
                             .setStyle(ButtonStyle.Danger)
-                            .setCustomId(intPlayerUsablesInvInfoPrefix + "BACK")
+                            .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
                     );
                 
                 interaction.update({

@@ -3,28 +3,31 @@
 //===================================================
 //String tokens to be sent on emitted interact events that will be parsed and handled accordingly by event handlers
 
-//Common tokens
-const intMainMenuPrefix = "MAINMENU-";
-const intShopCategoryPrefix = "SELECTSHOPCATEGORY-";
+module.exports = Object.freeze({
+    //Common tokens
+    mainMenuPrefix: "MAINMENU-",
+    shopCategoryPrefix: "SELECTSHOPCATEGORY-",
 
-//Usables shop tokens
-const intUsablesShopSelectShelfPrefix = "USABLESSHOPSELECTSHELF-";
-const intUsablesShopPurchaseMenuPrefix = "USABLESSHOPPURCHASEMENU-";
-const intUsablesShopNavPagesPrefix = "USABLESSHOPNAVPAGES-";
+    //Usables shop tokens
+    usablesShopSelectShelfPrefix: "USABLESSHOPSELECTSHELF-",
+    usablesShopPurchaseMenuPrefix: "USABLESSHOPPURCHASEMENU-",
+    usablesShopNavPagesPrefix: "USABLESSHOPNAVPAGES-",
 
-//Equip shop tokens
-const intEquipShopSelectShelfPrefix = "EQUIPSHOPSELECTSHELF-";
+    //Equip shop tokens
+    equipShopSelectShelfPrefix: "EQUIPSHOPSELECTSHELF-",
 
-//Others shop tokens
-const intOtherShopSelectShelfPrefix = "OTHERSHOPSELECTSHELF-";
+    //Others shop tokens
+    otherShopSelectShelfPrefix: "OTHERSHOPSELECTSHELF-",
 
-//Player usables inventory tokens
-const intPlayerUsablesInvSelectSlotPrefix = "PUSABLESINVSELECTSLOT-";
-const intPlayerUsablesInvInfoPrefix = "PUSABLESINVINFO-"
-const intPlayerUsablesInvNavPrefix = "PUSABLESINVNAV-";
+    //Player usables inventory tokens
+    playerUsablesInvSelectSlotPrefix: "PUSABLESINVSELECTSLOT-",
+    playerUsablesInvInfoPrefix: "PUSABLESINVINFO-",
+    playerUsablesInvNavPrefix: "PUSABLESINVNAV-",
 
-//Changelog navigation tokens
-const intChangelogNavPrefix = "CHANGELOGNAV-"
+    //Changelog navigation tokens
+    changelogNavPrefix: "CHANGELOGNAV-",
 
-//User leaderboard navigation tokens
-const intUserLeaderboardNavPrefix = "USERLEADERBOARDNAV-";
+    //User leaderboard navigation tokens
+    userLeaderboardNavPrefix: "USERLEADERBOARDNAV-"
+});
+
