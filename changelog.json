@@ -2,6 +2,7 @@
     {
         "version": "1.0.3 Backend Update",
         "changes": [
+            "-Increased the failed steal compensation from 1 to 3.",
             "-Added prices to usables store shelf buttons.",
             "-Updated help menu with new values from previous update and a bit of clarification.",
             "-Fixed a lot of backend issues in preparation for major equipment update.",
