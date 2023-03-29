@@ -1,5 +1,5 @@
 const fs = require('fs');
-
+//===================================================
 //===================================================
 //
 //                UTILITY FUNCTIONS
@@ -77,10 +77,10 @@ function checkStatsAndEffects(workingData, interaction, targetId) {
     return passedStatsAndEffects;
 }
 
-function getStatusEffectObject(name, expiration, additionalProps) {
+function getStatusEffectObject(name, expires, additionalProps) {
     let returnedEffectObj = {
         name: name,
-        expiration: expiration
+        expires: expires
     };
 
     switch (name) {
@@ -97,6 +97,8 @@ function getStatusEffectObject(name, expiration, additionalProps) {
             break;
     }
 
-    Object.assign(returnedEffectObj, additionalProps);
+    returnedEffectObj = Object.assign(returnedEffectObj, additionalProps);
     return returnedEffectObj;
 }
+
+module.exports = { getNewUserJSON, saveData, checkStatsAndEffects, getStatusEffectObject };

@@ -1,6 +1,7 @@
 const { ButtonStyle, time, ActionRowBuilder, ButtonBuilder, underscore, EmbedBuilder, TextInputBuilder, TextInputStyle, MentionableSelectMenuBuilder, userMention, ModalBuilder, UserSelectMenuBuilder, ChannelSelectMenuBuilder, ChannelType } = require('discord.js');
 const intEventTokens = require('../constants/intEventTokens.js');
 const config = require('../constants/configConsts.js');
+const utils = require('./utils.js');
 
 //===================================================
 //===================================================
@@ -67,7 +68,7 @@ itemFunctionMap.set('item_kick', (client, workingData, interaction, eventTokens)
         }
 
         //do stats and effects check
-        let passedModifiers = checkStatsAndEffects(interaction, targetMemberObj.user.id);
+        let passedModifiers = utils.checkStatsAndEffects(workingData, interaction, targetMemberObj.user.id);
 
         //consume item
         if (casterData.itemInventory[usedItemInvEntryIndex].count == 1) {
@@ -171,7 +172,7 @@ itemFunctionMap.set('item_mute', (client, workingData, interaction, eventTokens)
         }
 
         //do stats and effects check
-        let passedModifiers = checkStatsAndEffects(interaction, targetMemberObj.id);
+        let passedModifiers = utils.checkStatsAndEffects(workingData, interaction, targetMemberObj.id);
         let reflected = false;
 
         //instantiate server/caster notification message
@@ -221,9 +222,9 @@ itemFunctionMap.set('item_mute', (client, workingData, interaction, eventTokens)
         if (existingStatusEffect) {
             existingStatusEffect.expires = Math.floor(Date.now()/1000) + config.itemMuteDuration;
         } else if (reflected) {
-            casterData.statusEffects.push(getStatusEffectObject("muted", Math.floor(Date.now()/1000) + config.itemMuteDuration));
+            casterData.statusEffects.push(utils.getStatusEffectObject("muted", Math.floor(Date.now()/1000) + config.itemMuteDuration));
         } else {
-            targetData.statusEffects.push(getStatusEffectObject("muted", Math.floor(Date.now()/1000) + config.itemMuteDuration));
+            targetData.statusEffects.push(utils.getStatusEffectObject("muted", Math.floor(Date.now()/1000) + config.itemMuteDuration));
         }
 
         (async (mutedTarget) => {
@@ -305,7 +306,7 @@ itemFunctionMap.set('item_steal', (client, workingData, interaction, eventTokens
         }
 
         //do stats and effects check
-        let passedModifiers = checkStatsAndEffects(interaction, targetMemberObject.user.id);
+        let passedModifiers = utils.checkStatsAndEffects(workingData, interaction, targetMemberObject.user.id);
 
         //consume item
         if (caster.itemInventory[itemEntryIndex].count == 1) {
@@ -494,7 +495,7 @@ itemFunctionMap.set('item_polymorph', (client, workingData, interaction, eventTo
                 }
 
                 //do stats and effects check
-                let passedModifiers = checkStatsAndEffects(interaction, target.user.id);
+                let passedModifiers = utils.checkStatsAndEffects(workingData, interaction, target.user.id);
 
                 //consume item
                 if (caster.itemInventory[itemEntryIndex].count == 1) {
@@ -533,7 +534,7 @@ itemFunctionMap.set('item_polymorph', (client, workingData, interaction, eventTo
                     existingStatusEffect.expires = Math.floor(Date.now()/1000) + config.itemPolymorphDuration;
                     existingStatusEffect.polyName = newNickname;
                 } else {
-                    targetData.statusEffects.push(getStatusEffectObject("polymorph", Math.floor(Date.now()/1000) + config.itemPolymorphDuration, {polyName: newNickname}));
+                    targetData.statusEffects.push(utils.getStatusEffectObject("polymorph", Math.floor(Date.now()/1000) + config.itemPolymorphDuration, {polyName: newNickname}));
                 }
 
                 //enact item effects
@@ -567,7 +568,7 @@ itemFunctionMap.set('item_reflect', (client, workingData, interaction, eventToke
         return obj.id == interaction.user.id;
     });
 
-    let itemEntryIndex = caster.itemInventory.findIndex(obj => {
+    let itemEntryIndex = casterData.itemInventory.findIndex(obj => {
         return obj.name == "item_reflect";
     });
 
@@ -584,7 +585,7 @@ itemFunctionMap.set('item_reflect', (client, workingData, interaction, eventToke
     if (existingStatusEffect) {
         existingStatusEffect.expires = Math.floor(Date.now()/1000) + config.itemReflectDuration;
     } else {
-        casterData.statusEffects.push(getStatusEffectObject("reflect", Math.floor(Date.now()/1000) + config.itemReflectDuration));
+        casterData.statusEffects.push(utils.getStatusEffectObject("reflect", Math.floor(Date.now()/1000) + config.itemReflectDuration));
     }
 
     //consume item
@@ -656,7 +657,7 @@ itemFunctionMap.set('item_expose', (client, workingData, interaction, eventToken
             caster.itemInventory[itemEntryIndex].count -= 1;
         }
 
-        let passedModifiers = checkStatsAndEffects(interaction, targetData.id);
+        let passedModifiers = utils.checkStatsAndEffects(workingData, interaction, targetData.id);
 
         //instantiate server/caster notification message
         let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
@@ -774,7 +775,7 @@ itemFunctionMap.set('item_edwindinner', (client, workingData, interaction, event
         }
 
         //do stats and effects check
-        let passedModifiers = checkStatsAndEffects(interaction, target.user.id);
+        let passedModifiers = utils.checkStatsAndEffects(workingData, interaction, target.user.id);
 
         //consume item
         if (caster.itemInventory[itemEntryIndex].count == 1) {
