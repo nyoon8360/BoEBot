@@ -1,6 +1,6 @@
 const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, inlineCode, bold, underscore, Options, EmbedBuilder, codeBlock, TextInputBuilder, TextInputStyle, MentionableSelectMenuBuilder, userMention, ModalBuilder, UserSelectMenuBuilder, ChannelSelectMenuBuilder, ChannelType, DiscordAPIError } = require('discord.js');
 const fs = require('fs');
-const items = require('../items.json');
+const usables = require('../items/usables.json');
 const intEventTokens = require('../constants/intEventTokens.js');
 const config = require('../constants/configConsts.js');
 
@@ -203,7 +203,7 @@ function mainMenu_changelog(interaction) {
 function usablesShop_selectShelf(interaction, eventTokens) {
     let itemName = eventTokens.shift();
     //get item display name
-    let itemInfo = items.find(entry => {
+    let itemInfo = usables.find(entry => {
         return entry.name == itemName;
     });
 
@@ -234,7 +234,7 @@ function usablesShop_purchase(workingData, interaction, eventTokens) {
 
     let itemName = eventTokens.shift();
     //fetch item and customer info
-    let itemInfo = items.find(obj => {
+    let itemInfo = usables.find(obj => {
         return obj.name == itemName;
     });
 

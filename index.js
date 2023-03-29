@@ -1,11 +1,11 @@
 require('dotenv').config();
 const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, inlineCode, bold, underscore, Options, EmbedBuilder, codeBlock, TextInputBuilder, TextInputStyle, MentionableSelectMenuBuilder, userMention, ModalBuilder, UserSelectMenuBuilder, ChannelSelectMenuBuilder, ChannelType, DiscordAPIError } = require('discord.js');
 const fs = require('fs');
-const items = require('./items.json');
+const usables = require('./items/usables.json');
 const changelog = require('./changelog.json');
 const intEventTokens = require('./constants/intEventTokens.js');
 const config = require('./constants/configConsts.js');
-const { usableItemsFunctionalities } = require('./functions/itemFunctions.js');
+const { usableusablesFunctionalities } = require('./functions/itemFunctions.js');
 
 /*
 axios for easy HTTP promises with node.js
@@ -42,7 +42,7 @@ database.json format:
                 }
             ],
             settings: {
-                "itemsPerInventoryRow": 5
+                "usablesPerInventoryRow": 5
             },
             statusEffects: [
                 {
@@ -183,23 +183,23 @@ client.on('ready', () => {
 
     
     //Populate usables shop pages
-    for (let pageIndex = 0; pageIndex < Math.ceil(items.length / (4 * config.usablesShopItemsPerRow)); pageIndex++) {
+    for (let pageIndex = 0; pageIndex < Math.ceil(usables.length / (4 * config.usablesShopusablesPerRow)); pageIndex++) {
         let newPage = [];
         for (let rowIndex = 0; rowIndex < 4; rowIndex ++) {
             let row = new ActionRowBuilder();
-            for (let shelfIndex = 0; shelfIndex < config.usablesShopItemsPerRow; shelfIndex++) {
-                if (items[(pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex] != undefined) {
+            for (let shelfIndex = 0; shelfIndex < config.usablesShopusablesPerRow; shelfIndex++) {
+                if (usables[(pageIndex * (4 * config.usablesShopusablesPerRow)) + (rowIndex * config.usablesShopusablesPerRow) + shelfIndex] != undefined) {
                     row.addComponents(
                         new ButtonBuilder()
-                            .setCustomId(intEventTokens.usablesShopSelectShelfPrefix + items[(pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex].name)
-                            .setLabel(items[(pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex].displayName + `|$${items[(pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex].price}`)
+                            .setCustomId(intEventTokens.usablesShopSelectShelfPrefix + usables[(pageIndex * (4 * config.usablesShopusablesPerRow)) + (rowIndex * config.usablesShopusablesPerRow) + shelfIndex].name)
+                            .setLabel(usables[(pageIndex * (4 * config.usablesShopusablesPerRow)) + (rowIndex * config.usablesShopusablesPerRow) + shelfIndex].displayName + `|$${usables[(pageIndex * (4 * config.usablesShopusablesPerRow)) + (rowIndex * config.usablesShopusablesPerRow) + shelfIndex].price}`)
                             .setStyle(ButtonStyle.Success)
                     )
                 } else {
                     row.addComponents(
                         new ButtonBuilder()
                             .setLabel("Empty Shelf")
-                            .setCustomId(intEventTokens.usablesShopSelectShelfPrefix + "EMPTYSHELF-" + ((pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex))
+                            .setCustomId(intEventTokens.usablesShopSelectShelfPrefix + "EMPTYSHELF-" + ((pageIndex * (4 * config.usablesShopusablesPerRow)) + (rowIndex * config.usablesShopusablesPerRow) + shelfIndex))
                             .setStyle(ButtonStyle.Secondary)
                             .setDisabled(true)
                     )
@@ -622,7 +622,7 @@ client.on('interactionCreate', async (interaction) => {
                     break;
                 
                 case "USE":
-                    usableItemsFunctionalities(client, workingData, interaction, eventTokens);
+                    usableusablesFunctionalities(client, workingData, interaction, eventTokens);
                     break;
             }
             break;
@@ -640,7 +640,7 @@ client.on('interactionCreate', async (interaction) => {
                     break;
     
                 case "others":
-                    //TODO: figure out what other items to implement then implement store
+                    //TODO: figure out what other usables to implement then implement store
                     break;
             }
             break;
@@ -724,7 +724,7 @@ function getNewUserJSON(userTag, userId) {
         settings: {},
         fStatReactionsAwarded: 0,
         fStatReactionsReceived: 0,
-        fStatItemsUsed: 0,
+        fStatusablesUsed: 0,
         fStatHighestBal: 0
     }
 
@@ -991,19 +991,19 @@ function openUsablesInv(interaction, pageNum) {
     let page = [];
     for (let rowIndex = 0; rowIndex < 4; rowIndex ++) {
         let row = new ActionRowBuilder();
-        for (let shelfIndex = 0; shelfIndex < config.usablesInventoryItemsPerRow; shelfIndex++) {
-            if (accessingUser.itemInventory[(pageNum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex] != undefined) {
+        for (let shelfIndex = 0; shelfIndex < config.usablesInventoryusablesPerRow; shelfIndex++) {
+            if (accessingUser.itemInventory[(pageNum * (4 * config.usablesInventoryusablesPerRow)) + (rowIndex * config.usablesInventoryusablesPerRow) + shelfIndex] != undefined) {
                 row.addComponents(
                     new ButtonBuilder()
-                        .setCustomId(intEventTokens.playerUsablesInvSelectSlotPrefix + accessingUser.itemInventory[(pageNum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex].name)
-                        .setLabel(accessingUser.itemInventory[(pageNum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex].displayName)
+                        .setCustomId(intEventTokens.playerUsablesInvSelectSlotPrefix + accessingUser.itemInventory[(pageNum * (4 * config.usablesInventoryusablesPerRow)) + (rowIndex * config.usablesInventoryusablesPerRow) + shelfIndex].name)
+                        .setLabel(accessingUser.itemInventory[(pageNum * (4 * config.usablesInventoryusablesPerRow)) + (rowIndex * config.usablesInventoryusablesPerRow) + shelfIndex].displayName)
                         .setStyle(ButtonStyle.Success)
                 )
             } else {
                 row.addComponents(
                     new ButtonBuilder()
                         .setLabel("Empty Space")
-                        .setCustomId(intEventTokens.playerUsablesInvSelectSlotPrefix + "EMPTYSPACE-" + ((pageNum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex))
+                        .setCustomId(intEventTokens.playerUsablesInvSelectSlotPrefix + "EMPTYSPACE-" + ((pageNum * (4 * config.usablesInventoryusablesPerRow)) + (rowIndex * config.usablesInventoryusablesPerRow) + shelfIndex))
                         .setStyle(ButtonStyle.Secondary)
                         .setDisabled(true)
                 )
@@ -1028,7 +1028,7 @@ function openUsablesInv(interaction, pageNum) {
                 .setLabel("Next")
                 .setCustomId(intEventTokens.playerUsablesInvNavPrefix + "next")
                 .setStyle(ButtonStyle.Primary)
-                .setDisabled(!(accessingUser.itemInventory.length > ((pageNum + 1) * (4 * config.usablesInventoryItemsPerRow))))
+                .setDisabled(!(accessingUser.itemInventory.length > ((pageNum + 1) * (4 * config.usablesInventoryusablesPerRow))))
         )
 
     page.push(navRow);
@@ -1248,11 +1248,11 @@ ${underscore('Main Sources Of Edbucks')}
 - Winning minigames (WIP)
 
 ${underscore('Ways To Use Your Edbucks')}
-- Spend them on items in the store.
+- Spend them on usables in the store.
 - Trade them with other players through the "Trade" button.
 - Wager them against other players through the "Wager Edbucks" button.
 
-${underscore('How To Use Purchased Items')}
+${underscore('How To Use Purchased usables')}
 1. Access your inventory through the "Open Inventory" button.
 2. Click on the item you want to use.
 3. Select the user you want to use the item on from the drop down menu.
@@ -1311,7 +1311,7 @@ function mainMenu_changelog(interaction) {
 function usablesShop_selectShelf(interaction, eventTokens) {
     let itemName = eventTokens.shift();
     //get item display name
-    let itemInfo = items.find(entry => {
+    let itemInfo = usables.find(entry => {
         return entry.name == itemName;
     });
 
@@ -1342,7 +1342,7 @@ function usablesShop_purchase(interaction, eventTokens) {
 
     let itemName = eventTokens.shift();
     //fetch item and customer info
-    let itemInfo = items.find(obj => {
+    let itemInfo = usables.find(obj => {
         return obj.name == itemName;
     });
 
