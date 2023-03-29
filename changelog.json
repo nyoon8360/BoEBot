@@ -9,7 +9,8 @@
             "-Bugfix: Fixed issue causing duplicate msg leaderboard entries if the existing entry was in first place.",
             "-Bugfix: Fixed issue causing de-coupling of user to user stats data if user changes their discord username or discriminator.",
             "-HOTFIX: Fixed issue causing crashes when using Duct Tape on a user not in a voice call.",
-            "-HOTFIX: You can no longer use Duct Tape on users not in a voice call."
+            "-HOTFIX: You can no longer use Duct Tape on users not in a voice call.",
+            "-HOTFIX: Fixed issue causing status effect durations not to be set."
         ]
     },
     {
