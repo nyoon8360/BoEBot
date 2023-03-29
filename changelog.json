@@ -1,5 +1,12 @@
 [
     {
+        "version": "1.1.0 The Equipment Update",
+        "changes": [
+            "-You can no longer use the Comically Large Boot on users not in a voice call.",
+            "-Bugfix: Fixed msg leaderboard not saving sticker messages correctly."
+        ]
+    },
+    {
         "version": "1.0.3 Backend Update",
         "changes": [
             "-Increased the failed steal compensation from 1 to 3.",

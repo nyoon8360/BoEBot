@@ -469,7 +469,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
             if (messageScore >= workingData[messageReaction.message.guildId].msgLeaderboardFloor) {
                 let currLeaderboard = workingData[messageReaction.message.guildId].msgLeaderboard;
 
-                let messageSnippet = (messageReaction.message.embeds.length || messageReaction.message.attachments.size) ? "MEDIA POST" : messageReaction.message.content.length > 20 ? messageReaction.message.content.substring(0, 17) + "...": messageReaction.message.content.substring(0, 20);
+                let messageSnippet = (messageReaction.message.embeds.length || messageReaction.message.attachments.size || messageReaction.message.content.length <= 0) ? "MEDIA POST" : messageReaction.message.content.length > 20 ? messageReaction.message.content.substring(0, 17) + "...": messageReaction.message.content.substring(0, 20);
 
                 //Check if current message is already on leaderboard and if so then remove it from the leaderboard before processing where to update its position
                 let dupeIndex = currLeaderboard.findIndex((entry) => {
