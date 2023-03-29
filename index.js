@@ -2,10 +2,10 @@ require('dotenv').config();
 const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, inlineCode, bold, underscore, Options, EmbedBuilder, codeBlock, TextInputBuilder, TextInputStyle, MentionableSelectMenuBuilder, userMention, ModalBuilder, UserSelectMenuBuilder, ChannelSelectMenuBuilder, ChannelType, DiscordAPIError } = require('discord.js');
 const fs = require('fs');
 const items = require('./items.json');
-const equipment = require('./equipment.json');
 const changelog = require('./changelog.json');
 const intEventTokens = require('./constants/intEventTokens.js');
 const config = require('./constants/configConsts.js');
+//const { usableItemsFunctionalities } = require('./functions/itemFunctions.js');
 
 /*
 axios for easy HTTP promises with node.js
