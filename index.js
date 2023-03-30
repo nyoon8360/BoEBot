@@ -337,7 +337,16 @@ client.on('messageCreate', (message) => {
             let updatedUsersList = [];
             workingData[message.guildId].users.forEach(obj => {
                 let updatedEntry = utils.getNewUserJSON("","");
-                updatedUsersList.push(Object.assign(updatedEntry, obj));
+                updatedEntry = Object.assign(updatedEntry, obj);
+                if (updatedEntry.equipmentInventory.length <= 0) {
+                    updatedEntry = Object.assign(updatedEntry, {equipmentInventory: {
+                        head: [],
+                        body: [],
+                        trinket: [],
+                        shoes: []
+                    }});
+                }
+                updatedUsersList.push(updatedEntry);
             });
             workingData[message.guildId].users = updatedUsersList;
             console.log(`(${curDate.toLocaleString()}) Manual User Properties Update Complete! Changes in database will take effect on next save.`);

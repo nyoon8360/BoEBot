@@ -135,15 +135,19 @@ function usablesShopUI(shopPages_usables, pagenum) {
     }
 }
 
+//UI builder for usables inventory
 function usablesInvUI(workingData, interaction, pageNum) {
+    //get accessing user's data
     let accessingUser = workingData[interaction.guildId].users.find(obj => {
         return obj.id == interaction.user.id;
     });
 
+    //build the UI for the given page number
     let page = [];
     for (let rowIndex = 0; rowIndex < 4; rowIndex ++) {
         let row = new ActionRowBuilder();
         for (let shelfIndex = 0; shelfIndex < config.usablesInventoryItemsPerRow; shelfIndex++) {
+            //if an item exists in the user's inventory at the corresponding page and shelf index combination then add it to the UI
             if (accessingUser.itemInventory[(pageNum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex] != undefined) {
                 row.addComponents(
                     new ButtonBuilder()
@@ -151,6 +155,7 @@ function usablesInvUI(workingData, interaction, pageNum) {
                         .setLabel(accessingUser.itemInventory[(pageNum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex].displayName)
                         .setStyle(ButtonStyle.Success)
                 )
+            //else add an empty space to the UI
             } else {
                 row.addComponents(
                     new ButtonBuilder()
