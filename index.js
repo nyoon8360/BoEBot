@@ -1,11 +1,14 @@
 require('dotenv').config();
 const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, inlineCode, bold, underscore, Options, EmbedBuilder, codeBlock, TextInputBuilder, TextInputStyle, MentionableSelectMenuBuilder, userMention, ModalBuilder, UserSelectMenuBuilder, ChannelSelectMenuBuilder, ChannelType, DiscordAPIError } = require('discord.js');
 const fs = require('fs');
-const items = require('./items.json');
+const usables = require('./items/usables.json');
 const changelog = require('./changelog.json');
 const intEventTokens = require('./constants/intEventTokens.js');
 const config = require('./constants/configConsts.js');
 const { usableItemsFunctionalities } = require('./functions/itemFunctions.js');
+const uiBuilder = require('./functions/uiBuilders.js');
+const utils = require('./functions/utils.js');
+const btnEventHandlers = require('./functions/btnEventHandlers.js');
 
 /*
 axios for easy HTTP promises with node.js
@@ -42,7 +45,7 @@ database.json format:
                 }
             ],
             settings: {
-                "itemsPerInventoryRow": 5
+                "usablesPerInventoryRow": 5
             },
             statusEffects: [
                 {
@@ -165,7 +168,7 @@ client.on('ready', () => {
             });
 
             guildUsersArray.filter(user => !existingArray.includes(user.id)).forEach((newUser) => {
-                workingData[guildId].users.push(getNewUserJSON(newUser.tag, newUser.id));
+                workingData[guildId].users.push(utils.getNewUserJSON(newUser.tag, newUser.id));
             });
 
             fs.writeFileSync('./database' + guildId + ".json", JSON.stringify(workingData[guildId], null, 2));
@@ -174,7 +177,7 @@ client.on('ready', () => {
         //update menu in case pick up edbucks button is stuck
         try {
             client.guilds.cache.get(guildId).channels.cache.get(workingData[guildId].activeMenuChannelId).messages.fetch(workingData[guildId].activeMenuId).then(result => {
-                result.edit(openMenu());
+                result.edit(uiBuilder.menuUI());
             });
         } catch (exception) {
             console.log("Automatic menu update failed.");
@@ -183,16 +186,16 @@ client.on('ready', () => {
 
     
     //Populate usables shop pages
-    for (let pageIndex = 0; pageIndex < Math.ceil(items.length / (4 * config.usablesShopItemsPerRow)); pageIndex++) {
+    for (let pageIndex = 0; pageIndex < Math.ceil(usables.length / (4 * config.usablesShopItemsPerRow)); pageIndex++) {
         let newPage = [];
         for (let rowIndex = 0; rowIndex < 4; rowIndex ++) {
             let row = new ActionRowBuilder();
             for (let shelfIndex = 0; shelfIndex < config.usablesShopItemsPerRow; shelfIndex++) {
-                if (items[(pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex] != undefined) {
+                if (usables[(pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex] != undefined) {
                     row.addComponents(
                         new ButtonBuilder()
-                            .setCustomId(intEventTokens.usablesShopSelectShelfPrefix + items[(pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex].name)
-                            .setLabel(items[(pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex].displayName + `|$${items[(pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex].price}`)
+                            .setCustomId(intEventTokens.usablesShopSelectShelfPrefix + usables[(pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex].name)
+                            .setLabel(usables[(pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex].displayName + `|$${usables[(pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex].price}`)
                             .setStyle(ButtonStyle.Success)
                     )
                 } else {
@@ -212,7 +215,7 @@ client.on('ready', () => {
 
     //Set interval for autosaving workingData to json database files
     setInterval(() => {
-        saveData();
+        utils.saveData(client, workingData);
         let curDate = new Date(Date.now());
         console.log("(" + curDate.toLocaleString() + ") Autosave Complete!");
     }, config.saveInterval * 1000);
@@ -259,7 +262,7 @@ client.on("guildMemberAdd", member => {
     });
 
     if (!existingEntry) {
-        workingData[member.guild.id].users.push(getNewUserJSON(member.user.tag, member.user.id));
+        workingData[member.guild.id].users.push(utils.getNewUserJSON(member.user.tag, member.user.id));
     }
 });
 
@@ -275,7 +278,7 @@ client.on('messageCreate', (message) => {
     switch(message.content.substring(1)) {
         case "spawnmenu":
 
-            message.channel.send(openMenu()).then(msg => {
+            message.channel.send(uiBuilder.menuUI()).then(msg => {
                 workingData[message.guildId].activeMenuId = msg.id;
                 workingData[message.guildId].activeMenuChannelId = msg.channelId;
             });
@@ -283,12 +286,12 @@ client.on('messageCreate', (message) => {
             break;
 
         case "save":
-            saveData();
+            utils.saveData(client, workingData);
             console.log(`(${curDate.toLocaleString()}) Manual Save Complete`);
             break;
         
         case "shutdown":
-            saveData(true);
+            utils.saveData(client, workingData, true);
             console.log(`(${curDate.toLocaleString()}) Manual Shutdown for Server: ${message.guild.name}`);
             client.destroy();
             break;
@@ -322,7 +325,7 @@ client.on('messageCreate', (message) => {
 
         case "updatemenu":
             message.guild.channels.cache.get(workingData[message.guildId].activeMenuChannelId).messages.fetch(workingData[message.guildId].activeMenuId).then(result => {
-                result.edit(openMenu());
+                result.edit(uiBuilder.menuUI());
             });
             console.log(`(${curDate.toLocaleString()}) Manual Menu Update Complete`);
             break;
@@ -330,7 +333,7 @@ client.on('messageCreate', (message) => {
         case "updateuserprops":
             let updatedUsersList = [];
             workingData[message.guildId].users.forEach(obj => {
-                let updatedEntry = getNewUserJSON("","");
+                let updatedEntry = utils.getNewUserJSON("","");
                 updatedUsersList.push(Object.assign(updatedEntry, obj));
             });
             workingData[message.guildId].users = updatedUsersList;
@@ -545,11 +548,11 @@ client.on('interactionCreate', async (interaction) => {
             switch(eventTokens.shift()) {
                 case "showstats":
                 //show user stats
-                mainMenu_showStats(interaction);
+                btnEventHandlers.mainMenu_showStats(workingData, interaction);
                 break;
             
                 case "openinv":
-                    mainMenu_openInv(interaction);
+                    btnEventHandlers.mainMenu_openInv(workingData, interaction);
                     break;
         
                 case "trade":
@@ -557,7 +560,7 @@ client.on('interactionCreate', async (interaction) => {
         
                 case "findtreasure":
                     //Pick up edbucks button
-                    mainMenu_findTreasure(interaction);
+                    btnEventHandlers.mainMenu_findTreasure(workingData, interaction);
                     break;
                 
                 case "minigames":
@@ -571,29 +574,29 @@ client.on('interactionCreate', async (interaction) => {
         
                 case "shop":
                     //Open shop categories
-                    mainMenu_shop(interaction);
+                    btnEventHandlers.mainMenu_shop(interaction);
                     break;
         
                 case "help":
                     //Show help text for the bot
-                    mainMenu_help(interaction);
+                    btnEventHandlers.mainMenu_help(interaction);
                     break;
                 
                 case "userleaderboard":
                     //Display leaderboard for top balance users
-                    mainMenu_userLeaderboard(interaction);
+                    btnEventHandlers.mainMenu_userLeaderboard(workingData, interaction);
                     break;
                 
                 case "msgleaderboard":
                     //Display leaderboard for top earning messages
-                    mainMenu_msgLeaderboard(interaction);
+                    btnEventHandlers.mainMenu_msgLeaderboard(client, workingData, interaction);
                     break;
 
                 case "settings":
                     break;
 
                 case "changelog":
-                    mainMenu_changelog(interaction);
+                    btnEventHandlers.mainMenu_changelog(interaction);
                     break;
             }
             break;
@@ -601,24 +604,24 @@ client.on('interactionCreate', async (interaction) => {
         case intEventTokens.userLeaderboardNavPrefix.slice(0, -1):
             switch (eventTokens.shift()) {
                 case "PREV":
-                    interaction.update(openUserLeaderboard(interaction, parseInt(eventTokens.shift()) - 1));
+                    interaction.update(uiBuilder.userLeaderboardUI(workingData, interaction, parseInt(eventTokens.shift()) - 1));
                     break;
 
                 case "NEXT":
-                    interaction.update(openUserLeaderboard(interaction, parseInt(eventTokens.shift()) + 1));
+                    interaction.update(uiBuilder.userLeaderboardUI(workingData, interaction, parseInt(eventTokens.shift()) + 1));
                     break;
             }
             break;
 
         //Inventory slot select events
         case intEventTokens.playerUsablesInvSelectSlotPrefix.slice(0, -1):
-            usablesInventory_selectSlot(interaction, eventTokens);
+            btnEventHandlers.usablesInventory_selectSlot(workingData, interaction, eventTokens);
             break;
 
         case intEventTokens.playerUsablesInvInfoPrefix.slice(0, -1):
             switch(eventTokens.shift()) {
                 case "BACK":
-                    interaction.update(openUsablesInv(interaction, 0));
+                    interaction.update(uiBuilder.usablesInvUI(workingData, interaction, 0));
                     break;
                 
                 case "USE":
@@ -632,7 +635,7 @@ client.on('interactionCreate', async (interaction) => {
             switch (eventTokens.shift()) {
                 case "usables":
                     //open page 1 of the usables shop
-                    interaction.update(openUsablesShop(1));
+                    interaction.update(uiBuilder.usablesShopUI(shopPages_usables, 0));
                     break;
                 
                 case "equipment":
@@ -640,7 +643,7 @@ client.on('interactionCreate', async (interaction) => {
                     break;
     
                 case "others":
-                    //TODO: figure out what other items to implement then implement store
+                    //TODO: figure out what other usables to implement then implement store
                     break;
             }
             break;
@@ -657,11 +660,11 @@ client.on('interactionCreate', async (interaction) => {
 
             switch(eventTokens.shift()) {
                 case "prev":
-                    interaction.update(openUsablesShop(parseInt(eventTokens.shift()) - 1));
+                    interaction.update(uiBuilder.usablesShopUI(shopPages_usables, parseInt(eventTokens.shift()) - 1));
                     break;
 
                 case "next":
-                    interaction.update(openUsablesShop(parseInt(eventTokens.shift()) + 1));
+                    interaction.update(uiBuilder.usablesShopUI(shopPages_usables, parseInt(eventTokens.shift()) + 1));
                     break;
             }
             break;
@@ -670,7 +673,7 @@ client.on('interactionCreate', async (interaction) => {
         case intEventTokens.usablesShopPurchaseMenuPrefix.slice(0, -1):
             if (eventTokens.shift() == "BACK") {
                 //Open page 1 of the usables shop if the BACK button is pressed in an item's purchase window
-                interaction.update(openUsablesShop(1));
+                interaction.update(uiBuilder.usablesShopUI(shopPages_usables, 0));
             } else {
                 usablesShop_purchase(interaction, eventTokens);
             }
@@ -683,11 +686,11 @@ client.on('interactionCreate', async (interaction) => {
         case intEventTokens.changelogNavPrefix.slice(0, -1):
             switch(eventTokens.shift()){
                 case "PREV":
-                    interaction.update(openChangelog(parseInt(eventTokens.shift()) - 1));
+                    interaction.update(uiBuilder.changelogUI(parseInt(eventTokens.shift()) - 1));
                     break;
 
                 case "NEXT":
-                    interaction.update(openChangelog(parseInt(eventTokens.shift()) + 1));
+                    interaction.update(uiBuilder.changelogUI(parseInt(eventTokens.shift()) + 1));
                     break;
             }
             break;
@@ -698,419 +701,6 @@ client.on('interactionCreate', async (interaction) => {
 //all client event listeners must be before this line
 //===================================================
 client.login(process.env.CLIENT_TOKEN);
-
-//===================================================
-//===================================================
-//
-//                UTILITY FUNCTIONS
-//
-//===================================================
-//===================================================
-
-//return object with default values for new users in database
-function getNewUserJSON(userTag, userId) {
-    userObj = {
-        tag: userTag,
-        id: userId,
-        lastAwarded: 0,
-        balance: 10,
-        birthday: "",
-        queuedForUnmute: false,
-        lastChangedMsg: {},
-        itemInventory: [],
-        equipmentInventory: [],
-        statusEffects: [],
-        equipped: {},
-        settings: {},
-        fStatReactionsAwarded: 0,
-        fStatReactionsReceived: 0,
-        fStatItemsUsed: 0,
-        fStatHighestBal: 0
-    }
-
-    return userObj;
-}
-
-//function to save workingdata to json databases
-function saveData(sync) {
-    client.guilds.cache.map(guild => guild.id).forEach((guildId) => {
-        if (sync) {
-            fs.writeFileSync('./database' + guildId + '.json', JSON.stringify(workingData[guildId], null, 2));
-        } else {
-            fs.writeFile('./database' + guildId + '.json', JSON.stringify(workingData[guildId], null, 2), error => {
-                if (error) console.log("Error writing to file: \n" + error);
-            });
-        }
-    });
-}
-
-function checkStatsAndEffects(interaction, targetId) {
-    //instantiate return array with passed stat checks/status effects
-    let passedStatsAndEffects = [];
-
-    //get the target's data
-    let targetData = workingData[interaction.guildId].users.find(obj => {
-        return obj.id == targetId;
-    });
-
-    //get current time in seconds since epoch
-    let currentTime = Math.floor(Date.now()/1000);
-
-    //TODO: once equips are implemented, aggregate stats and do roll checks on them
-
-    //check status effects and roll for checks if applicable
-    let statusEffects = targetData.statusEffects;
-
-    for (let i = 0; i < statusEffects.length; i++) {
-        switch(statusEffects[i].name) {
-            case "reflect":
-                if (statusEffects[i].expires >= currentTime) {
-                    passedStatsAndEffects.push("reflect");
-                } else {
-                    statusEffects.splice(i, 1);
-                    i--;
-                }
-                break;
-        }
-    }
-
-    return passedStatsAndEffects;
-}
-
-function notifCantSelfUse(interaction) {
-    let row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setLabel("Back")
-                .setStyle(ButtonStyle.Danger)
-                .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
-        );
-    
-    interaction.update({
-        content: "You can't use this item on yourself!",
-        components: [row],
-        ephemeral: true
-    });
-}
-
-function notifTargetNotInVC(interaction) {
-    let row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setLabel("Back")
-                .setStyle(ButtonStyle.Danger)
-                .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
-        );
-    
-    interaction.update({
-        content: "Target is not in a voice call!",
-        components: [row],
-        ephemeral: true
-    });
-}
-
-function notifDontHaveItem(interaction) {
-    let row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setLabel("Back")
-                .setStyle(ButtonStyle.Danger)
-                .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
-        );
-    
-    interaction.update({
-        content: "You don't have this item!",
-        components: [row],
-        ephemeral: true
-    });
-}
-
-function getStatusEffectObject(name, expiration, additionalProps) {
-    let returnedEffectObj = {
-        name: name,
-        expiration: expiration
-    };
-
-    switch (name) {
-        case "reflect":
-            returnedEffectObj.displayName = "Reflect";
-            break;
-
-        case "muted":
-            returnedEffectObj.displayName = "Muted";
-            break;
-
-        case "polymorph":
-            returnedEffectObj.displayName = "Polymorphed";
-            break;
-    }
-
-    Object.assign(returnedEffectObj, additionalProps);
-    return returnedEffectObj;
-}
-
-//===================================================
-//===================================================
-//
-//                   UI BUILDERS
-//
-//===================================================
-//===================================================
-
-//UI builder for main menu of discord bot
-function openMenu(tButtonDisabled) {
-    let row1 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'showstats-')
-            .setLabel('Show Stats')
-            .setStyle(ButtonStyle.Primary)
-            .setEmoji('📜'),
-        new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'openinv-')
-            .setLabel('Open Inventory')
-            .setStyle(ButtonStyle.Primary)
-            .setEmoji('📦'),
-        new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'trade-')
-            .setLabel('Trade')
-            .setStyle(ButtonStyle.Primary)
-            .setEmoji('🤝')
-            .setDisabled(true),
-        new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'findtreasure-')
-            .setLabel('Pick Up Edbucks')
-            .setStyle(ButtonStyle.Primary)
-            .setEmoji('💸')
-            .setDisabled(tButtonDisabled ? true : false)
-    );
-
-    let row2 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'minigames-')
-            .setLabel('Minigames')
-            .setStyle(ButtonStyle.Success)
-            .setEmoji('🎮')
-            .setDisabled(true),
-        new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'challenge-')
-            .setLabel('Challenge')
-            .setStyle(ButtonStyle.Success)
-            .setEmoji('🙌')
-            .setDisabled(true),
-        new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'wager-')
-            .setLabel('Wager Edbucks')
-            .setStyle(ButtonStyle.Success)
-            .setEmoji('🎲')
-            .setDisabled(true)
-    );
-
-    let row3 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'shop-')
-            .setLabel('Shop')
-            .setStyle(ButtonStyle.Danger)
-            .setEmoji('🛒')
-    );
-
-    let row4 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'userleaderboard-')
-            .setLabel('User Leaderboard')
-            .setStyle(ButtonStyle.Secondary)
-            .setEmoji('🏆'),
-        new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'msgleaderboard-')
-            .setLabel('Message Leaderboard')
-            .setStyle(ButtonStyle.Secondary)
-            .setEmoji('🥇'),
-        new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'settings-')
-            .setLabel('Settings')
-            .setStyle(ButtonStyle.Secondary)
-            .setEmoji('⚙️')
-            .setDisabled(true),
-        new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'changelog-')
-            .setLabel('Changelog')
-            .setStyle(ButtonStyle.Secondary)
-            .setEmoji('📰'),
-        new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'help-')
-            .setLabel('Help')
-            .setStyle(ButtonStyle.Secondary)
-            .setEmoji('❓')
-    );
-
-    return {
-        content: bold('============\nMAIN MENU\n============'),
-        components: [row1, row2, row3, row4]
-    };
-}
-
-//UI builder for usables shop
-function openUsablesShop(pagenum) {
-    if (pagenum > shopPages_usables.length || pagenum < 1) pagenum = 1;
-
-    let pageNavRow = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.usablesShopNavPagesPrefix + "prev-" + pagenum)
-                .setLabel("Prev")
-                .setStyle(ButtonStyle.Primary)
-                .setDisabled(!(pagenum > 1)),
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.usablesShopNavPagesPrefix + "pagenum")
-                .setLabel("Page " + pagenum)
-                .setStyle(ButtonStyle.Primary)
-                .setDisabled(true),
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.usablesShopNavPagesPrefix + "next-" + pagenum)
-                .setLabel("Next")
-                .setStyle(ButtonStyle.Primary)
-                .setDisabled(!(shopPages_usables.length > pagenum))
-        );
-    
-    let shopPage = [...shopPages_usables[pagenum - 1]];
-    shopPage.push(pageNavRow);
-
-    let shopMessage = {
-        content: bold("===============\nUSABLES SHOP\n==============="),
-        components: shopPage,
-        ephemeral: true
-    };
-
-    return shopMessage;
-}
-
-function openUsablesInv(interaction, pageNum) {
-    let accessingUser = workingData[interaction.guildId].users.find(obj => {
-        return obj.id == interaction.user.id;
-    });
-
-    let page = [];
-    for (let rowIndex = 0; rowIndex < 4; rowIndex ++) {
-        let row = new ActionRowBuilder();
-        for (let shelfIndex = 0; shelfIndex < config.usablesInventoryItemsPerRow; shelfIndex++) {
-            if (accessingUser.itemInventory[(pageNum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex] != undefined) {
-                row.addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(intEventTokens.playerUsablesInvSelectSlotPrefix + accessingUser.itemInventory[(pageNum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex].name)
-                        .setLabel(accessingUser.itemInventory[(pageNum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex].displayName)
-                        .setStyle(ButtonStyle.Success)
-                )
-            } else {
-                row.addComponents(
-                    new ButtonBuilder()
-                        .setLabel("Empty Space")
-                        .setCustomId(intEventTokens.playerUsablesInvSelectSlotPrefix + "EMPTYSPACE-" + ((pageNum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex))
-                        .setStyle(ButtonStyle.Secondary)
-                        .setDisabled(true)
-                )
-            }
-        }
-        page.push(row);
-    }
-    
-    let navRow = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.playerUsablesInvNavPrefix + "prev")
-                .setLabel("Prev")
-                .setStyle(ButtonStyle.Primary)
-                .setDisabled(pageNum <= 0),
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.playerUsablesInvNavPrefix + "equips")
-                .setStyle(ButtonStyle.Danger)
-                .setLabel("Equips")
-                .setDisabled(true),
-            new ButtonBuilder()
-                .setLabel("Next")
-                .setCustomId(intEventTokens.playerUsablesInvNavPrefix + "next")
-                .setStyle(ButtonStyle.Primary)
-                .setDisabled(!(accessingUser.itemInventory.length > ((pageNum + 1) * (4 * config.usablesInventoryItemsPerRow))))
-        )
-
-    page.push(navRow);
-
-    return {
-        content: bold("=========\nInventory\n=========") + underscore("\nUsables Page " + (pageNum + 1)),
-        components: page,
-        ephemeral: true
-    }
-}
-
-function openChangelog(pageNum) {
-    let row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.changelogNavPrefix + "PREV-" + pageNum)
-                .setDisabled(pageNum > 0 ? false : true)
-                .setStyle(ButtonStyle.Primary)
-                .setLabel("Prev"),
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.changelogNavPrefix + "PAGENUM")
-                .setDisabled(true)
-                .setStyle(ButtonStyle.Primary)
-                .setLabel("Page " + (pageNum + 1)),
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.changelogNavPrefix + "NEXT-" + pageNum)
-                .setDisabled(pageNum < (changelog.length - 1) ? false : true)
-                .setStyle(ButtonStyle.Primary)
-                .setLabel("Next")
-        )
-
-    let changes = "";
-    let version = underscore("Version: " + changelog[pageNum].version) + "\n";
-
-    changelog[pageNum].changes.forEach(obj => {
-        changes += obj + "\n";
-    });
-    
-    return {
-        content: version + codeBlock(changes),
-        components: [row],
-        ephemeral: true
-    }
-}
-
-function openUserLeaderboard(interaction, pageNum) {
-    let sortedLeaderboard = workingData[interaction.guildId].users.sort((a, b) => (a.balance > b.balance) ? -1 : 1);
-    let leaderboard = "";
-    let userEntriesNum = sortedLeaderboard.length;
-
-    sortedLeaderboard = sortedLeaderboard.slice(pageNum * config.userLeaderboardEntriesPerPage, (pageNum + 1) * config.userLeaderboardEntriesPerPage);
-
-    sortedLeaderboard.forEach((user, index) => {
-        leaderboard += "(" + (index + 1 + (pageNum * config.userLeaderboardEntriesPerPage)) + ") " + user.tag + ": " + user.balance + " EB \n"
-    })
-
-    let row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.userLeaderboardNavPrefix + "PREV-" + pageNum)
-                .setDisabled(pageNum > 0 ? false : true)
-                .setStyle(ButtonStyle.Primary)
-                .setLabel("Prev"),
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.userLeaderboardNavPrefix + "PAGENUM")
-                .setDisabled(true)
-                .setStyle(ButtonStyle.Primary)
-                .setLabel("Page " + (pageNum + 1)),
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.userLeaderboardNavPrefix + "NEXT-" + pageNum)
-                .setDisabled(pageNum < (Math.ceil(userEntriesNum / config.userLeaderboardEntriesPerPage) - 1) ? false : true)
-                .setStyle(ButtonStyle.Primary)
-                .setLabel("Next")
-        );
-    
-    return {
-        content: bold("====================\nUSER LEADERBOARD\n====================") + "\n" + leaderboard,
-        components: [row],
-        ephemeral: true
-    }
-    
-}
 
 //===================================================
 //===================================================
@@ -1171,7 +761,7 @@ function mainMenu_openInv(interaction) {
     [Item1] [Item2] [Item3]
     [Prev] [Equips] [Next]
     */
-    interaction.reply(openUsablesInv(interaction, 0));
+    interaction.reply(uiBuilder.usablesInvUI(workingData, interaction, 0));
 }
 
 function mainMenu_findTreasure(interaction) {
@@ -1194,14 +784,14 @@ Check back again later to see if they've come back!
 
     interaction.channel.messages.fetch(workingData[interaction.guildId].activeMenuId).then(result => {
         //disable pick up edbucks button
-        result.edit(openMenu(true));
+        result.edit(uiBuilder.menuUI(true));
         
         let curDate = new Date(Date.now());
         console.log(`(${curDate.toLocaleString()}) Edbucks Button Looted By: ${interaction.user.tag}`);
         //set async function to wait until cooldown is over then re-enable button
         (async (menu) => {
             let timeoutDuration = Math.floor(Math.random() * (config.treasureCDUR - config.treasureCDLR)) + config.treasureCDLR;
-            await setTimeout(() => menu.edit(openMenu()), timeoutDuration * 1000);
+            await setTimeout(() => menu.edit(uiBuilder.menuUI()), timeoutDuration * 1000);
         })(result);
     });
 }
@@ -1248,11 +838,11 @@ ${underscore('Main Sources Of Edbucks')}
 - Winning minigames (WIP)
 
 ${underscore('Ways To Use Your Edbucks')}
-- Spend them on items in the store.
+- Spend them on usables in the store.
 - Trade them with other players through the "Trade" button.
 - Wager them against other players through the "Wager Edbucks" button.
 
-${underscore('How To Use Purchased Items')}
+${underscore('How To Use Purchased usables')}
 1. Access your inventory through the "Open Inventory" button.
 2. Click on the item you want to use.
 3. Select the user you want to use the item on from the drop down menu.
@@ -1262,7 +852,7 @@ ${underscore('How To Use Purchased Items')}
 }
 
 function mainMenu_userLeaderboard(interaction) {
-    interaction.reply(openUserLeaderboard(interaction, 0));
+    interaction.reply(uiBuilder.userLeaderboardUI(workingData, interaction, 0));
 }
 
 async function mainMenu_msgLeaderboard(interaction) {
@@ -1305,13 +895,13 @@ async function mainMenu_msgLeaderboard(interaction) {
 }
 
 function mainMenu_changelog(interaction) {
-    interaction.reply(openChangelog(0));
+    interaction.reply(uiBuilder.changelogUI(0));
 }
 
 function usablesShop_selectShelf(interaction, eventTokens) {
     let itemName = eventTokens.shift();
     //get item display name
-    let itemInfo = items.find(entry => {
+    let itemInfo = usables.find(entry => {
         return entry.name == itemName;
     });
 
@@ -1342,7 +932,7 @@ function usablesShop_purchase(interaction, eventTokens) {
 
     let itemName = eventTokens.shift();
     //fetch item and customer info
-    let itemInfo = items.find(obj => {
+    let itemInfo = usables.find(obj => {
         return obj.name == itemName;
     });
 

@@ -1,8 +1,9 @@
-const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, inlineCode, bold, underscore, Options, EmbedBuilder, codeBlock, TextInputBuilder, TextInputStyle, MentionableSelectMenuBuilder, userMention, ModalBuilder, UserSelectMenuBuilder, ChannelSelectMenuBuilder, ChannelType, DiscordAPIError } = require('discord.js');
+const { ButtonStyle, time, ActionRowBuilder, ButtonBuilder, inlineCode, bold, underscore, EmbedBuilder, codeBlock } = require('discord.js');
 const fs = require('fs');
-const items = require('../items.json');
+const usables = require('../items/usables.json');
 const intEventTokens = require('../constants/intEventTokens.js');
 const config = require('../constants/configConsts.js');
+const uiBuilders = require('./uiBuilders.js');
 
 //===================================================
 //===================================================
@@ -51,7 +52,7 @@ ${afflictedBy}
     });
 }
 
-function mainMenu_openInv(interaction) {
+function mainMenu_openInv(workingData, interaction) {
     /*
     [Equips]
     |
@@ -63,7 +64,7 @@ function mainMenu_openInv(interaction) {
     [Item1] [Item2] [Item3]
     [Prev] [Equips] [Next]
     */
-    interaction.reply(openUsablesInv(interaction, 0));
+    interaction.reply(uiBuilders.usablesInvUI(workingData, interaction, 0));
 }
 
 function mainMenu_findTreasure(workingData, interaction) {
@@ -86,14 +87,14 @@ Check back again later to see if they've come back!
 
     interaction.channel.messages.fetch(workingData[interaction.guildId].activeMenuId).then(result => {
         //disable pick up edbucks button
-        result.edit(openMenu(true));
+        result.edit(uiBuilders.menuUI(true));
         
         let curDate = new Date(Date.now());
         console.log(`(${curDate.toLocaleString()}) Edbucks Button Looted By: ${interaction.user.tag}`);
         //set async function to wait until cooldown is over then re-enable button
         (async (menu) => {
             let timeoutDuration = Math.floor(Math.random() * (config.treasureCDUR - config.treasureCDLR)) + config.treasureCDLR;
-            await setTimeout(() => menu.edit(openMenu()), timeoutDuration * 1000);
+            await setTimeout(() => menu.edit(uiBuilders.menuUI()), timeoutDuration * 1000);
         })(result);
     });
 }
@@ -153,8 +154,8 @@ ${underscore('How To Use Purchased Items')}
     });
 }
 
-function mainMenu_userLeaderboard(interaction) {
-    interaction.reply(openUserLeaderboard(interaction, 0));
+function mainMenu_userLeaderboard(workingData, interaction) {
+    interaction.reply(uiBuilders.userLeaderboardUI(workingData, interaction, 0));
 }
 
 async function mainMenu_msgLeaderboard(client, workingData, interaction) {
@@ -197,13 +198,13 @@ async function mainMenu_msgLeaderboard(client, workingData, interaction) {
 }
 
 function mainMenu_changelog(interaction) {
-    interaction.reply(openChangelog(0));
+    interaction.reply(uiBuilders.changelogUI(0));
 }
 
 function usablesShop_selectShelf(interaction, eventTokens) {
     let itemName = eventTokens.shift();
     //get item display name
-    let itemInfo = items.find(entry => {
+    let itemInfo = usables.find(entry => {
         return entry.name == itemName;
     });
 
@@ -234,7 +235,7 @@ function usablesShop_purchase(workingData, interaction, eventTokens) {
 
     let itemName = eventTokens.shift();
     //fetch item and customer info
-    let itemInfo = items.find(obj => {
+    let itemInfo = usables.find(obj => {
         return obj.name == itemName;
     });
 
@@ -313,4 +314,9 @@ function usablesInventory_selectSlot(workingData, interaction, eventTokens) {
         components: [row],
         ephemeral: true
     });
+}
+
+module.exports = {
+    mainMenu_changelog, mainMenu_findTreasure, mainMenu_help, mainMenu_msgLeaderboard, mainMenu_openInv, mainMenu_shop, mainMenu_showStats, mainMenu_userLeaderboard,
+    usablesInventory_selectSlot, usablesShop_purchase, usablesShop_selectShelf
 }
