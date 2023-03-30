@@ -104,7 +104,7 @@ function menuUI(tButtonDisabled) {
 
 //UI builder for usables shop
 function usablesShopUI(shopPages_usables, pagenum) {
-    if (pagenum > shopPages_usables.length || pagenum < 1) pagenum = 1;
+    if (pagenum > shopPages_usables.length || pagenum < 0) pagenum = 0;
 
     let pageNavRow = new ActionRowBuilder()
         .addComponents(
@@ -112,20 +112,20 @@ function usablesShopUI(shopPages_usables, pagenum) {
                 .setCustomId(intEventTokens.usablesShopNavPagesPrefix + "prev-" + pagenum)
                 .setLabel("Prev")
                 .setStyle(ButtonStyle.Primary)
-                .setDisabled(!(pagenum > 1)),
+                .setDisabled(!(pagenum > 0)),
             new ButtonBuilder()
                 .setCustomId(intEventTokens.usablesShopNavPagesPrefix + "pagenum")
-                .setLabel("Page " + pagenum)
+                .setLabel("Page " + (pagenum + 1))
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(true),
             new ButtonBuilder()
                 .setCustomId(intEventTokens.usablesShopNavPagesPrefix + "next-" + pagenum)
                 .setLabel("Next")
                 .setStyle(ButtonStyle.Primary)
-                .setDisabled(!(shopPages_usables.length > pagenum))
+                .setDisabled(!((shopPages_usables.length - 1) > pagenum))
         );
     
-    let shopPage = [...shopPages_usables[pagenum - 1]];
+    let shopPage = [...shopPages_usables[pagenum]];
     shopPage.push(pageNavRow);
 
     return {
@@ -310,4 +310,8 @@ function notifDontHaveItem() {
         components: [row],
         ephemeral: true
     };
+}
+
+module.exports = {
+    menuUI, usablesInvUI, usablesShopUI, changelogUI, userLeaderboardUI, notifCantSelfUse, notifDontHaveItem, notifTargetNotInVC
 }
