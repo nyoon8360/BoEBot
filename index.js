@@ -651,7 +651,7 @@ client.on('interactionCreate', async (interaction) => {
         //Usables shop shelf select events
         case intEventTokens.usablesShopSelectShelfPrefix.slice(0, -1):
             //Open window displaying selected item's purchase page
-            usablesShop_selectShelf(interaction, eventTokens);
+            btnEventHandlers.usablesShop_selectShelf(interaction, eventTokens);
             break;
 
         //Usables shop nav buttons events
@@ -675,7 +675,7 @@ client.on('interactionCreate', async (interaction) => {
                 //Open page 1 of the usables shop if the BACK button is pressed in an item's purchase window
                 interaction.update(uiBuilder.usablesShopUI(shopPages_usables, 0));
             } else {
-                usablesShop_purchase(interaction, eventTokens);
+                btnEventHandlers.usablesShop_purchase(workingData, interaction, eventTokens);
             }
             break;
 
