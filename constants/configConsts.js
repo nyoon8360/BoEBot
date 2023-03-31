@@ -22,6 +22,8 @@ module.exports = Object.freeze({
     checkActiveVCInterval: config.common.checkActiveVCInterval,
     activeVCMemberThreshold: config.common.activeVCMemberThreshold,
     activeVCReward: config.common.activeVCReward,
+    equipsInvItemsPerRow: config.common.equipsInventoryItemsPerRow,
+    equipsShopItemsPerRow: config.common.equipsShopItemsPerRow,
     
     //item config constants
     itemMuteDuration: config.items.itemMuteDuration,

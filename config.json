@@ -6,6 +6,8 @@
         "msgExpiration":3600,
         "usablesShopItemsPerRow": 3,
         "usablesInventoryItemsPerRow": 3,
+        "equipsInventoryItemsPerRow": 3,
+        "equipsShopItemsPerRow": 3,
         "reactAward": 2,
         "treasureLowerRange": 2,
         "treasureUpperRange": 4,

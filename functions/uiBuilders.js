@@ -135,15 +135,19 @@ function usablesShopUI(shopPages_usables, pagenum) {
     }
 }
 
+//UI builder for usables inventory
 function usablesInvUI(workingData, interaction, pageNum) {
+    //get accessing user's data
     let accessingUser = workingData[interaction.guildId].users.find(obj => {
         return obj.id == interaction.user.id;
     });
 
+    //build the UI for the given page number
     let page = [];
     for (let rowIndex = 0; rowIndex < 4; rowIndex ++) {
         let row = new ActionRowBuilder();
         for (let shelfIndex = 0; shelfIndex < config.usablesInventoryItemsPerRow; shelfIndex++) {
+            //if an item exists in the user's inventory at the corresponding page and shelf index combination then add it to the UI
             if (accessingUser.itemInventory[(pageNum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex] != undefined) {
                 row.addComponents(
                     new ButtonBuilder()
@@ -151,6 +155,7 @@ function usablesInvUI(workingData, interaction, pageNum) {
                         .setLabel(accessingUser.itemInventory[(pageNum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex].displayName)
                         .setStyle(ButtonStyle.Success)
                 )
+            //else add an empty space to the UI
             } else {
                 row.addComponents(
                     new ButtonBuilder()
@@ -167,18 +172,17 @@ function usablesInvUI(workingData, interaction, pageNum) {
     let navRow = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intEventTokens.playerUsablesInvNavPrefix + "prev")
+                .setCustomId(intEventTokens.playerUsablesInvNavPrefix + "PREV-" + pageNum)
                 .setLabel("Prev")
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(pageNum <= 0),
             new ButtonBuilder()
-                .setCustomId(intEventTokens.playerUsablesInvNavPrefix + "equips")
+                .setCustomId(intEventTokens.playerUsablesInvNavPrefix + "EQUIPS")
                 .setStyle(ButtonStyle.Danger)
-                .setLabel("Equips")
-                .setDisabled(true),
+                .setLabel("Equips"),
             new ButtonBuilder()
                 .setLabel("Next")
-                .setCustomId(intEventTokens.playerUsablesInvNavPrefix + "next")
+                .setCustomId(intEventTokens.playerUsablesInvNavPrefix + "NEXT-" + pageNum)
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(!(accessingUser.itemInventory.length > ((pageNum + 1) * (4 * config.usablesInventoryItemsPerRow))))
         )
@@ -186,7 +190,86 @@ function usablesInvUI(workingData, interaction, pageNum) {
     page.push(navRow);
 
     return {
-        content: bold("=========\nInventory\n=========") + underscore("\nUsables Page " + (pageNum + 1)),
+        content: bold("=================\nUsables Inventory\n=================") + underscore("\nPage " + (pageNum + 1)),
+        components: page,
+        ephemeral: true
+    }
+}
+
+function equipsInvUI(workingData, interaction, pageNum) {
+    //get accessing user's data
+    let accessingUser = workingData[interaction.guildId].users.find(obj => {
+        return obj.id == interaction.user.id;
+    });
+
+    //create and populate invDirectory
+    let invDirectory = [];
+
+    for (let index = 0; index < (accessingUser.equipmentInventory.head.length > 0 ? Math.ceil(accessingUser.equipmentInventory.head.length / (config.equipsInvItemsPerRow * 4)) : 1); index++) {
+        invDirectory.push(["head", index]);
+    }
+
+    for (let index = 0; index < (accessingUser.equipmentInventory.body.length > 0 ? Math.ceil(accessingUser.equipmentInventory.body.length / (config.equipsInvItemsPerRow * 4)) : 1); index++) {
+        invDirectory.push(["body", index]);
+    }
+
+    for (let index = 0; index < (accessingUser.equipmentInventory.trinket.length > 0 ? Math.ceil(accessingUser.equipmentInventory.trinket.length / (config.equipsInvItemsPerRow * 4)) : 1); index++) {
+        invDirectory.push(["trinket", index]);
+    }
+
+    for (let index = 0; index < (accessingUser.equipmentInventory.shoes.length > 0 ? Math.ceil(accessingUser.equipmentInventory.shoes.length / (config.equipsInvItemsPerRow * 4)) : 1); index++) {
+        invDirectory.push(["shoes", index]);
+    }
+
+    let dirEntry = invDirectory[pageNum];
+
+    let page = [];
+    for (let rowIndex = 0; rowIndex < 4; rowIndex ++) {
+        let row = new ActionRowBuilder();
+        for (let slotIndex = 0; slotIndex < config.equipsInvItemsPerRow; slotIndex++) {
+            if (accessingUser.equipmentInventory[dirEntry[0]][ ((4 * config.equipsInvItemsPerRow) * dirEntry[1]) + (rowIndex * config.equipsInvItemsPerRow) + slotIndex] != undefined) {
+                let itemInfo = accessingUser.equipmentInventory[dirEntry[0]][ ((4 * config.equipsInvItemsPerRow) * dirEntry[1]) + (rowIndex * config.equipsInvItemsPerRow) + slotIndex];
+                row.addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(intEventTokens.playerEquipsInvSelectSlotPrefix + itemInfo.name)
+                        .setLabel(itemInfo.equipped ? bold(`E* ${itemInfo.displayName}`) : itemInfo.displayName)
+                        .setStyle(ButtonStyle.Success)
+                )
+            } else {
+                row.addComponents(
+                    new ButtonBuilder()
+                        .setLabel("Empty Space")
+                        .setCustomId(intEventTokens.playerEquipsInvSelectSlotPrefix + "EMPTYSPACE-" + ((pageNum * (4 * config.equipsInvItemsPerRow)) + (rowIndex * config.equipsInvItemsPerRow) + slotIndex))
+                        .setStyle(ButtonStyle.Secondary)
+                        .setDisabled(true)
+                )
+            }
+        }
+        page.push(row);
+    }
+    
+    let navRow = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(intEventTokens.playerEquipsInvNavPrefix + "PREV-" + pageNum)
+                .setLabel("Prev")
+                .setStyle(ButtonStyle.Primary)
+                .setDisabled(pageNum <= 0),
+            new ButtonBuilder()
+                .setCustomId(intEventTokens.playerEquipsInvNavPrefix + "USABLES")
+                .setStyle(ButtonStyle.Danger)
+                .setLabel("Usables"),
+            new ButtonBuilder()
+                .setLabel("Next")
+                .setCustomId(intEventTokens.playerEquipsInvNavPrefix + "NEXT-" + pageNum)
+                .setStyle(ButtonStyle.Primary)
+                .setDisabled(!(invDirectory.length > (pageNum + 1)))
+        )
+
+    page.push(navRow);
+
+    return {
+        content: bold("================\nEquips Inventory\n================") + underscore(`\n${dirEntry[0].charAt(0).toUpperCase() + dirEntry[0].slice(1)} Page ` + (dirEntry[1] + 1)),
         components: page,
         ephemeral: true
     }
@@ -261,7 +344,6 @@ function userLeaderboardUI(workingData, interaction, pageNum) {
         components: [row],
         ephemeral: true
     }
-    
 }
 
 function notifCantSelfUse() {
@@ -313,5 +395,5 @@ function notifDontHaveItem() {
 }
 
 module.exports = {
-    menuUI, usablesInvUI, usablesShopUI, changelogUI, userLeaderboardUI, notifCantSelfUse, notifDontHaveItem, notifTargetNotInVC
+    menuUI, usablesInvUI, equipsInvUI, usablesShopUI, changelogUI, userLeaderboardUI, notifCantSelfUse, notifDontHaveItem, notifTargetNotInVC
 }

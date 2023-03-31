@@ -18,7 +18,12 @@ function getNewUserJSON(userTag, userId) {
         queuedForUnmute: false,
         lastChangedMsg: {},
         itemInventory: [],
-        equipmentInventory: [],
+        equipmentInventory: {
+            head: [],
+            body: [],
+            trinket: [],
+            shoes: []
+        },
         statusEffects: [],
         equipped: {},
         settings: {},

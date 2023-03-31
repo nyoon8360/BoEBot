@@ -8,3 +8,6 @@ node_modules/
 
 #ignore database files
 database*.json
+
+#ignore userDataEntryPlanner.json
+userDataEntryPlanner.json

@@ -24,6 +24,11 @@ module.exports = Object.freeze({
     playerUsablesInvInfoPrefix: "PUSABLESINVINFO-",
     playerUsablesInvNavPrefix: "PUSABLESINVNAV-",
 
+    //Player equips inventory tokens
+    playerEquipsInvSelectSlotPrefix: "PEQUIPSINVSELECTSLOT-",
+    playerEquipsInvInfoPrefix: "PEQUIPSINVINFO-",
+    playerEquipsInvNavPrefix: "PEQUIPSINVNAV-",
+
     //Changelog navigation tokens
     changelogNavPrefix: "CHANGELOGNAV-",
 
