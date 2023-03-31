@@ -1,9 +1,8 @@
 require('dotenv').config();
-const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, inlineCode, bold, underscore, Options, EmbedBuilder, codeBlock, TextInputBuilder, TextInputStyle, MentionableSelectMenuBuilder, userMention, ModalBuilder, UserSelectMenuBuilder, ChannelSelectMenuBuilder, ChannelType, DiscordAPIError } = require('discord.js');
+const { Client, IntentsBitField, ButtonStyle, ActionRowBuilder, ButtonBuilder, Options} = require('discord.js');
 const fs = require('fs');
 const usables = require('./items/usables.json');
 const equipment = require('./items/equipment.json');
-const changelog = require('./changelog.json');
 const intEventTokens = require('./constants/intEventTokens.js');
 const config = require('./constants/configConsts.js');
 const { usableItemsFunctionalities } = require('./functions/itemFunctions.js');
@@ -12,7 +11,6 @@ const utils = require('./functions/utils.js');
 const btnEventHandlers = require('./functions/btnEventHandlers.js');
 
 /*
-axios for easy HTTP promises with node.js
 dotenv for loading environment variables from .env file
 fs for reading/writing/editing json files
 */
