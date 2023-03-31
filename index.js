@@ -15,67 +15,6 @@ const btnEventHandlers = require('./functions/btnEventHandlers.js');
 axios for easy HTTP promises with node.js
 dotenv for loading environment variables from .env file
 fs for reading/writing/editing json files
-
-database.json format:
-{
-    "users": [
-        {
-            "tag":"string with discord user's tag i.e 'inspirasian#1234'",
-            "balance": 0,
-            "lastAwarded": 1678310667 this will be a number using epoch unix timestamp in seconds,
-            "itemInventory": [
-                {
-                    "name": "item_kick",
-                    "count": 0
-                }
-            ],
-            "equipmentInventory": {
-                head: [
-                    {
-                        ...: ...,
-                        equipped: false
-                    }
-                ],
-                body: [],
-                trinket: [],
-                shoes: []
-            },
-            "equipped": [
-                {
-                    "slot": "head",
-                    "name": "mirror_ring",
-                    "effectingStat": "reflect",
-                    "effectAmount": 5
-                }
-            ],
-            settings: {
-                "usablesPerInventoryRow": 5
-            },
-            statusEffects: [
-                {
-                    name: "Reflect",
-                    expires: 1456346124 this number will be an epoch timestamp in seconds
-                }
-            ]
-        }
-    ],
-    "msgLeaderboard": [
-        {
-            "msgId": "123215422542",
-        }
-    ],
-    "msgLeaderboardFloor": 0
-}
-
-[Equips]
- |
- V
-head, body, accessory, shoes
-[bold("E* item1")] [Item2] [Item3]
-[Item1] [Item2] [Item3]
-[Item1] [Item2] [Item3]
-[Item1] [Item2] [Item3]
-[Prev] [Equips] [Next]
 */
 
 // NOTE: Make sure to update intents if new events not in current intents are needed to be listened to
@@ -219,9 +158,7 @@ client.on('ready', () => {
         }
         shopPages_usables.push(newPage);
     }
-
-    //populate equipment shop pages
-    //create and populate equipment directory
+    //populate equipment shop directory
     for (let index = 0; index < (equipment.head.length > 0 ? Math.ceil(equipment.head.length / (config.equipsShopItemsPerRow * 4)) : 1); index++) {
         shopPages_equipmentDirectory.push(["head", index]);
     }
@@ -238,6 +175,7 @@ client.on('ready', () => {
         shopPages_equipmentDirectory.push(["shoes", index]);
     }
 
+    //populate equipment shop pages
     shopPages_equipmentDirectory.forEach((dirEntry) => {
         let page = [];
         for (let rowIndex = 0; rowIndex < 4; rowIndex ++) {
@@ -330,12 +268,10 @@ client.on('messageCreate', (message) => {
     let curDate = new Date(Date.now());
     switch(message.content.substring(1)) {
         case "spawnmenu":
-
             message.channel.send(uiBuilder.menuUI()).then(msg => {
                 workingData[message.guildId].activeMenuId = msg.id;
                 workingData[message.guildId].activeMenuChannelId = msg.channelId;
             });
-
             break;
 
         case "save":
@@ -366,7 +302,6 @@ client.on('messageCreate', (message) => {
                         workingData[guildId] = newData;
                     } else {
                         //read data from json database file and assign it to workingData var synchronously
-        
                         workingData[guildId] = JSON.parse(fs.readFileSync("./database" + guildId + ".json"));
                     }
                 } catch(error) {

@@ -266,7 +266,7 @@ function equipsInvUI(workingData, interaction, pageNum) {
                 row.addComponents(
                     new ButtonBuilder()
                         .setCustomId(intEventTokens.playerEquipsInvSelectSlotPrefix + itemInfo.name)
-                        .setLabel(itemInfo.equipped ? bold(`E* ${itemInfo.displayName}`) : itemInfo.displayName)
+                        .setLabel(itemInfo.equipped ? `[E] ${itemInfo.displayName}` : itemInfo.displayName)
                         .setStyle(ButtonStyle.Success)
                 )
             } else {
