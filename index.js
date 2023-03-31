@@ -57,6 +57,9 @@ var shopPages_equipmentDirectory = [];
 //
 //===================================================
 //===================================================
+process.on('unhandledRejection', error => {
+	console.error('Unhandled promise rejection:', error);
+});
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
