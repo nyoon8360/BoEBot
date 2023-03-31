@@ -43,10 +43,6 @@ var workingData = {}; //In-memory data
 //Shop pages and helper variables
 var shopPages_usables = [];
 var shopPages_others = [];
-/*
-index 1: head equipment
-index 2: ...
-*/
 var shopPages_equipment = [];
 var shopPages_equipmentDirectory = [];
 
