@@ -1,6 +1,6 @@
 [
     {
-        "version": "1.1.0 The Equipment Update",
+        "version": "1.1.0 The Equipment Update (WIP Ignore this :c)",
         "changes": [
             "-Added equipment inventory. Accessible by clicking on the Equips button in your usables inventory.",
             "-Bugfix: Added the ability to navigate pages in the usables inventory (woops)."
