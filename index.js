@@ -87,7 +87,9 @@ const client = new Client({
         IntentsBitField.Flags.GuildMessageReactions,
         IntentsBitField.Flags.DirectMessages,
         IntentsBitField.Flags.GuildScheduledEvents,
-        IntentsBitField.Flags.MessageContent
+        IntentsBitField.Flags.MessageContent,
+        IntentsBitField.Flags.GuildModeration,
+        IntentsBitField.Flags.GuildIntegrations
     ],
     sweepers: {
         ...Options.DefaultSweeperSettings,
