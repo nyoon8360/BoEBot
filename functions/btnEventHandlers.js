@@ -1,6 +1,7 @@
 const { ButtonStyle, time, ActionRowBuilder, ButtonBuilder, inlineCode, bold, underscore, EmbedBuilder, codeBlock } = require('discord.js');
 const fs = require('fs');
 const usables = require('../items/usables.json');
+const equipment = require('../items/equipment.json');
 const intEventTokens = require('../constants/intEventTokens.js');
 const config = require('../constants/configConsts.js');
 const uiBuilders = require('./uiBuilders.js');
@@ -109,8 +110,7 @@ function mainMenu_shop(interaction) {
             new ButtonBuilder()
                 .setCustomId(intEventTokens.shopCategoryPrefix + "equipment")
                 .setLabel("Equipment")
-                .setStyle(ButtonStyle.Danger)
-                .setDisabled(true),
+                .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
                 .setCustomId(intEventTokens.shopCategoryPrefix + "others")
                 .setLabel("Others")
@@ -285,6 +285,35 @@ function usablesShop_purchase(workingData, interaction, eventTokens) {
     });
 }
 
+function equipsShop_selectShelf(interaction, eventTokens) {
+    //get item's slot and name from event tokens
+    let itemSlot = eventTokens.shift();
+    let itemName = eventTokens.shift();
+
+    //get item display name
+    let itemInfo = equipment[itemSlot].find(entry => {
+        return entry.name == itemName;
+    });
+
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(intEventTokens.equipShopPurchaseMenuPrefix + "BACK-")
+                .setLabel("Back")
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId(intEventTokens.equipShopPurchaseMenuPrefix + "BUY-" + itemInfo.name)
+                .setLabel("Purchase")
+                .setStyle(ButtonStyle.Success)
+        );
+
+    interaction.update({
+        content: bold("=================\nEQUIPMENT SHOP\n=================") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock(`Description: ${itemInfo.description}\nEffect: ${itemInfo.effect}\nSlot: ${itemInfo.slot.charAt(0).toUpperCase() + itemInfo.slot.slice(1)}\nPrice: ${itemInfo.price} EB`),
+        components: [row],
+        ephemeral: true
+    });
+}
+
 function usablesInventory_selectSlot(workingData, interaction, eventTokens) {
     let itemName = eventTokens.shift();
     //get user data
@@ -318,5 +347,6 @@ function usablesInventory_selectSlot(workingData, interaction, eventTokens) {
 
 module.exports = {
     mainMenu_changelog, mainMenu_findTreasure, mainMenu_help, mainMenu_msgLeaderboard, mainMenu_openInv, mainMenu_shop, mainMenu_showStats, mainMenu_userLeaderboard,
-    usablesInventory_selectSlot, usablesShop_purchase, usablesShop_selectShelf
+    usablesInventory_selectSlot, usablesShop_purchase, usablesShop_selectShelf,
+    equipsShop_selectShelf
 }

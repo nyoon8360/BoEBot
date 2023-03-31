@@ -2,6 +2,7 @@ require('dotenv').config();
 const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, inlineCode, bold, underscore, Options, EmbedBuilder, codeBlock, TextInputBuilder, TextInputStyle, MentionableSelectMenuBuilder, userMention, ModalBuilder, UserSelectMenuBuilder, ChannelSelectMenuBuilder, ChannelType, DiscordAPIError } = require('discord.js');
 const fs = require('fs');
 const usables = require('./items/usables.json');
+const equipment = require('./items/equipment.json');
 const changelog = require('./changelog.json');
 const intEventTokens = require('./constants/intEventTokens.js');
 const config = require('./constants/configConsts.js');
@@ -110,6 +111,7 @@ index 1: head equipment
 index 2: ...
 */
 var shopPages_equipment = [];
+var shopPages_equipmentDirectory = [];
 
 //===================================================
 //===================================================
@@ -217,6 +219,52 @@ client.on('ready', () => {
         }
         shopPages_usables.push(newPage);
     }
+
+    //populate equipment shop pages
+    //create and populate equipment directory
+    for (let index = 0; index < (equipment.head.length > 0 ? Math.ceil(equipment.head.length / (config.equipsShopItemsPerRow * 4)) : 1); index++) {
+        shopPages_equipmentDirectory.push(["head", index]);
+    }
+
+    for (let index = 0; index < (equipment.body.length > 0 ? Math.ceil(equipment.body.length / (config.equipsShopItemsPerRow * 4)) : 1); index++) {
+        shopPages_equipmentDirectory.push(["body", index]);
+    }
+
+    for (let index = 0; index < (equipment.trinket.length > 0 ? Math.ceil(equipment.trinket.length / (config.equipsShopItemsPerRow * 4)) : 1); index++) {
+        shopPages_equipmentDirectory.push(["trinket", index]);
+    }
+
+    for (let index = 0; index < (equipment.shoes.length > 0 ? Math.ceil(equipment.shoes.length / (config.equipsShopItemsPerRow * 4)) : 1); index++) {
+        shopPages_equipmentDirectory.push(["shoes", index]);
+    }
+
+    shopPages_equipmentDirectory.forEach((dirEntry) => {
+        let page = [];
+        for (let rowIndex = 0; rowIndex < 4; rowIndex ++) {
+            let row = new ActionRowBuilder();
+            for (let slotIndex = 0; slotIndex < config.equipsShopItemsPerRow; slotIndex++) {
+                if (equipment[dirEntry[0]][ ((4 * config.equipsShopItemsPerRow) * dirEntry[1]) + (rowIndex * config.equipsShopItemsPerRow) + slotIndex] != undefined) {
+                    let itemInfo = equipment[dirEntry[0]][ ((4 * config.equipsShopItemsPerRow) * dirEntry[1]) + (rowIndex * config.equipsShopItemsPerRow) + slotIndex];
+                    row.addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(intEventTokens.equipShopSelectShelfPrefix + `${itemInfo.slot}-${itemInfo.name}`)
+                            .setLabel(`${itemInfo.displayName}|${itemInfo.price}`)
+                            .setStyle(ButtonStyle.Success)
+                    )
+                } else {
+                    row.addComponents(
+                        new ButtonBuilder()
+                            .setLabel("Empty Space")
+                            .setCustomId(intEventTokens.equipShopSelectShelfPrefix + "EMPTYSPACE-" + dirEntry.toString() + ((4 * config.equipsShopItemsPerRow) + (rowIndex * config.equipsShopItemsPerRow) + slotIndex))
+                            .setStyle(ButtonStyle.Secondary)
+                            .setDisabled(true)
+                    )
+                }
+            }
+            page.push(row);
+        }
+        shopPages_equipment.push(page);
+    });
 
     //Set interval for autosaving workingData to json database files
     setInterval(() => {
@@ -340,6 +388,7 @@ client.on('messageCreate', (message) => {
             workingData[message.guildId].users.forEach(obj => {
                 let updatedEntry = utils.getNewUserJSON("","");
                 updatedEntry = Object.assign(updatedEntry, obj);
+                /*
                 if (updatedEntry.equipmentInventory.length <= 0) {
                     updatedEntry = Object.assign(updatedEntry, {equipmentInventory: {
                         head: [],
@@ -348,6 +397,7 @@ client.on('messageCreate', (message) => {
                         shoes: []
                     }});
                 }
+                */
                 updatedUsersList.push(updatedEntry);
             });
             workingData[message.guildId].users = updatedUsersList;
@@ -687,7 +737,7 @@ client.on('interactionCreate', async (interaction) => {
                     break;
                 
                 case "equipment":
-                    //TODO: implement equipment store
+                    interaction.update(uiBuilder.equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, 0));
                     break;
     
                 case "others":
@@ -727,10 +777,6 @@ client.on('interactionCreate', async (interaction) => {
             }
             break;
 
-        //Equipment shop select shelf events 
-        case intEventTokens.equipShopSelectShelfPrefix.slice(0, -1):
-            break;
-
         case intEventTokens.changelogNavPrefix.slice(0, -1):
             switch(eventTokens.shift()){
                 case "PREV":
@@ -740,6 +786,32 @@ client.on('interactionCreate', async (interaction) => {
                 case "NEXT":
                     interaction.update(uiBuilder.changelogUI(parseInt(eventTokens.shift()) + 1));
                     break;
+            }
+            break;
+
+        case intEventTokens.equipShopNavPagesPrefix.slice(0, -1):
+            switch (eventTokens.shift()) {
+                case "prev":
+                    interaction.update(uiBuilder.equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, parseInt(eventTokens.shift()) - 1));
+                    break;
+
+                case "next":
+                    interaction.update(uiBuilder.equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, parseInt(eventTokens.shift()) + 1));
+                    break;
+            }
+            break;
+
+        //Equipment shop select shelf events 
+        case intEventTokens.equipShopSelectShelfPrefix.slice(0, -1):
+            btnEventHandlers.equipsShop_selectShelf(interaction, eventTokens);
+            break;
+
+        case intEventTokens.equipShopPurchaseMenuPrefix.slice(0, -1):
+            if (eventTokens.shift() == "BACK") {
+                //Open page 1 of the usables shop if the BACK button is pressed in an item's purchase window
+                interaction.update(uiBuilder.equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, 0));
+            } else {
+                //TODO: implement purchasing equipment handler
             }
             break;
     }
