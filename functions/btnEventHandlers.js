@@ -302,15 +302,74 @@ function equipsShop_selectShelf(interaction, eventTokens) {
                 .setLabel("Back")
                 .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
-                .setCustomId(intEventTokens.equipShopPurchaseMenuPrefix + "BUY-" + itemInfo.name)
+                .setCustomId(intEventTokens.equipShopPurchaseMenuPrefix + "BUY-" + itemInfo.slot + "-" + itemInfo.name)
                 .setLabel("Purchase")
                 .setStyle(ButtonStyle.Success)
         );
 
     interaction.update({
-        content: bold("=================\nEQUIPMENT SHOP\n=================") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock(`Description: ${itemInfo.description}\nEffect: ${itemInfo.effect}\nSlot: ${itemInfo.slot.charAt(0).toUpperCase() + itemInfo.slot.slice(1)}\nPrice: ${itemInfo.price} EB`),
+        content: bold("==================\nEQUIPMENT SHOP\n==================") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock(`Description: ${itemInfo.description}\nEffect: ${itemInfo.effect}\nSlot: ${itemInfo.slot.charAt(0).toUpperCase() + itemInfo.slot.slice(1)}\nPrice: ${itemInfo.price} EB`),
         components: [row],
         ephemeral: true
+    });
+}
+
+function equipsShop_purchase(workingData, interaction, eventTokens) {
+    //get item name and slot from eventTokens
+    let itemSlot = eventTokens.shift();
+    let itemName = eventTokens.shift();
+
+    //fetch item and customer info
+    let itemInfo = equipment[itemSlot].find(obj => {
+        return obj.name == itemName;
+    });
+
+    let customer = workingData[interaction.guildId].users.find(obj => {
+        return obj.id == interaction.user.id;
+    });
+
+    //do a balance check for the customer
+    if (customer.balance < itemInfo.price) {
+        interaction.reply({
+            content: "Insufficient Edbucks!",
+            ephemeral: true
+        });
+        return;
+    }
+
+    //do a possession check to make sure user doesnt already have the item.
+    let existingItem = customer.equipmentInventory[itemSlot].find(obj => {
+        return obj.name == itemName;
+    });
+
+    if (existingItem) {
+        interaction.reply({
+            content: "You already have this equipment!",
+            ephemeral: true
+        });
+        return;
+    }
+
+    //deduct balance and give customer the purchased item(s)
+    customer.balance -= itemInfo.price;
+
+    let newItemEntry = {...itemInfo};
+    newItemEntry.equipped = false;
+    customer.equipmentInventory[itemSlot].push(newItemEntry);
+
+    //create and update UI to purchased complete screen
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(intEventTokens.equipShopPurchaseMenuPrefix + "BACK-")
+                .setStyle(ButtonStyle.Danger)
+                .setLabel("Back")
+        )
+
+    interaction.update({
+        content: bold("===================\nPurchase Complete!\n===================\nObtained " + itemInfo.displayName + ".\nLost " + itemInfo.price + " EB."),
+        ephemeral: true,
+        components: [row]
     });
 }
 
@@ -348,5 +407,5 @@ function usablesInventory_selectSlot(workingData, interaction, eventTokens) {
 module.exports = {
     mainMenu_changelog, mainMenu_findTreasure, mainMenu_help, mainMenu_msgLeaderboard, mainMenu_openInv, mainMenu_shop, mainMenu_showStats, mainMenu_userLeaderboard,
     usablesInventory_selectSlot, usablesShop_purchase, usablesShop_selectShelf,
-    equipsShop_selectShelf
+    equipsShop_selectShelf, equipsShop_purchase
 }

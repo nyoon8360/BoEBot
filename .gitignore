@@ -9,5 +9,6 @@ node_modules/
 #ignore database files
 database*.json
 
-#ignore userDataEntryPlanner.json
+#ignore files only used for dev purposes
 userDataEntryPlanner.json
+statsAndEffects.txt

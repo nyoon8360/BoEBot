@@ -811,7 +811,7 @@ client.on('interactionCreate', async (interaction) => {
                 //Open page 1 of the usables shop if the BACK button is pressed in an item's purchase window
                 interaction.update(uiBuilder.equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, 0));
             } else {
-                //TODO: implement purchasing equipment handler
+                btnEventHandlers.equipsShop_purchase(workingData, interaction, eventTokens);
             }
             break;
     }

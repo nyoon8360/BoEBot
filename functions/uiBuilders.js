@@ -163,7 +163,7 @@ function equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, pagenum
     let dirEntry = shopPages_equipmentDirectory[pagenum];
 
     return {
-        content: bold("=================\nEQUIPMENT SHOP\n=================") + `\n${underscore(dirEntry[0].charAt(0).toUpperCase() + dirEntry[0].slice(1) + " " + (dirEntry[1] + 1))}`,
+        content: bold("==================\nEQUIPMENT SHOP\n==================") + `\n${underscore(dirEntry[0].charAt(0).toUpperCase() + dirEntry[0].slice(1) + " " + (dirEntry[1] + 1))}`,
         components: shopPage,
         ephemeral: true
     }

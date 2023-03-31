@@ -1,7 +1,8 @@
 [
     {
-        "version": "1.1.0 The Equipment Update (WIP Ignore this :c)",
+        "version": "1.1.0 The Equipment Update",
         "changes": [
+            "-Added equipment shop. Accessible by clicking on the Equipment button in the shop category UI.",
             "-Added equipment inventory. Accessible by clicking on the Equips button in your usables inventory.",
             "-Bugfix: Added the ability to navigate pages in the usables inventory (woops)."
         ]
