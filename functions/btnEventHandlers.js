@@ -111,8 +111,7 @@ function mainMenu_shop(interaction) {
             new ButtonBuilder()
                 .setCustomId(intEventTokens.shopCategoryPrefix + "equipment")
                 .setLabel("Equipment")
-                .setStyle(ButtonStyle.Danger)
-                .setDisabled(true),
+                .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
                 .setCustomId(intEventTokens.shopCategoryPrefix + "others")
                 .setLabel("Others")

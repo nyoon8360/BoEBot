@@ -689,11 +689,11 @@ client.on('interactionCreate', async (interaction) => {
             //Navigate pages of usables shop
 
             switch(eventTokens.shift()) {
-                case "prev":
+                case "PREV":
                     interaction.update(uiBuilder.usablesShopUI(shopPages_usables, parseInt(eventTokens.shift()) - 1));
                     break;
 
-                case "next":
+                case "NEXT":
                     interaction.update(uiBuilder.usablesShopUI(shopPages_usables, parseInt(eventTokens.shift()) + 1));
                     break;
             }
@@ -723,11 +723,11 @@ client.on('interactionCreate', async (interaction) => {
 
         case intEventTokens.equipShopNavPagesPrefix.slice(0, -1):
             switch (eventTokens.shift()) {
-                case "prev":
+                case "PREV":
                     interaction.update(uiBuilder.equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, parseInt(eventTokens.shift()) - 1));
                     break;
 
-                case "next":
+                case "NEXT":
                     interaction.update(uiBuilder.equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, parseInt(eventTokens.shift()) + 1));
                     break;
             }
