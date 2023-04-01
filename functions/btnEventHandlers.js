@@ -150,6 +150,11 @@ ${underscore('How To Use Purchased Items')}
 1. Access your inventory through the "Open Inventory" button.
 2. Click on the item you want to use.
 3. Select the user you want to use the item on from the drop down menu.
+
+${underscore('What Is Equipment?')}
+- Equipment are items you can equip that provide you unique effects.
+- You have a Head, Body, Trinket, and Shoes slot which can each hold one piece of equipment.
+- Equipment items are unique meaning you can only have one copy of each piece of equipment in your inventory.
         `,
         ephemeral: true
     });
