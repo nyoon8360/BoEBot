@@ -265,7 +265,7 @@ function equipsInvUI(workingData, interaction, pageNum) {
                 let itemInfo = accessingUser.equipmentInventory[dirEntry[0]][ ((4 * config.equipsInvItemsPerRow) * dirEntry[1]) + (rowIndex * config.equipsInvItemsPerRow) + slotIndex];
                 row.addComponents(
                     new ButtonBuilder()
-                        .setCustomId(intEventTokens.playerEquipsInvSelectSlotPrefix + itemInfo.name)
+                        .setCustomId(intEventTokens.playerEquipsInvSelectSlotPrefix + itemInfo.slot + "-" + itemInfo.name)
                         .setLabel(itemInfo.equipped ? `[E] ${itemInfo.displayName}` : itemInfo.displayName)
                         .setStyle(ButtonStyle.Success)
                 )

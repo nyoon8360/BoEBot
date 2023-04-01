@@ -746,6 +746,10 @@ client.on('interactionCreate', async (interaction) => {
                 btnEventHandlers.equipsShop_purchase(workingData, interaction, eventTokens);
             }
             break;
+
+        case intEventTokens.playerEquipsInvSelectSlotPrefix.slice(0, -1):
+            btnEventHandlers.equipsInventory_selectSlot(workingData, interaction, eventTokens);
+            break;
     }
 });
 

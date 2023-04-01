@@ -404,8 +404,40 @@ function usablesInventory_selectSlot(workingData, interaction, eventTokens) {
     });
 }
 
+function equipsInventory_selectSlot(workingData, interaction, eventTokens) {
+    let itemSlot = eventTokens.shift();
+    let itemName = eventTokens.shift();
+    //get user data
+    let accessingUser = workingData[interaction.guildId].users.find(obj => {
+        return obj.id == interaction.user.id;
+    });
+
+    //get item display name
+    let itemInfo = accessingUser.equipmentInventory[itemSlot].find(entry => {
+        return entry.name == itemName;
+    });
+
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(intEventTokens.playerEquipsInvInfoPrefix + "BACK-")
+                .setLabel("Back")
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId(intEventTokens.playerEquipsInvInfoPrefix + "EQUIP-" + itemInfo.name)
+                .setLabel(itemInfo.equipped ? "Unequip" : "Equip")
+                .setStyle(itemInfo.equipped ? ButtonStyle.Secondary :ButtonStyle.Success)
+        );
+
+    interaction.update({
+        content: bold("================\nEquips Inventory\n================") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock("Description: " + itemInfo.description + "\nEffect: " + itemInfo.effect + "\nSlot: " + `${itemInfo.slot.charAt(0).toUpperCase() + itemInfo.slot.slice(1)}`),
+        components: [row],
+        ephemeral: true
+    });
+}
+
 module.exports = {
     mainMenu_changelog, mainMenu_findTreasure, mainMenu_help, mainMenu_msgLeaderboard, mainMenu_openInv, mainMenu_shop, mainMenu_showStats, mainMenu_userLeaderboard,
     usablesInventory_selectSlot, usablesShop_purchase, usablesShop_selectShelf,
-    equipsShop_selectShelf, equipsShop_purchase
+    equipsShop_selectShelf, equipsShop_purchase, equipsInventory_selectSlot
 }
