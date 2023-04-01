@@ -18,7 +18,7 @@
         "displayName": "Goose With a Knife",
         "description": "An intimidating goose with beady soul-less eyes, a worn-down knife, and an insatiable thirst for violence. Send him out to mug someone.",
         "effect": "Steals a random item from a specified user.",
-        "price": 12
+        "price": 11
     },
     {
         "name": "item_polymorph",
@@ -53,6 +53,6 @@
         "displayName": "150 Tech-savy Apes",
         "description": "Hire 150 tech-savy apes to DDOS the discord servers. They accept payments in edbucks, bananas, Madagascan treasury bonds, and Bored-ape Yacht Club NFTs.",
         "effect": "Lowers the bitrate of the voice channel you are in for 20 seconds.",
-        "price": 25
+        "price": 18
     }
 ]
