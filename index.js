@@ -750,6 +750,18 @@ client.on('interactionCreate', async (interaction) => {
         case intEventTokens.playerEquipsInvSelectSlotPrefix.slice(0, -1):
             btnEventHandlers.equipsInventory_selectSlot(workingData, interaction, eventTokens);
             break;
+
+        case intEventTokens.playerEquipsInvInfoPrefix.slice(0, -1) :
+            switch(eventTokens.shift()) {
+                case "BACK":
+                    interaction.update(uiBuilder.equipsInvUI(workingData, interaction, 0));
+                    break;
+
+                case "EQUIP":
+                    btnEventHandlers.equipsInventory_toggleEquip(workingData, interaction, eventTokens);
+                    break;
+            }
+            break;
     }
 });
 

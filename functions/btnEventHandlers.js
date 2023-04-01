@@ -5,6 +5,7 @@ const equipment = require('../items/equipment.json');
 const intEventTokens = require('../constants/intEventTokens.js');
 const config = require('../constants/configConsts.js');
 const uiBuilders = require('./uiBuilders.js');
+const { workerData } = require('worker_threads');
 
 //===================================================
 //===================================================
@@ -424,7 +425,53 @@ function equipsInventory_selectSlot(workingData, interaction, eventTokens) {
                 .setLabel("Back")
                 .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
-                .setCustomId(intEventTokens.playerEquipsInvInfoPrefix + "EQUIP-" + itemInfo.name)
+                .setCustomId(intEventTokens.playerEquipsInvInfoPrefix + "EQUIP-" + `${itemInfo.slot}-${itemInfo.name}`)
+                .setLabel(itemInfo.equipped ? "Unequip" : "Equip")
+                .setStyle(itemInfo.equipped ? ButtonStyle.Secondary :ButtonStyle.Success)
+        );
+
+    interaction.update({
+        content: bold("================\nEquips Inventory\n================") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock("Description: " + itemInfo.description + "\nEffect: " + itemInfo.effect + "\nSlot: " + `${itemInfo.slot.charAt(0).toUpperCase() + itemInfo.slot.slice(1)}`),
+        components: [row],
+        ephemeral: true
+    });
+}
+
+function equipsInventory_toggleEquip(workingData, interaction, eventTokens) {
+    let itemSlot = eventTokens.shift();
+    let itemName = eventTokens.shift();
+    //get user data
+    let accessingUser = workingData[interaction.guildId].users.find(obj => {
+        return obj.id == interaction.user.id;
+    });
+
+    //get item information
+    let itemInfo = accessingUser.equipmentInventory[itemSlot].find(entry => {
+        return entry.name == itemName;
+    });
+
+    //check if the toggled equip slot already has an item in it
+    let existingEquippedItem = accessingUser.equipmentInventory[itemSlot].find(obj => {
+        return obj.equipped == true;
+    });
+
+    if (itemInfo.equipped) {
+        itemInfo.equipped = false;
+    } else if (existingEquippedItem) {
+        existingEquippedItem.equipped = false;
+        itemInfo.equipped = true;
+    } else {
+        itemInfo.equipped = true;
+    }
+
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(intEventTokens.playerEquipsInvInfoPrefix + "BACK-")
+                .setLabel("Back")
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId(intEventTokens.playerEquipsInvInfoPrefix + "EQUIP-" + `${itemInfo.slot}-${itemInfo.name}`)
                 .setLabel(itemInfo.equipped ? "Unequip" : "Equip")
                 .setStyle(itemInfo.equipped ? ButtonStyle.Secondary :ButtonStyle.Success)
         );
@@ -439,5 +486,5 @@ function equipsInventory_selectSlot(workingData, interaction, eventTokens) {
 module.exports = {
     mainMenu_changelog, mainMenu_findTreasure, mainMenu_help, mainMenu_msgLeaderboard, mainMenu_openInv, mainMenu_shop, mainMenu_showStats, mainMenu_userLeaderboard,
     usablesInventory_selectSlot, usablesShop_purchase, usablesShop_selectShelf,
-    equipsShop_selectShelf, equipsShop_purchase, equipsInventory_selectSlot
+    equipsShop_selectShelf, equipsShop_purchase, equipsInventory_selectSlot, equipsInventory_toggleEquip
 }
