@@ -461,7 +461,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
 
             //check and update msg leaderboard
             let messageScore = messageReaction.message.reactions.cache.find(obj => {
-                return obj.emoji.name == currencyEmojiName;
+                return obj.emoji.name == config.currencyEmojiName;
             }).count;
 
             //if the message's edbuck reaction count is greater than or equal to the current leaderboard floor then update leaderboard
@@ -500,7 +500,6 @@ client.on('messageReactionAdd', (messageReaction, user) => {
                             break;
                         }
                     }
-
                     if (replaceIndex < config.msgLeaderboardLimit) {
                         let leaderboardEntry = {
                             id: messageReaction.message.id,
