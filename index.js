@@ -461,7 +461,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
 
             //check and update msg leaderboard
             let messageScore = messageReaction.message.reactions.cache.find(obj => {
-                return obj.emoji.name == currencyEmojiName;
+                return obj.emoji.name == config.currencyEmojiName;
             }).count;
 
             //if the message's edbuck reaction count is greater than or equal to the current leaderboard floor then update leaderboard
@@ -500,7 +500,6 @@ client.on('messageReactionAdd', (messageReaction, user) => {
                             break;
                         }
                     }
-
                     if (replaceIndex < config.msgLeaderboardLimit) {
                         let leaderboardEntry = {
                             id: messageReaction.message.id,
@@ -689,11 +688,11 @@ client.on('interactionCreate', async (interaction) => {
             //Navigate pages of usables shop
 
             switch(eventTokens.shift()) {
-                case "prev":
+                case "PREV":
                     interaction.update(uiBuilder.usablesShopUI(shopPages_usables, parseInt(eventTokens.shift()) - 1));
                     break;
 
-                case "next":
+                case "NEXT":
                     interaction.update(uiBuilder.usablesShopUI(shopPages_usables, parseInt(eventTokens.shift()) + 1));
                     break;
             }
@@ -723,11 +722,11 @@ client.on('interactionCreate', async (interaction) => {
 
         case intEventTokens.equipShopNavPagesPrefix.slice(0, -1):
             switch (eventTokens.shift()) {
-                case "prev":
+                case "PREV":
                     interaction.update(uiBuilder.equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, parseInt(eventTokens.shift()) - 1));
                     break;
 
-                case "next":
+                case "NEXT":
                     interaction.update(uiBuilder.equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, parseInt(eventTokens.shift()) + 1));
                     break;
             }

@@ -109,7 +109,7 @@ function usablesShopUI(shopPages_usables, pagenum) {
     let pageNavRow = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intEventTokens.usablesShopNavPagesPrefix + "prev-" + pagenum)
+                .setCustomId(intEventTokens.usablesShopNavPagesPrefix + "PREV-" + pagenum)
                 .setLabel("Prev")
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(!(pagenum > 0)),
@@ -119,7 +119,7 @@ function usablesShopUI(shopPages_usables, pagenum) {
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(true),
             new ButtonBuilder()
-                .setCustomId(intEventTokens.usablesShopNavPagesPrefix + "next-" + pagenum)
+                .setCustomId(intEventTokens.usablesShopNavPagesPrefix + "NEXT-" + pagenum)
                 .setLabel("Next")
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(!((shopPages_usables.length - 1) > pagenum))
@@ -141,7 +141,7 @@ function equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, pagenum
     let pageNavRow = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intEventTokens.equipShopNavPagesPrefix + "prev-" + pagenum)
+                .setCustomId(intEventTokens.equipShopNavPagesPrefix + "PREV-" + pagenum)
                 .setLabel("Prev")
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(!(pagenum > 0)),
@@ -151,7 +151,7 @@ function equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, pagenum
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(true),
             new ButtonBuilder()
-                .setCustomId(intEventTokens.equipShopNavPagesPrefix + "next-" + pagenum)
+                .setCustomId(intEventTokens.equipShopNavPagesPrefix + "NEXT-" + pagenum)
                 .setLabel("Next")
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(!((shopPages_equipment.length - 1) > pagenum))
