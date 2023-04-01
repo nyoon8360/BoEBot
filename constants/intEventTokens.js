@@ -15,6 +15,8 @@ module.exports = Object.freeze({
 
     //Equip shop tokens
     equipShopSelectShelfPrefix: "EQUIPSHOPSELECTSHELF-",
+    equipShopPurchaseMenuPrefix: "EQUIPSHOPPURCHASEMENU-",
+    equipShopNavPagesPrefix: "EQUIPSHOPNAVPAGES-",
 
     //Others shop tokens
     otherShopSelectShelfPrefix: "OTHERSHOPSELECTSHELF-",

@@ -1,8 +1,11 @@
 [
     {
-        "version": "1.1.0 The Equipment Update (WIP Ignore this :c)",
+        "version": "1.1.0 The Equipment Update (WIP Ignore this x-x)",
         "changes": [
+            "-Added equipment as a new type of item that provide unique effects.",
+            "-Added equipment shop. Accessible by clicking on the Equipment button in the shop category UI.",
             "-Added equipment inventory. Accessible by clicking on the Equips button in your usables inventory.",
+            "-Added a section on equipment to the help menu.",
             "-Bugfix: Added the ability to navigate pages in the usables inventory (woops)."
         ]
     },
@@ -19,7 +22,8 @@
             "-HOTFIX: You can no longer use Duct Tape on users not in a voice call.",
             "-HOTFIX: Fixed issue causing status effect durations not to be set.",
             "-HOTFIX: Fixed issue causing shop to crash the bot.",
-            "-HOTFIX: Fixed issue causing items not to work properly."
+            "-HOTFIX: Fixed issue causing items not to work properly.",
+            "-HOTFIX: Fixed issue causing crash when using items not in inventory/on self/ or on a target not in VC if item relies on it."
         ]
     },
     {

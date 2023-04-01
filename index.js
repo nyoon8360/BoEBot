@@ -1,8 +1,8 @@
 require('dotenv').config();
-const { Client, IntentsBitField, ButtonStyle, time, ActionRowBuilder, ButtonBuilder, inlineCode, bold, underscore, Options, EmbedBuilder, codeBlock, TextInputBuilder, TextInputStyle, MentionableSelectMenuBuilder, userMention, ModalBuilder, UserSelectMenuBuilder, ChannelSelectMenuBuilder, ChannelType, DiscordAPIError } = require('discord.js');
+const { Client, IntentsBitField, ButtonStyle, ActionRowBuilder, ButtonBuilder, Options} = require('discord.js');
 const fs = require('fs');
 const usables = require('./items/usables.json');
-const changelog = require('./changelog.json');
+const equipment = require('./items/equipment.json');
 const intEventTokens = require('./constants/intEventTokens.js');
 const config = require('./constants/configConsts.js');
 const { usableItemsFunctionalities } = require('./functions/itemFunctions.js');
@@ -11,70 +11,8 @@ const utils = require('./functions/utils.js');
 const btnEventHandlers = require('./functions/btnEventHandlers.js');
 
 /*
-axios for easy HTTP promises with node.js
 dotenv for loading environment variables from .env file
 fs for reading/writing/editing json files
-
-database.json format:
-{
-    "users": [
-        {
-            "tag":"string with discord user's tag i.e 'inspirasian#1234'",
-            "balance": 0,
-            "lastAwarded": 1678310667 this will be a number using epoch unix timestamp in seconds,
-            "itemInventory": [
-                {
-                    "name": "item_kick",
-                    "count": 0
-                }
-            ],
-            "equipmentInventory": {
-                head: [
-                    {
-                        ...: ...,
-                        equipped: false
-                    }
-                ],
-                body: [],
-                trinket: [],
-                shoes: []
-            },
-            "equipped": [
-                {
-                    "slot": "head",
-                    "name": "mirror_ring",
-                    "effectingStat": "reflect",
-                    "effectAmount": 5
-                }
-            ],
-            settings: {
-                "usablesPerInventoryRow": 5
-            },
-            statusEffects: [
-                {
-                    name: "Reflect",
-                    expires: 1456346124 this number will be an epoch timestamp in seconds
-                }
-            ]
-        }
-    ],
-    "msgLeaderboard": [
-        {
-            "msgId": "123215422542",
-        }
-    ],
-    "msgLeaderboardFloor": 0
-}
-
-[Equips]
- |
- V
-head, body, accessory, shoes
-[bold("E* item1")] [Item2] [Item3]
-[Item1] [Item2] [Item3]
-[Item1] [Item2] [Item3]
-[Item1] [Item2] [Item3]
-[Prev] [Equips] [Next]
 */
 
 // NOTE: Make sure to update intents if new events not in current intents are needed to be listened to
@@ -105,11 +43,8 @@ var workingData = {}; //In-memory data
 //Shop pages and helper variables
 var shopPages_usables = [];
 var shopPages_others = [];
-/*
-index 1: head equipment
-index 2: ...
-*/
 var shopPages_equipment = [];
+var shopPages_equipmentDirectory = [];
 
 //===================================================
 //===================================================
@@ -118,6 +53,9 @@ var shopPages_equipment = [];
 //
 //===================================================
 //===================================================
+process.on('unhandledRejection', error => {
+	console.error('Unhandled promise rejection:', error);
+});
 
 client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
@@ -217,6 +155,51 @@ client.on('ready', () => {
         }
         shopPages_usables.push(newPage);
     }
+    //populate equipment shop directory
+    for (let index = 0; index < (equipment.head.length > 0 ? Math.ceil(equipment.head.length / (config.equipsShopItemsPerRow * 4)) : 1); index++) {
+        shopPages_equipmentDirectory.push(["head", index]);
+    }
+
+    for (let index = 0; index < (equipment.body.length > 0 ? Math.ceil(equipment.body.length / (config.equipsShopItemsPerRow * 4)) : 1); index++) {
+        shopPages_equipmentDirectory.push(["body", index]);
+    }
+
+    for (let index = 0; index < (equipment.trinket.length > 0 ? Math.ceil(equipment.trinket.length / (config.equipsShopItemsPerRow * 4)) : 1); index++) {
+        shopPages_equipmentDirectory.push(["trinket", index]);
+    }
+
+    for (let index = 0; index < (equipment.shoes.length > 0 ? Math.ceil(equipment.shoes.length / (config.equipsShopItemsPerRow * 4)) : 1); index++) {
+        shopPages_equipmentDirectory.push(["shoes", index]);
+    }
+
+    //populate equipment shop pages
+    shopPages_equipmentDirectory.forEach((dirEntry) => {
+        let page = [];
+        for (let rowIndex = 0; rowIndex < 4; rowIndex ++) {
+            let row = new ActionRowBuilder();
+            for (let slotIndex = 0; slotIndex < config.equipsShopItemsPerRow; slotIndex++) {
+                if (equipment[dirEntry[0]][ ((4 * config.equipsShopItemsPerRow) * dirEntry[1]) + (rowIndex * config.equipsShopItemsPerRow) + slotIndex] != undefined) {
+                    let itemInfo = equipment[dirEntry[0]][ ((4 * config.equipsShopItemsPerRow) * dirEntry[1]) + (rowIndex * config.equipsShopItemsPerRow) + slotIndex];
+                    row.addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(intEventTokens.equipShopSelectShelfPrefix + `${itemInfo.slot}-${itemInfo.name}`)
+                            .setLabel(`${itemInfo.displayName}|${itemInfo.price}`)
+                            .setStyle(ButtonStyle.Success)
+                    )
+                } else {
+                    row.addComponents(
+                        new ButtonBuilder()
+                            .setLabel("Empty Space")
+                            .setCustomId(intEventTokens.equipShopSelectShelfPrefix + "EMPTYSPACE-" + dirEntry.toString() + ((4 * config.equipsShopItemsPerRow) + (rowIndex * config.equipsShopItemsPerRow) + slotIndex))
+                            .setStyle(ButtonStyle.Secondary)
+                            .setDisabled(true)
+                    )
+                }
+            }
+            page.push(row);
+        }
+        shopPages_equipment.push(page);
+    });
 
     //Set interval for autosaving workingData to json database files
     setInterval(() => {
@@ -282,12 +265,10 @@ client.on('messageCreate', (message) => {
     let curDate = new Date(Date.now());
     switch(message.content.substring(1)) {
         case "spawnmenu":
-
             message.channel.send(uiBuilder.menuUI()).then(msg => {
                 workingData[message.guildId].activeMenuId = msg.id;
                 workingData[message.guildId].activeMenuChannelId = msg.channelId;
             });
-
             break;
 
         case "save":
@@ -318,7 +299,6 @@ client.on('messageCreate', (message) => {
                         workingData[guildId] = newData;
                     } else {
                         //read data from json database file and assign it to workingData var synchronously
-        
                         workingData[guildId] = JSON.parse(fs.readFileSync("./database" + guildId + ".json"));
                     }
                 } catch(error) {
@@ -340,6 +320,7 @@ client.on('messageCreate', (message) => {
             workingData[message.guildId].users.forEach(obj => {
                 let updatedEntry = utils.getNewUserJSON("","");
                 updatedEntry = Object.assign(updatedEntry, obj);
+                /*
                 if (updatedEntry.equipmentInventory.length <= 0) {
                     updatedEntry = Object.assign(updatedEntry, {equipmentInventory: {
                         head: [],
@@ -348,6 +329,7 @@ client.on('messageCreate', (message) => {
                         shoes: []
                     }});
                 }
+                */
                 updatedUsersList.push(updatedEntry);
             });
             workingData[message.guildId].users = updatedUsersList;
@@ -687,7 +669,7 @@ client.on('interactionCreate', async (interaction) => {
                     break;
                 
                 case "equipment":
-                    //TODO: implement equipment store
+                    interaction.update(uiBuilder.equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, 0));
                     break;
     
                 case "others":
@@ -727,10 +709,6 @@ client.on('interactionCreate', async (interaction) => {
             }
             break;
 
-        //Equipment shop select shelf events 
-        case intEventTokens.equipShopSelectShelfPrefix.slice(0, -1):
-            break;
-
         case intEventTokens.changelogNavPrefix.slice(0, -1):
             switch(eventTokens.shift()){
                 case "PREV":
@@ -739,6 +717,48 @@ client.on('interactionCreate', async (interaction) => {
 
                 case "NEXT":
                     interaction.update(uiBuilder.changelogUI(parseInt(eventTokens.shift()) + 1));
+                    break;
+            }
+            break;
+
+        case intEventTokens.equipShopNavPagesPrefix.slice(0, -1):
+            switch (eventTokens.shift()) {
+                case "prev":
+                    interaction.update(uiBuilder.equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, parseInt(eventTokens.shift()) - 1));
+                    break;
+
+                case "next":
+                    interaction.update(uiBuilder.equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, parseInt(eventTokens.shift()) + 1));
+                    break;
+            }
+            break;
+
+        //Equipment shop select shelf events 
+        case intEventTokens.equipShopSelectShelfPrefix.slice(0, -1):
+            btnEventHandlers.equipsShop_selectShelf(interaction, eventTokens);
+            break;
+
+        case intEventTokens.equipShopPurchaseMenuPrefix.slice(0, -1):
+            if (eventTokens.shift() == "BACK") {
+                //Open page 1 of the usables shop if the BACK button is pressed in an item's purchase window
+                interaction.update(uiBuilder.equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, 0));
+            } else {
+                btnEventHandlers.equipsShop_purchase(workingData, interaction, eventTokens);
+            }
+            break;
+
+        case intEventTokens.playerEquipsInvSelectSlotPrefix.slice(0, -1):
+            btnEventHandlers.equipsInventory_selectSlot(workingData, interaction, eventTokens);
+            break;
+
+        case intEventTokens.playerEquipsInvInfoPrefix.slice(0, -1) :
+            switch(eventTokens.shift()) {
+                case "BACK":
+                    interaction.update(uiBuilder.equipsInvUI(workingData, interaction, 0));
+                    break;
+
+                case "EQUIP":
+                    btnEventHandlers.equipsInventory_toggleEquip(workingData, interaction, eventTokens);
                     break;
             }
             break;

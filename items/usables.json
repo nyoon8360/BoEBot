@@ -23,7 +23,7 @@
     {
         "name": "item_polymorph",
         "displayName": "Semi-permanent Nametag",
-        "description": "A giant ass \"Hello My Name Is\" nametag with a heaping glob of mousetrap glue on the back.",
+        "description": "A giant \"Hello My Name Is\" nametag with a heaping glob of mousetrap glue on the back.",
         "effect": "Changes the nickname of a specified user and enforces it for 10 minutes.",
         "price": 22
     },

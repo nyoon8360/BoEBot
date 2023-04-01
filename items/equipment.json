@@ -2,16 +2,32 @@
     "head": [
         
     ],
+    "body": [
+
+    ],
     "trinket": [
         {
             "name": "equip_mirrorRing",
             "displayName": "Mirror Ring",
-            "lore": "A ring with a small mirror on it. Your opponent has got to have god awful aim to ever accidentally hit this.",
-            "description": "Gives a 5% chance to reflect any item used on you back to the user.",
+            "description": "A ring with a small mirror on it. Your opponent has got to have god awful aim to ever accidentally hit this.",
+            "effect": "Gives a 5% chance to reflect any item used on you back to the user.",
             "slot": "trinket",
             "effectingStat": "reflect",
             "effectAmount": 5,
-            "price": 30
+            "price": 120
+        },
+        {
+            "name": "equip_dummyRing",
+            "displayName": "Dummy Ring",
+            "description": "A ring with a small mirror on it. Your opponent has got to have god awful aim to ever accidentally hit this.",
+            "effect": "Gives a 5% chance to reflect any item used on you back to the user.",
+            "slot": "trinket",
+            "effectingStat": "reflect",
+            "effectAmount": 5,
+            "price": 120
         }
+    ],
+    "shoes": [
+
     ]
 }

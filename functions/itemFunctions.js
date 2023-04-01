@@ -2,6 +2,7 @@ const { ButtonStyle, time, ActionRowBuilder, ButtonBuilder, underscore, EmbedBui
 const intEventTokens = require('../constants/intEventTokens.js');
 const config = require('../constants/configConsts.js');
 const utils = require('./utils.js');
+const uiBuilders = require('./uiBuilders.js');
 
 //===================================================
 //===================================================
@@ -48,7 +49,7 @@ itemFunctionMap.set('item_kick', (client, workingData, interaction, eventTokens)
         });
 
         if (usedItemInvEntryIndex < 0) {
-            notifDontHaveItem(interaction);
+            uiBuilders.notifDontHaveItem(interaction);
             return;
         }
 
@@ -57,13 +58,13 @@ itemFunctionMap.set('item_kick', (client, workingData, interaction, eventTokens)
 
         //prevent self use
         if (targetMemberObj.user.id == casterData.id) {
-            notifCantSelfUse(interaction);
+            uiBuilders.notifCantSelfUse(interaction);
             return;
         }
 
         //prevent use on someone not in VC
         if (!targetMemberObj.voice.channelId) {
-            notifTargetNotInVC(interaction);
+            uiBuilders.notifTargetNotInVC(interaction);
             return;
         }
 
@@ -151,13 +152,13 @@ itemFunctionMap.set('item_mute', (client, workingData, interaction, eventTokens)
 
         //prevent self use
         if (targetMemberObj.user.id == interaction.user.id) {
-            notifCantSelfUse(interaction);
+            uiBuilders.notifCantSelfUse(interaction);
             return;
         }
 
         //prevent use on someone not in VC
         if (!targetMemberObj.voice.channelId) {
-            notifTargetNotInVC(interaction);
+            uiBuilders.notifTargetNotInVC(interaction);
             return;
         }
 
@@ -167,7 +168,7 @@ itemFunctionMap.set('item_mute', (client, workingData, interaction, eventTokens)
         });
 
         if (itemEntryIndex < 0) {
-            notifDontHaveItem(interaction);
+            uiBuilders.notifDontHaveItem(interaction);
             return;
         }
 
@@ -287,7 +288,7 @@ itemFunctionMap.set('item_steal', (client, workingData, interaction, eventTokens
 
         //prevent self use
         if (targetMemberObject.user.id == interaction.user.id) {
-            notifCantSelfUse(interaction);
+            uiBuilders.notifCantSelfUse(interaction);
             return;
         }
 
@@ -301,7 +302,7 @@ itemFunctionMap.set('item_steal', (client, workingData, interaction, eventTokens
         });
 
         if (itemEntryIndex < 0) {
-            notifDontHaveItem(interaction);
+            uiBuilders.notifDontHaveItem(interaction);
             return;
         }
 
@@ -476,7 +477,7 @@ itemFunctionMap.set('item_polymorph', (client, workingData, interaction, eventTo
 
                 //prevent self use
                 if (target.user.id == interaction.user.id) {
-                    notifCantSelfUse(interaction);
+                    uiBuilders.notifCantSelfUse(interaction);
                     return;
                 }
 
@@ -490,7 +491,7 @@ itemFunctionMap.set('item_polymorph', (client, workingData, interaction, eventTo
                 });
 
                 if (itemEntryIndex < 0) {
-                    notifDontHaveItem(interaction);
+                    uiBuilders.notifDontHaveItem(interaction);
                     return;
                 }
 
@@ -573,7 +574,7 @@ itemFunctionMap.set('item_reflect', (client, workingData, interaction, eventToke
     });
 
     if (itemEntryIndex < 0) {
-        notifDontHaveItem(interaction);
+        uiBuilders.notifDontHaveItem(interaction);
         return;
     }
 
@@ -639,7 +640,7 @@ itemFunctionMap.set('item_expose', (client, workingData, interaction, eventToken
         });
 
         if (itemEntryIndex < 0) {
-            notifDontHaveItem(interaction);
+            uiBuilders.notifDontHaveItem(interaction);
             return;
         }
 
@@ -756,7 +757,7 @@ itemFunctionMap.set('item_edwindinner', (client, workingData, interaction, event
 
         //prevent self use
         if (target.user.id == interaction.user.id) {
-            notifCantSelfUse(interaction);
+            uiBuilders.notifCantSelfUse(interaction);
             return;
         }
 
@@ -770,7 +771,7 @@ itemFunctionMap.set('item_edwindinner', (client, workingData, interaction, event
         });
 
         if (itemEntryIndex < 0) {
-            notifDontHaveItem(interaction);
+            uiBuilders.notifDontHaveItem(interaction);
             return;
         }
 
@@ -855,7 +856,7 @@ itemFunctionMap.set('item_emp', (client, workingData, interaction, eventTokens) 
         });
 
         if (itemEntryIndex < 0) {
-            notifDontHaveItem(interaction);
+            uiBuilders.notifDontHaveItem(interaction);
             return;
         }
 

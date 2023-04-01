@@ -1,9 +1,11 @@
 const { ButtonStyle, time, ActionRowBuilder, ButtonBuilder, inlineCode, bold, underscore, EmbedBuilder, codeBlock } = require('discord.js');
 const fs = require('fs');
 const usables = require('../items/usables.json');
+const equipment = require('../items/equipment.json');
 const intEventTokens = require('../constants/intEventTokens.js');
 const config = require('../constants/configConsts.js');
 const uiBuilders = require('./uiBuilders.js');
+const { workerData } = require('worker_threads');
 
 //===================================================
 //===================================================
@@ -109,8 +111,7 @@ function mainMenu_shop(interaction) {
             new ButtonBuilder()
                 .setCustomId(intEventTokens.shopCategoryPrefix + "equipment")
                 .setLabel("Equipment")
-                .setStyle(ButtonStyle.Danger)
-                .setDisabled(true),
+                .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
                 .setCustomId(intEventTokens.shopCategoryPrefix + "others")
                 .setLabel("Others")
@@ -149,6 +150,11 @@ ${underscore('How To Use Purchased Items')}
 1. Access your inventory through the "Open Inventory" button.
 2. Click on the item you want to use.
 3. Select the user you want to use the item on from the drop down menu.
+
+${underscore('What Is Equipment?')}
+- Equipment are items you can equip that provide you unique effects.
+- You have a Head, Body, Trinket, and Shoes slot which can each hold one piece of equipment.
+- Equipment items are unique meaning you can only have one copy of each piece of equipment in your inventory.
         `,
         ephemeral: true
     });
@@ -285,6 +291,94 @@ function usablesShop_purchase(workingData, interaction, eventTokens) {
     });
 }
 
+function equipsShop_selectShelf(interaction, eventTokens) {
+    //get item's slot and name from event tokens
+    let itemSlot = eventTokens.shift();
+    let itemName = eventTokens.shift();
+
+    //get item display name
+    let itemInfo = equipment[itemSlot].find(entry => {
+        return entry.name == itemName;
+    });
+
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(intEventTokens.equipShopPurchaseMenuPrefix + "BACK-")
+                .setLabel("Back")
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId(intEventTokens.equipShopPurchaseMenuPrefix + "BUY-" + itemInfo.slot + "-" + itemInfo.name)
+                .setLabel("Purchase")
+                .setStyle(ButtonStyle.Success)
+        );
+
+    interaction.update({
+        content: bold("==================\nEQUIPMENT SHOP\n==================") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock(`Description: ${itemInfo.description}\nEffect: ${itemInfo.effect}\nSlot: ${itemInfo.slot.charAt(0).toUpperCase() + itemInfo.slot.slice(1)}\nPrice: ${itemInfo.price} EB`),
+        components: [row],
+        ephemeral: true
+    });
+}
+
+function equipsShop_purchase(workingData, interaction, eventTokens) {
+    //get item name and slot from eventTokens
+    let itemSlot = eventTokens.shift();
+    let itemName = eventTokens.shift();
+
+    //fetch item and customer info
+    let itemInfo = equipment[itemSlot].find(obj => {
+        return obj.name == itemName;
+    });
+
+    let customer = workingData[interaction.guildId].users.find(obj => {
+        return obj.id == interaction.user.id;
+    });
+
+    //do a balance check for the customer
+    if (customer.balance < itemInfo.price) {
+        interaction.reply({
+            content: "Insufficient Edbucks!",
+            ephemeral: true
+        });
+        return;
+    }
+
+    //do a possession check to make sure user doesnt already have the item.
+    let existingItem = customer.equipmentInventory[itemSlot].find(obj => {
+        return obj.name == itemName;
+    });
+
+    if (existingItem) {
+        interaction.reply({
+            content: "You already have this equipment!",
+            ephemeral: true
+        });
+        return;
+    }
+
+    //deduct balance and give customer the purchased item(s)
+    customer.balance -= itemInfo.price;
+
+    let newItemEntry = {...itemInfo};
+    newItemEntry.equipped = false;
+    customer.equipmentInventory[itemSlot].push(newItemEntry);
+
+    //create and update UI to purchased complete screen
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(intEventTokens.equipShopPurchaseMenuPrefix + "BACK-")
+                .setStyle(ButtonStyle.Danger)
+                .setLabel("Back")
+        )
+
+    interaction.update({
+        content: bold("===================\nPurchase Complete!\n===================\nObtained " + itemInfo.displayName + ".\nLost " + itemInfo.price + " EB."),
+        ephemeral: true,
+        components: [row]
+    });
+}
+
 function usablesInventory_selectSlot(workingData, interaction, eventTokens) {
     let itemName = eventTokens.shift();
     //get user data
@@ -316,7 +410,86 @@ function usablesInventory_selectSlot(workingData, interaction, eventTokens) {
     });
 }
 
+function equipsInventory_selectSlot(workingData, interaction, eventTokens) {
+    let itemSlot = eventTokens.shift();
+    let itemName = eventTokens.shift();
+    //get user data
+    let accessingUser = workingData[interaction.guildId].users.find(obj => {
+        return obj.id == interaction.user.id;
+    });
+
+    //get item display name
+    let itemInfo = accessingUser.equipmentInventory[itemSlot].find(entry => {
+        return entry.name == itemName;
+    });
+
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(intEventTokens.playerEquipsInvInfoPrefix + "BACK-")
+                .setLabel("Back")
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId(intEventTokens.playerEquipsInvInfoPrefix + "EQUIP-" + `${itemInfo.slot}-${itemInfo.name}`)
+                .setLabel(itemInfo.equipped ? "Unequip" : "Equip")
+                .setStyle(itemInfo.equipped ? ButtonStyle.Secondary :ButtonStyle.Success)
+        );
+
+    interaction.update({
+        content: bold("================\nEquips Inventory\n================") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock("Description: " + itemInfo.description + "\nEffect: " + itemInfo.effect + "\nSlot: " + `${itemInfo.slot.charAt(0).toUpperCase() + itemInfo.slot.slice(1)}`),
+        components: [row],
+        ephemeral: true
+    });
+}
+
+function equipsInventory_toggleEquip(workingData, interaction, eventTokens) {
+    let itemSlot = eventTokens.shift();
+    let itemName = eventTokens.shift();
+    //get user data
+    let accessingUser = workingData[interaction.guildId].users.find(obj => {
+        return obj.id == interaction.user.id;
+    });
+
+    //get item information
+    let itemInfo = accessingUser.equipmentInventory[itemSlot].find(entry => {
+        return entry.name == itemName;
+    });
+
+    //check if the toggled equip slot already has an item in it
+    let existingEquippedItem = accessingUser.equipmentInventory[itemSlot].find(obj => {
+        return obj.equipped == true;
+    });
+
+    if (itemInfo.equipped) {
+        itemInfo.equipped = false;
+    } else if (existingEquippedItem) {
+        existingEquippedItem.equipped = false;
+        itemInfo.equipped = true;
+    } else {
+        itemInfo.equipped = true;
+    }
+
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(intEventTokens.playerEquipsInvInfoPrefix + "BACK-")
+                .setLabel("Back")
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId(intEventTokens.playerEquipsInvInfoPrefix + "EQUIP-" + `${itemInfo.slot}-${itemInfo.name}`)
+                .setLabel(itemInfo.equipped ? "Unequip" : "Equip")
+                .setStyle(itemInfo.equipped ? ButtonStyle.Secondary :ButtonStyle.Success)
+        );
+
+    interaction.update({
+        content: bold("================\nEquips Inventory\n================") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock("Description: " + itemInfo.description + "\nEffect: " + itemInfo.effect + "\nSlot: " + `${itemInfo.slot.charAt(0).toUpperCase() + itemInfo.slot.slice(1)}`),
+        components: [row],
+        ephemeral: true
+    });
+}
+
 module.exports = {
     mainMenu_changelog, mainMenu_findTreasure, mainMenu_help, mainMenu_msgLeaderboard, mainMenu_openInv, mainMenu_shop, mainMenu_showStats, mainMenu_userLeaderboard,
-    usablesInventory_selectSlot, usablesShop_purchase, usablesShop_selectShelf
+    usablesInventory_selectSlot, usablesShop_purchase, usablesShop_selectShelf,
+    equipsShop_selectShelf, equipsShop_purchase, equipsInventory_selectSlot, equipsInventory_toggleEquip
 }

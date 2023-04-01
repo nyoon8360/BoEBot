@@ -135,6 +135,40 @@ function usablesShopUI(shopPages_usables, pagenum) {
     }
 }
 
+function equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, pagenum) {
+    if (pagenum > shopPages_equipment.length || pagenum < 0) pagenum = 0;
+
+    let pageNavRow = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(intEventTokens.equipShopNavPagesPrefix + "prev-" + pagenum)
+                .setLabel("Prev")
+                .setStyle(ButtonStyle.Primary)
+                .setDisabled(!(pagenum > 0)),
+            new ButtonBuilder()
+                .setCustomId(intEventTokens.equipShopNavPagesPrefix + "pagenum")
+                .setLabel("Page " + (pagenum + 1))
+                .setStyle(ButtonStyle.Primary)
+                .setDisabled(true),
+            new ButtonBuilder()
+                .setCustomId(intEventTokens.equipShopNavPagesPrefix + "next-" + pagenum)
+                .setLabel("Next")
+                .setStyle(ButtonStyle.Primary)
+                .setDisabled(!((shopPages_equipment.length - 1) > pagenum))
+        );
+    
+    let shopPage = [...shopPages_equipment[pagenum]];
+    shopPage.push(pageNavRow);
+
+    let dirEntry = shopPages_equipmentDirectory[pagenum];
+
+    return {
+        content: bold("==================\nEQUIPMENT SHOP\n==================") + `\n${underscore(dirEntry[0].charAt(0).toUpperCase() + dirEntry[0].slice(1) + " " + (dirEntry[1] + 1))}`,
+        components: shopPage,
+        ephemeral: true
+    }
+}
+
 //UI builder for usables inventory
 function usablesInvUI(workingData, interaction, pageNum) {
     //get accessing user's data
@@ -231,8 +265,8 @@ function equipsInvUI(workingData, interaction, pageNum) {
                 let itemInfo = accessingUser.equipmentInventory[dirEntry[0]][ ((4 * config.equipsInvItemsPerRow) * dirEntry[1]) + (rowIndex * config.equipsInvItemsPerRow) + slotIndex];
                 row.addComponents(
                     new ButtonBuilder()
-                        .setCustomId(intEventTokens.playerEquipsInvSelectSlotPrefix + itemInfo.name)
-                        .setLabel(itemInfo.equipped ? bold(`E* ${itemInfo.displayName}`) : itemInfo.displayName)
+                        .setCustomId(intEventTokens.playerEquipsInvSelectSlotPrefix + itemInfo.slot + "-" + itemInfo.name)
+                        .setLabel(itemInfo.equipped ? `[E] ${itemInfo.displayName}` : itemInfo.displayName)
                         .setStyle(ButtonStyle.Success)
                 )
             } else {
@@ -395,5 +429,5 @@ function notifDontHaveItem() {
 }
 
 module.exports = {
-    menuUI, usablesInvUI, equipsInvUI, usablesShopUI, changelogUI, userLeaderboardUI, notifCantSelfUse, notifDontHaveItem, notifTargetNotInVC
+    menuUI, usablesInvUI, equipsInvUI, equipsShopUI, usablesShopUI, changelogUI, userLeaderboardUI, notifCantSelfUse, notifDontHaveItem, notifTargetNotInVC
 }
