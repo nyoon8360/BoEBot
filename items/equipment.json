@@ -1,30 +1,49 @@
 {
     "head": [
-        
+        {
+            "name": "equip_tinFoilHat",
+            "displayName": "Tin Foil Hat",
+            "description": "A very shiny and very reflective tin foil hat.",
+            "effect": "Gives a 10% chance to reflect any item used on you back to the user.",
+            "slot": "trinket",
+            "effectingStat": "reflect",
+            "effectAmount": 5,
+            "price": 50
+        }
     ],
     "body": [
 
     ],
     "trinket": [
         {
-            "name": "equip_mirrorRing",
-            "displayName": "Mirror Ring",
-            "description": "A ring with a small mirror on it. Your opponent has got to have god awful aim to ever accidentally hit this.",
-            "effect": "Gives a 5% chance to reflect any item used on you back to the user.",
+            "name": "equip_WIP1",
+            "displayName": "WIP1",
+            "description": "WIP1",
+            "effect": "Gives a 25% chance to double edbucks gained when clicking the Pickup Edbucks button.",
             "slot": "trinket",
-            "effectingStat": "reflect",
-            "effectAmount": 5,
-            "price": 120
+            "effectingStat": "treasureLuck",
+            "effectAmount": 25,
+            "price": 60
         },
         {
-            "name": "equip_dummyRing",
-            "displayName": "Dummy Ring",
-            "description": "A ring with a small mirror on it. Your opponent has got to have god awful aim to ever accidentally hit this.",
-            "effect": "Gives a 5% chance to reflect any item used on you back to the user.",
+            "name": "equip_WIP2",
+            "displayName": "WIP2",
+            "description": "WIP2",
+            "effect": "Gives a 25% chance to gain 1 extra edbuck when awarded for being in an active voice chat.",
             "slot": "trinket",
-            "effectingStat": "reflect",
-            "effectAmount": 5,
-            "price": 120
+            "effectingStat": "vocalLuck",
+            "effectAmount": 25,
+            "price": 100
+        },
+        {
+            "name": "equip_WIP3",
+            "displayName": "WIP3",
+            "description": "WIP3",
+            "effect": "Gain 1 extra edbuck when receiving a valid edbuck reaction on your message.",
+            "slot": "trinket",
+            "effectingStat": "reactionBonus",
+            "effectAmount": 1,
+            "price": 150
         }
     ],
     "shoes": [

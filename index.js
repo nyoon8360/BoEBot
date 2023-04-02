@@ -548,7 +548,6 @@ client.on('interactionCreate', async (interaction) => {
     let eventTokens = interaction.customId.split("-");
 
     //handlers for main menu interaction events
-
     switch (eventTokens.shift()) {
         //Main menu events
         case intEventTokens.mainMenuPrefix.slice(0, -1):
