@@ -318,6 +318,7 @@ client.on('messageCreate', (message) => {
         case "updateuserprops":
             let updatedUsersList = [];
             workingData[message.guildId].users.forEach(obj => {
+                let settingsArr = utils.getNewUserJSON("", "").settings;
                 let updatedEntry = utils.getNewUserJSON("","");
                 updatedEntry = Object.assign(updatedEntry, obj);
                 /*
@@ -330,6 +331,17 @@ client.on('messageCreate', (message) => {
                     }});
                 }
                 */
+                //TODO: delete this one if block after running once
+                if (!Array.isArray(updatedEntry.settings)) {
+                    updatedEntry.settings = settingsArr;
+                }
+
+                if (updatedEntry.settings.length < settingsArr.length) {
+                    for (index = updatedEntry.settings.length; index < settingsArr.length; index ++) {
+                        updatedEntry.settings.push(settingsArr[index]);
+                    }
+                }
+
                 updatedUsersList.push(updatedEntry);
             });
             workingData[message.guildId].users = updatedUsersList;
@@ -588,6 +600,7 @@ client.on('interactionCreate', async (interaction) => {
                     break;
 
                 case "settings":
+                    btnEventHandlers.mainMenu_settings(workingData, interaction);
                     break;
 
                 case "changelog":
@@ -760,6 +773,23 @@ client.on('interactionCreate', async (interaction) => {
                     btnEventHandlers.equipsInventory_toggleEquip(workingData, interaction, eventTokens);
                     break;
             }
+            break;
+
+        case intEventTokens.settingsNavPrefix.slice(0, -1):
+            switch(eventTokens.shift()) {
+                case "NEXT":
+                    interaction.update(uiBuilder.settingsUI(workingData, interaction, parseInt(eventTokens.shift()) + 1));
+                    break;
+
+                case "PREV":
+                    interaction.update(uiBuilder.settingsUI(workingData, interaction, parseInt(eventTokens.shift()) - 1));
+                    break;
+            }
+
+            break;
+
+        case intEventTokens.settingsEditValuePrefix.slice(0, -1):
+            //TODO: implement changing your settings
             break;
     }
 });

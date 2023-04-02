@@ -82,8 +82,7 @@ function menuUI(tButtonDisabled) {
             .setCustomId(intEventTokens.mainMenuPrefix + 'settings-')
             .setLabel('Settings')
             .setStyle(ButtonStyle.Secondary)
-            .setEmoji('⚙️')
-            .setDisabled(true),
+            .setEmoji('⚙️'),
         new ButtonBuilder()
             .setCustomId(intEventTokens.mainMenuPrefix + 'changelog-')
             .setLabel('Changelog')
@@ -100,6 +99,67 @@ function menuUI(tButtonDisabled) {
         content: bold('============\nMAIN MENU\n============'),
         components: [row1, row2, row3, row4]
     };
+}
+
+function settingsUI(workingData, interaction, pagenum) {
+    //get user settings
+    let userSettings = workingData[interaction.guildId].users.find(obj => {
+        return obj.id == interaction.user.id;
+    }).settings;
+
+    let msgContent = bold(`==========\nSETTINGS\n==========\n`);
+
+    for (index = pagenum*4; index < (pagenum + 1) * 4; index++) {
+        if (index < userSettings.length) {
+            msgContent += underscore(userSettings[index].description) + "\n";
+            msgContent += `[${index - (pagenum*4) + 1}]: ${typeof userSettings[index].value == "boolean" ? userSettings[index].value ? "Yes" : "No" : userSettings[index].value}\n\n`
+        } else {
+            break;
+        }
+    }
+
+    let row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(`${intEventTokens.settingsEditValuePrefix}${pagenum * 4}`)
+            .setLabel("Setting 1")
+            .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+            .setCustomId(`${intEventTokens.settingsEditValuePrefix}${(pagenum * 4) + 1}`)
+            .setLabel("Setting 2")
+            .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+            .setCustomId(`${intEventTokens.settingsEditValuePrefix}${(pagenum * 4) + 2}`)
+            .setLabel("Setting 3")
+            .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+            .setCustomId(`${intEventTokens.settingsEditValuePrefix}${(pagenum * 4) + 3}`)
+            .setLabel("Setting 4")
+            .setStyle(ButtonStyle.Success),
+    )
+
+    let navRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(intEventTokens.settingsNavPrefix + "PREV-" + pagenum)
+            .setLabel("Prev")
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(pagenum <= 0),
+        new ButtonBuilder()
+            .setCustomId(intEventTokens.settingsNavPrefix + "PAGENUM")
+            .setLabel("Page " + (pagenum + 1))
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(true),
+        new ButtonBuilder()
+            .setCustomId(intEventTokens.settingsNavPrefix + "NEXT-" + pagenum)
+            .setLabel("Next")
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(pagenum >= Math.ceil(userSettings.length / 4) - 1),
+    )
+
+    return {
+        content: msgContent,
+        components: [row, navRow],
+        ephemeral: true
+    }
 }
 
 //UI builder for usables shop
@@ -429,5 +489,5 @@ function notifDontHaveItem() {
 }
 
 module.exports = {
-    menuUI, usablesInvUI, equipsInvUI, equipsShopUI, usablesShopUI, changelogUI, userLeaderboardUI, notifCantSelfUse, notifDontHaveItem, notifTargetNotInVC
+    menuUI, settingsUI, usablesInvUI, equipsInvUI, equipsShopUI, usablesShopUI, changelogUI, userLeaderboardUI, notifCantSelfUse, notifDontHaveItem, notifTargetNotInVC
 }

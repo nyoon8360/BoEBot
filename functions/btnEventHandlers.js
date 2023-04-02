@@ -160,6 +160,10 @@ ${underscore('What Is Equipment?')}
     });
 }
 
+function mainMenu_settings(workingData, interaction) {
+    interaction.reply(uiBuilders.settingsUI(workingData, interaction, 0));
+}
+
 function mainMenu_userLeaderboard(workingData, interaction) {
     interaction.reply(uiBuilders.userLeaderboardUI(workingData, interaction, 0));
 }
@@ -489,7 +493,7 @@ function equipsInventory_toggleEquip(workingData, interaction, eventTokens) {
 }
 
 module.exports = {
-    mainMenu_changelog, mainMenu_findTreasure, mainMenu_help, mainMenu_msgLeaderboard, mainMenu_openInv, mainMenu_shop, mainMenu_showStats, mainMenu_userLeaderboard,
+    mainMenu_changelog, mainMenu_findTreasure, mainMenu_help, mainMenu_msgLeaderboard, mainMenu_openInv, mainMenu_shop, mainMenu_showStats, mainMenu_userLeaderboard, mainMenu_settings,
     usablesInventory_selectSlot, usablesShop_purchase, usablesShop_selectShelf,
     equipsShop_selectShelf, equipsShop_purchase, equipsInventory_selectSlot, equipsInventory_toggleEquip
 }

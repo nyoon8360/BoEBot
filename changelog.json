@@ -12,7 +12,7 @@
         ]
     },
     {
-        "version": "1.0.3 Backend Update",
+        "version": "1.0.3 Backend Update (Basically a Hotfix Update now .-.)",
         "changes": [
             "-Increased the failed steal compensation from 1 to 3.",
             "-Added prices to usables store shelf buttons.",

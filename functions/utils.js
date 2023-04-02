@@ -26,7 +26,22 @@ function getNewUserJSON(userTag, userId) {
         },
         statusEffects: [],
         equipped: {},
-        settings: {},
+        settings: [
+            /*
+            NOTE: ALWAYS add new settings to the END of the settings array to ensure user settings
+            are properly updated on startup.
+            */
+            {
+                name: "pingOnTargetted",
+                description: "Get pinged when targetted by item.",
+                value: false
+            },
+            {
+            name: "userBirthday",
+            description: "Birthday",
+            value: ""
+            }
+        ],
         fStatReactionsAwarded: 0,
         fStatReactionsReceived: 0,
         fStatItemsUsed: 0,

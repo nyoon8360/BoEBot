@@ -10,5 +10,4 @@ node_modules/
 database*.json
 
 #ignore files only used for dev purposes
-userDataEntryPlanner.json
-statsAndEffects.txt
+/devfiles
