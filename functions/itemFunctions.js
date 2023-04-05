@@ -1,4 +1,4 @@
-const { ButtonStyle, time, ActionRowBuilder, ButtonBuilder, underscore, EmbedBuilder, TextInputBuilder, TextInputStyle, MentionableSelectMenuBuilder, userMention, ModalBuilder, UserSelectMenuBuilder, ChannelSelectMenuBuilder, ChannelType } = require('discord.js');
+const { ButtonStyle, time, ActionRowBuilder, ButtonBuilder, underscore, EmbedBuilder, TextInputBuilder, TextInputStyle, userMention, ModalBuilder, UserSelectMenuBuilder, ChannelSelectMenuBuilder, ChannelType } = require('discord.js');
 const intEventTokens = require('../constants/intEventTokens.js');
 const config = require('../constants/configConsts.js');
 const utils = require('./utils.js');
@@ -50,7 +50,7 @@ itemFunctionMap.set('item_kick', (client, workingData, interaction, eventTokens)
         });
 
         if (usedItemInvEntryIndex < 0) {
-            interaction.update(uiBuilders.notifDontHaveItem(interaction));
+            interaction.update(uiBuilders.notifDontHaveItem());
             return;
         }
 
@@ -60,13 +60,13 @@ itemFunctionMap.set('item_kick', (client, workingData, interaction, eventTokens)
 
         //prevent self use
         if (targetMemberObj.user.id == casterData.id) {
-            interaction.update(uiBuilders.notifCantSelfUse(interaction));
+            interaction.update(uiBuilders.notifCantSelfUse());
             return;
         }
         
         //prevent use on someone not in VC
         if (!targetMemberObj.voice.channelId) {
-            interaction.update(uiBuilders.notifTargetNotInVC(interaction));
+            interaction.update(uiBuilders.notifTargetNotInVC());
             return;
         }
 
@@ -176,9 +176,15 @@ itemFunctionMap.set('item_mute', (client, workingData, interaction, eventTokens)
             return;
         }
 
+        //prevent use on bot
+        if (targetMemberObj.user.bot) {
+            interaction.update(uiBuilders.notifCantUseOnBot());
+            return;
+        }
+
         //prevent use on someone not in VC
         if (!targetMemberObj.voice.channelId) {
-            interaction.update(uiBuilders.notifTargetNotInVC(interaction));
+            interaction.update(uiBuilders.notifTargetNotInVC());
             return;
         }
 
@@ -188,7 +194,7 @@ itemFunctionMap.set('item_mute', (client, workingData, interaction, eventTokens)
         });
 
         if (itemEntryIndex < 0) {
-            interaction.update(uiBuilders.notifDontHaveItem(interaction));
+            interaction.update(uiBuilders.notifDontHaveItem());
             return;
         }
 
@@ -308,15 +314,21 @@ itemFunctionMap.set('item_steal', (client, workingData, interaction, eventTokens
         let casterStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, interaction.user.id);
 
         //get target data and stats/effects
-        let targetMemberObject = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
+        let targetMemberObj = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
         let targetData = workingData[interaction.guildId].users.find(obj => {
             return obj.id == interaction.values[0];
         });
         let targetStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, interaction.user.id);
 
         //prevent self use
-        if (targetMemberObject.user.id == interaction.user.id) {
-            interaction.update(uiBuilders.notifCantSelfUse(interaction));
+        if (targetMemberObj.user.id == interaction.user.id) {
+            interaction.update(uiBuilders.notifCantSelfUse());
+            return;
+        }
+
+        //prevent use on bot
+        if (targetMemberObj.user.bot) {
+            interaction.update(uiBuilders.notifCantUseOnBot());
             return;
         }
 
@@ -326,7 +338,7 @@ itemFunctionMap.set('item_steal', (client, workingData, interaction, eventTokens
         });
 
         if (itemEntryIndex < 0) {
-            interaction.update(uiBuilders.notifDontHaveItem(interaction));
+            interaction.update(uiBuilders.notifDontHaveItem());
             return;
         }
 
@@ -467,146 +479,145 @@ itemFunctionMap.set('item_steal', (client, workingData, interaction, eventTokens
 
 itemFunctionMap.set('item_polymorph', (client, workingData, interaction, eventTokens) => {
     let nextToken = eventTokens.shift();
-            if (!nextToken) {
-                //select polymorph target
-                let row = new ActionRowBuilder()
-                    .addComponents(
-                        new UserSelectMenuBuilder()
-                            .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "USE-" + "item_polymorph-" + "targetted")
-                            .setMinValues(1)
-                            .setMaxValues(1)
-                            .setPlaceholder("Choose a target.")
-                    )
+    if (!nextToken) {
+        //select polymorph target
+        let row = new ActionRowBuilder()
+            .addComponents(
+                new UserSelectMenuBuilder()
+                    .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "USE-" + "item_polymorph-" + "targetted")
+                    .setMinValues(1)
+                    .setMaxValues(1)
+                    .setPlaceholder("Choose a target.")
+            )
 
-                interaction.update({
-                    content: underscore("Select a target for: Semi-permanent Nametag"),
-                    components: [row],
-                    ephemeral: true
-                });
+        interaction.update({
+            content: underscore("Select a target for: Semi-permanent Nametag"),
+            components: [row],
+            ephemeral: true
+        });
 
-            } else if (nextToken == "targetted") {
-                //input polymorph name
-                let modal = new ModalBuilder()
-                    .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "USE-" + "item_polymorph-" + interaction.values[0])
-                    .setTitle("Semi-permanent Nametag")
-                    .addComponents(
-                    new ActionRowBuilder().addComponents(
-                        new TextInputBuilder()
-                            .setCustomId("newNickname")
-                            .setStyle(TextInputStyle.Short)
-                            .setLabel("New Nickname")
-                    )
-                )
+    } else if (nextToken == "targetted") {
+        //input polymorph name
+        let modal = new ModalBuilder()
+            .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "USE-" + "item_polymorph-" + interaction.values[0])
+            .setTitle("Semi-permanent Nametag")
+            .addComponents(
+            new ActionRowBuilder().addComponents(
+                new TextInputBuilder()
+                    .setCustomId("newNickname")
+                    .setStyle(TextInputStyle.Short)
+                    .setLabel("New Nickname")
+            )
+        )
 
-                interaction.showModal(modal);
-            } else {
-                //TODO: CURRENTLY HERE IN TERMS OF UPDATING ITEM CODE FOR STATS AND EFFECTS ALONG WITH ADDING interaction.update() TO NOTIFS
-                //get caster data and caster stats/effects
-                let casterData = workingData[interaction.guildId].users.find(obj => {
-                    return obj.id == interaction.user.id;
-                });
-                let casterStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, interaction.user.id);
-                let casterMemberObj = interaction.member;
+        interaction.showModal(modal);
+    } else {
+        //get caster data and caster stats/effects
+        let casterData = workingData[interaction.guildId].users.find(obj => {
+            return obj.id == interaction.user.id;
+        });
+        let casterStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, interaction.user.id);
+        let casterMemberObj = interaction.member;
 
-                //get target member obj, data, and stats/effects
-                let targetMemberObj = client.guilds.cache.get(interaction.guildId).members.cache.get(nextToken);
-                let targetData = workingData[interaction.guildId].users.find(obj => {
-                    return obj.id == targetMemberObj.user.id;
-                });
-                let targetStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, targetMemberObj.user.id);
+        //get target member obj, data, and stats/effects
+        let targetMemberObj = client.guilds.cache.get(interaction.guildId).members.cache.get(nextToken);
+        let targetData = workingData[interaction.guildId].users.find(obj => {
+            return obj.id == targetMemberObj.user.id;
+        });
+        let targetStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, targetMemberObj.user.id);
 
-                //get target and new nickname
-                let newNickname = interaction.fields.getTextInputValue('newNickname');
-                let target = client.guilds.cache.get(interaction.guildId).members.cache.get(nextToken);
+        //get target and new nickname
+        let newNickname = interaction.fields.getTextInputValue('newNickname');
+        let target = client.guilds.cache.get(interaction.guildId).members.cache.get(nextToken);
 
-                //prevent self use
-                if (targetMemberObj.user.id == casterMemberObj.user.id) {
-                    interaction.update(uiBuilders.notifCantSelfUse(interaction));
-                    return;
-                }
+        //prevent self use
+        if (targetMemberObj.user.id == casterMemberObj.user.id) {
+            interaction.update(uiBuilders.notifCantSelfUse());
+            return;
+        }
 
-                //check if caster still has item
-                let itemEntryIndex = casterData.itemInventory.findIndex(obj => {
-                    return obj.name == "item_polymorph";
-                });
+        //check if caster still has item
+        let itemEntryIndex = casterData.itemInventory.findIndex(obj => {
+            return obj.name == "item_polymorph";
+        });
 
-                if (itemEntryIndex < 0) {
-                    interaction.update(uiBuilders.notifDontHaveItem(interaction));
-                    return;
-                }
+        if (itemEntryIndex < 0) {
+            interaction.update(uiBuilders.notifDontHaveItem());
+            return;
+        }
 
-                //consume item
-                if (casterData.itemInventory[itemEntryIndex].count == 1) {
-                    casterData.itemInventory.splice(itemEntryIndex, 1);
-                } else {
-                    casterData.itemInventory[itemEntryIndex].count -= 1;
-                }
+        //consume item
+        if (casterData.itemInventory[itemEntryIndex].count == 1) {
+            casterData.itemInventory.splice(itemEntryIndex, 1);
+        } else {
+            casterData.itemInventory[itemEntryIndex].count -= 1;
+        }
 
-                //instantiate server/caster notification message
-                let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
-                let targetString = `${targetMemberObj.nickname ? `${targetMemberObj.nickname}(${targetMemberObj.user.tag})` : targetMemberObj.user.tag}`;
-                let sNotifMsg = `${casterString} has used a Semi-permanent Nametag with [${newNickname}] written on it on ${targetString}.`;
-                let cNotifMsg = "You've used Semi-permanent Nametag on " + userMention(nextToken) + ".";
+        //instantiate server/caster notification message
+        let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
+        let targetString = `${targetMemberObj.nickname ? `${targetMemberObj.nickname}(${targetMemberObj.user.tag})` : targetMemberObj.user.tag}`;
+        let sNotifMsg = `${casterString} has used a Semi-permanent Nametag with [${newNickname}] written on it on ${targetString}.`;
+        let cNotifMsg = "You've used Semi-permanent Nametag on " + userMention(nextToken) + ".";
 
-                //handle passed modifiers
-                let reflected = false;
-                targetStatsAndEffects.effects.forEach(effect => {
-                    switch (effect) {
-                        case "reflect":
-                            reflected = true;
-                            sNotifMsg = `${casterString} has used Semi-permanent Nametag with [${newNickname}] written on it on ${targetString} but it was reflected.`;
-                            cNotifMsg = "You've used Semi-permanent Nametag on " + userMention(nextToken) + " but it was reflected."
-                            break;
-                    }
-                });
-
-                if (targetStatsAndEffects.stats.reflectChance) {
+        //handle passed modifiers
+        let reflected = false;
+        targetStatsAndEffects.effects.forEach(effect => {
+            switch (effect) {
+                case "reflect":
                     reflected = true;
                     sNotifMsg = `${casterString} has used Semi-permanent Nametag with [${newNickname}] written on it on ${targetString} but it was reflected.`;
-                    cNotifMsg = "You've used Semi-permanent Nametag on " + userMention(nextToken) + " but it was reflected.";
-                };
-
-                if (casterStatsAndEffects.stats.usableCrit) {
-                    sNotifMsg += " The item crit!";
-                    cNotifMsg += " The item crit!";
-                }
-
-                //apply item effect
-                //apply polymorph status effect
-                let existingStatusEffect = (reflected ? casterData : targetData).statusEffects.find(obj => {
-                    return obj.name == "polymorph";
-                });
-
-                if (existingStatusEffect) {
-                    existingStatusEffect.expires = Math.floor(Date.now()/1000) + config.itemPolymorphDuration + (casterStatsAndEffects.stats.usableCrit * 240);
-                    existingStatusEffect.polyName = newNickname;
-                } else {
-                    targetData.statusEffects.push(utils.getStatusEffectObject("polymorph", Math.floor(Date.now()/1000) + config.itemPolymorphDuration + (casterStatsAndEffects.stats.usableCrit * 240), {polyName: newNickname}));
-                }
-
-                //enact item effects
-                (reflected ? casterMemberObj : targetMemberObj).setNickname(newNickname);
-
-                //send msg to notifs channel
-                interaction.member.guild.channels.cache.get(workingData[interaction.guildId].botNotifsChannelId).send({
-                    content: sNotifMsg
-                });
-
-                //update UI
-                let row = new ActionRowBuilder()
-                    .addComponents(
-                        new ButtonBuilder()
-                            .setLabel("Back")
-                            .setStyle(ButtonStyle.Danger)
-                            .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
-                    );
-                
-                interaction.update({
-                    content: cNotifMsg,
-                    components: [row],
-                    ephemeral: true
-                });
+                    cNotifMsg = "You've used Semi-permanent Nametag on " + userMention(nextToken) + " but it was reflected."
+                    break;
             }
+        });
+
+        if (targetStatsAndEffects.stats.reflectChance) {
+            reflected = true;
+            sNotifMsg = `${casterString} has used Semi-permanent Nametag with [${newNickname}] written on it on ${targetString} but it was reflected.`;
+            cNotifMsg = "You've used Semi-permanent Nametag on " + userMention(nextToken) + " but it was reflected.";
+        };
+
+        if (casterStatsAndEffects.stats.usableCrit) {
+            sNotifMsg += " The item crit!";
+            cNotifMsg += " The item crit!";
+        }
+
+        //apply item effect
+        //apply polymorph status effect
+        let existingStatusEffect = (reflected ? casterData : targetData).statusEffects.find(obj => {
+            return obj.name == "polymorph";
+        });
+
+        if (existingStatusEffect) {
+            existingStatusEffect.expires = Math.floor(Date.now()/1000) + config.itemPolymorphDuration + (casterStatsAndEffects.stats.usableCrit * 240);
+            existingStatusEffect.polyName = newNickname;
+        } else {
+            targetData.statusEffects.push(utils.getStatusEffectObject("polymorph", Math.floor(Date.now()/1000) + config.itemPolymorphDuration + (casterStatsAndEffects.stats.usableCrit * 240), {polyName: newNickname}));
+        }
+
+        //enact item effects
+        (reflected ? casterMemberObj : targetMemberObj).setNickname(newNickname);
+
+        //send msg to notifs channel
+        interaction.member.guild.channels.cache.get(workingData[interaction.guildId].botNotifsChannelId).send({
+            content: sNotifMsg
+        });
+
+        //update UI
+        let row = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setLabel("Back")
+                    .setStyle(ButtonStyle.Danger)
+                    .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
+            );
+        
+        interaction.update({
+            content: cNotifMsg,
+            components: [row],
+            ephemeral: true
+        });
+    }
 });
 
 itemFunctionMap.set('item_reflect', (client, workingData, interaction, eventTokens) => {
@@ -695,7 +706,13 @@ itemFunctionMap.set('item_expose', (client, workingData, interaction, eventToken
         });
 
         if (itemEntryIndex < 0) {
-            interaction.update(uiBuilders.notifDontHaveItem(interaction));
+            interaction.update(uiBuilders.notifDontHaveItem());
+            return;
+        }
+
+        //prevent use on bot
+        if (targetMemberObj.user.bot) {
+            interaction.update(uiBuilders.notifCantUseOnBot());
             return;
         }
 
@@ -790,7 +807,7 @@ itemFunctionMap.set('item_edwindinner', (client, workingData, interaction, event
         //select target
         let row = new ActionRowBuilder()
             .addComponents(
-                new MentionableSelectMenuBuilder()
+                new UserSelectMenuBuilder()
                     .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "USE-" + "item_edwindinner-" + "targetted")
                     .setMinValues(1)
                     .setMaxValues(1)
@@ -814,18 +831,25 @@ itemFunctionMap.set('item_edwindinner', (client, workingData, interaction, event
         let targetMemberObj = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
         let targetStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, targetMemberObj.user.id);
 
-        //prevent self use
-        if (targetMemberObj.user.id == interaction.user.id) {
-            interaction.update(uiBuilders.notifCantSelfUse(interaction));
+        //prevent use on bot
+        if (targetMemberObj.user.bot) {
+            interaction.update(uiBuilders.notifCantUseOnBot());
             return;
         }
 
+        //prevent self use
+        if (targetMemberObj.user.id == interaction.user.id) {
+            interaction.update(uiBuilders.notifCantSelfUse());
+            return;
+        }
+
+        //check if caster still has item
         let itemEntryIndex = casterData.itemInventory.findIndex(obj => {
             return obj.name == "item_edwindinner";
         });
 
         if (itemEntryIndex < 0) {
-            interaction.update(uiBuilders.notifDontHaveItem(interaction));
+            interaction.update(uiBuilders.notifDontHaveItem());
             return;
         }
 

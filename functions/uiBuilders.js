@@ -488,6 +488,23 @@ function notifDontHaveItem() {
     };
 }
 
+function notifCantUseOnBot() {
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setLabel("Back")
+                .setStyle(ButtonStyle.Danger)
+                .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
+        );
+    
+    return {
+        content: "You can't use this item on a bot!",
+        components: [row],
+        ephemeral: true
+    };
+}
+
 module.exports = {
-    menuUI, settingsUI, usablesInvUI, equipsInvUI, equipsShopUI, usablesShopUI, changelogUI, userLeaderboardUI, notifCantSelfUse, notifDontHaveItem, notifTargetNotInVC
+    menuUI, settingsUI, usablesInvUI, equipsInvUI, equipsShopUI, usablesShopUI, changelogUI, userLeaderboardUI,
+    notifCantSelfUse, notifDontHaveItem, notifTargetNotInVC, notifCantUseOnBot
 }
