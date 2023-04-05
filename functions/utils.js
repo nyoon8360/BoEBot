@@ -76,7 +76,7 @@ function checkStatsAndEffects(workingData, interaction, targetId) {
             vocalLuck: 0,
             reactionBonus: 0,
             usableCrit: 0,
-            usableDiscount: 0
+            usablesDiscount: 0
         }
     };
 

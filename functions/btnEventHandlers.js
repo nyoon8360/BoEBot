@@ -5,6 +5,7 @@ const equipment = require('../items/equipment.json');
 const intEventTokens = require('../constants/intEventTokens.js');
 const config = require('../constants/configConsts.js');
 const uiBuilders = require('./uiBuilders.js');
+const utils = require('./utils.js');
 const { workerData } = require('worker_threads');
 
 //===================================================
@@ -75,12 +76,21 @@ function mainMenu_findTreasure(workingData, interaction) {
         return obj.id == interaction.user.id;
     });
 
+    let userStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, interaction.user.id);
+
     let treasure = Math.round(Math.random() * (config.treasureUR - config.treasureLR)) + config.treasureLR;
+    let oTreasure = treasure;
+    let doubledMsg = "";
+    if (userStatsAndEffects.stats.treasureLuck) {
+        treasure *= 2;
+        doubledMsg = `\nThis amount was doubled for a total of ${treasure} edbucks!\n`;
+    }
+
     user.balance += treasure;
 
     interaction.reply({
         content: `
-You've found ${treasure} edbucks dropped by a wild Edwin!
+You've found ${oTreasure} edbucks dropped by a wild Edwin!
 All the local Edwins have been spooked back into hiding.
 Check back again later to see if they've come back!
         `,
@@ -211,12 +221,15 @@ function mainMenu_changelog(interaction) {
     interaction.reply(uiBuilders.changelogUI(0));
 }
 
-function usablesShop_selectShelf(interaction, eventTokens) {
+function usablesShop_selectShelf(workingData, interaction, eventTokens) {
     let itemName = eventTokens.shift();
     //get item display name
     let itemInfo = usables.find(entry => {
         return entry.name == itemName;
     });
+
+    //get user stats/effects
+    let shopperStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, interaction.user.id);
 
     let row = new ActionRowBuilder()
         .addComponents(
@@ -234,8 +247,11 @@ function usablesShop_selectShelf(interaction, eventTokens) {
                 .setStyle(ButtonStyle.Success),
         );
 
+    let msgContent = bold("===============\nUSABLES SHOP\n===============") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock(`Description: ${itemInfo.description}\nEffect: ${itemInfo.effect}${itemInfo.critEffect ? `\nCrit Effect: ${itemInfo.critEffect}` : ""}\nPrice: ${itemInfo.price} EB`);
+    msgContent += `\nDiscount: (${shopperStatsAndEffects.stats.usablesDiscount}%) ${itemInfo.price} -> ${shopperStatsAndEffects.stats.usablesDiscount ? Math.round(itemInfo.price * ((100 - shopperStatsAndEffects.stats.usablesDiscount) * .01)) :itemInfo.price}`;
+
     interaction.update({
-        content: bold("===============\nUSABLES SHOP\n===============") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock(`Description: ${itemInfo.description}\nEffect: ${itemInfo.effect}${itemInfo.critEffect ? `\nCrit Effect: ${itemInfo.critEffect}` : ""}\nPrice: ${itemInfo.price} EB`),
+        content: msgContent,
         components: [row],
         ephemeral: true
     });
@@ -253,11 +269,18 @@ function usablesShop_purchase(workingData, interaction, eventTokens) {
         return obj.id == interaction.user.id;
     });
 
+    let customerStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, interaction.user.id);
+    let finalPrice = itemInfo.price;
+
+    if (customerStatsAndEffects.stats.usablesDiscount) {
+        finalPrice = Math.round(itemInfo.price * ((100 - customerStatsAndEffects.stats.usablesDiscount) * .01));
+    }
+
     //get purchase count from event tokens
     let pCount = parseInt(eventTokens.shift());
 
     //do a balance check for the customer
-    if (customer.balance < (itemInfo.price * pCount)) {
+    if (customer.balance < (finalPrice * pCount)) {
         interaction.reply({
             content: "Insufficient Edbucks!",
             ephemeral: true
@@ -266,7 +289,7 @@ function usablesShop_purchase(workingData, interaction, eventTokens) {
     }
 
     //deduct balance and give customer the purchased item(s)
-    customer.balance -= (itemInfo.price * pCount);
+    customer.balance -= (finalPrice * pCount);
 
     let existingInventoryEntry = customer.itemInventory.find(obj => {
         return obj.name == itemInfo.name;
@@ -289,7 +312,7 @@ function usablesShop_purchase(workingData, interaction, eventTokens) {
         )
 
     interaction.update({
-        content: bold("===================\nPurchase Complete!\n===================\nObtained " + pCount + "x " + itemInfo.displayName + ".\nLost " + (pCount*itemInfo.price) + " EB."),
+        content: bold("===================\nPurchase Complete!\n===================\nObtained " + pCount + "x " + itemInfo.displayName + ".\nLost " + (pCount*finalPrice) + " EB."),
         ephemeral: true,
         components: [row]
     });

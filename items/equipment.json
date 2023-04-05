@@ -8,7 +8,7 @@
             "slot": "head",
             "effectingStat": "reflectChance",
             "effectAmount": 10,
-            "price": 50
+            "price": 60
         }
     ],
     "body": [
@@ -16,7 +16,7 @@
             "name": "equip_pokemonHoodie",
             "displayName": "Pokemon Hoodie",
             "description": "It was super effective!",
-            "effect": "Gain 15% criticial hit chance when using most usable items.",
+            "effect": "Gain 15% criticial hit chance when using usable items that have a crit effect.",
             "slot": "body",
             "effectingStat": "usableCrit",
             "effectAmount": 15,
@@ -25,9 +25,9 @@
     ],
     "trinket": [
         {
-            "name": "equip_wip",
-            "displayName": "",
-            "description": "WIP1",
+            "name": "equip_pocketPaul",
+            "displayName": "Pocket Paul",
+            "description": "Your very own miniature Paul who will constantly spam the Pick Up Edbucks button alongside you.",
             "effect": "Gives a 25% chance to double edbucks gained when clicking the Pickup Edbucks button.",
             "slot": "trinket",
             "effectingStat": "treasureLuck",

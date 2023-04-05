@@ -232,7 +232,9 @@ client.on('ready', () => {
                             return obj.id == recipient;
                         });
 
-                        recipientData.balance += config.activeVCReward;
+                        let recipientStatsAndEffects = utils.checkStatsAndEffects(workingData, {guildId: guild.id}, recipient);
+
+                        recipientData.balance += config.activeVCReward + recipientStatsAndEffects.stats.vocalLuck;
                     });
                 }
             });
@@ -461,8 +463,10 @@ client.on('messageReactionAdd', (messageReaction, user) => {
                 return obj.id == messageReaction.message.author.id;
             });
 
+            let recipientStatsAndEffects = utils.checkStatsAndEffects(workingData, {guildId: messageReaction.message.guildId}, messageReaction.message.author.id);
+
             //award recipient edbucks
-            recipient.balance += config.reactAward;
+            recipient.balance += config.reactAward + recipientStatsAndEffects.stats.reactionBonus;
 
             //update lastAwarded parameter of the reactor to the current time 
             storedUserData.lastAwarded = currTime;
@@ -692,7 +696,7 @@ client.on('interactionCreate', async (interaction) => {
         //Usables shop shelf select events
         case intEventTokens.usablesShopSelectShelfPrefix.slice(0, -1):
             //Open window displaying selected item's purchase page
-            btnEventHandlers.usablesShop_selectShelf(interaction, eventTokens);
+            btnEventHandlers.usablesShop_selectShelf(workingData, interaction, eventTokens);
             break;
 
         //Usables shop nav buttons events
