@@ -1,33 +1,70 @@
 {
     "head": [
-        
+        {
+            "name": "equip_tinFoilHat",
+            "displayName": "Tin Foil Hat",
+            "description": "A very shiny and very reflective tin foil hat made from premium, high-grade, somewhat ethically-sourced Costco aluminum foil.",
+            "effect": "Gives a 10% chance to reflect any item used on you back to the user.",
+            "slot": "head",
+            "effectingStat": "reflectChance",
+            "effectAmount": 10,
+            "price": 60
+        }
     ],
     "body": [
-
+        {
+            "name": "equip_pokemonHoodie",
+            "displayName": "Pokemon Hoodie",
+            "description": "It was super effective!",
+            "effect": "Gain 15% criticial hit chance when using usable items that have a crit effect.",
+            "slot": "body",
+            "effectingStat": "usableCrit",
+            "effectAmount": 15,
+            "price": 80
+        }
     ],
     "trinket": [
         {
-            "name": "equip_mirrorRing",
-            "displayName": "Mirror Ring",
-            "description": "A ring with a small mirror on it. Your opponent has got to have god awful aim to ever accidentally hit this.",
-            "effect": "Gives a 5% chance to reflect any item used on you back to the user.",
+            "name": "equip_pocketPaul",
+            "displayName": "Pocket Paul",
+            "description": "Your very own miniature Paul who will constantly spam the Pick Up Edbucks button alongside you.",
+            "effect": "Gives a 25% chance to double edbucks gained when clicking the Pickup Edbucks button.",
             "slot": "trinket",
-            "effectingStat": "reflect",
-            "effectAmount": 5,
-            "price": 120
+            "effectingStat": "treasureLuck",
+            "effectAmount": 25,
+            "price": 60
         },
         {
-            "name": "equip_dummyRing",
-            "displayName": "Dummy Ring",
-            "description": "A ring with a small mirror on it. Your opponent has got to have god awful aim to ever accidentally hit this.",
-            "effect": "Gives a 5% chance to reflect any item used on you back to the user.",
+            "name": "equip_megaphone",
+            "displayName": "Megaphone",
+            "description": "This technically counts as being extra active at the cost of everyone else's eardrums.",
+            "effect": "Gives a 25% chance to gain 1 extra edbuck when awarded for being in an active voice chat.",
             "slot": "trinket",
-            "effectingStat": "reflect",
-            "effectAmount": 5,
+            "effectingStat": "vocalLuck",
+            "effectAmount": 25,
+            "price": 100
+        },
+        {
+            "name": "equip_taxEvasion",
+            "displayName": "Tax Evasion for Dummies",
+            "description": "Surely the IRS won't notice a few missing edbucks from your taxes right?",
+            "effect": "Gain 1 extra edbuck when receiving a valid edbuck reaction on your message.",
+            "slot": "trinket",
+            "effectingStat": "reactionBonus",
+            "effectAmount": 1,
             "price": 120
         }
     ],
     "shoes": [
-
+        {
+            "name": "equip_crocs",
+            "displayName": "Crocs in Sports-mode",
+            "description": "Garner enough sympathy from the store clerk over your poor choice of footwear that he'll offer you a store-wide discount.",
+            "effect": "Get a 20% discount when buying usable items from the store.",
+            "slot": "shoes",
+            "effectingStat": "usablesDiscount",
+            "effectAmount": 20,
+            "price": 80
+        }
     ]
 }

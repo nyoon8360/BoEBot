@@ -1,6 +1,24 @@
 [
     {
-        "version": "1.0.3 Backend Update",
+        "version": "1.1.0 The Equipment Update",
+        "changes": [
+            "-Added equipment as a new type of item that provide unique effects.",
+            "-Added equipment shop. Accessible by clicking on the Equipment button in the shop category UI.",
+            "-Added equipment inventory. Accessible by clicking on the Equips button in your usables inventory.",
+            "-Added the ability for certain usable items to crit.",
+            "-Added a section on equipment to the help menu.",
+            "-Added prevention of use on bots to certain usable items.",
+            "-Updated server notification message of Semi-permanent Nametag to include the new nickname.",
+            "-Lowered cost of 150 Tech-savy apes from 25 to 18.",
+            "-Lowered save interval from once every 30 minutes to once every 20 minutes.",
+            "-Bugfix: Fixed an issue causing reflect to not properly work against the item Comically Large Boot.",
+            "-Bugfix: Added the ability to navigate pages in the usables inventory (woops).",
+            "-Bugfix: Corrected the text on notifications sent on using 4K HD Wide-angle Lens Camera to properly say the correct item used.",
+            "-Bugfix: Prevented the ability to use Edwin Dinner on roles rather than only users."
+        ]
+    },
+    {
+        "version": "1.0.3 Backend Update (Basically a Hotfix Update now .-.)",
         "changes": [
             "-Increased the failed steal compensation from 1 to 3.",
             "-Added prices to usables store shelf buttons.",

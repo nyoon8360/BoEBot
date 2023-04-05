@@ -8,6 +8,10 @@ module.exports = Object.freeze({
     mainMenuPrefix: "MAINMENU-",
     shopCategoryPrefix: "SELECTSHOPCATEGORY-",
 
+    //Settings tokens
+    settingsEditValuePrefix: "SETTINGSEDITVALUE-",
+    settingsNavPrefix: "SETTINGSNAVPAGES-",
+
     //Usables shop tokens
     usablesShopSelectShelfPrefix: "USABLESSHOPSELECTSHELF-",
     usablesShopPurchaseMenuPrefix: "USABLESSHOPPURCHASEMENU-",

@@ -232,7 +232,9 @@ client.on('ready', () => {
                             return obj.id == recipient;
                         });
 
-                        recipientData.balance += config.activeVCReward;
+                        let recipientStatsAndEffects = utils.checkStatsAndEffects(workingData, {guildId: guild.id}, recipient);
+
+                        recipientData.balance += config.activeVCReward + recipientStatsAndEffects.stats.vocalLuck;
                     });
                 }
             });
@@ -318,6 +320,7 @@ client.on('messageCreate', (message) => {
         case "updateuserprops":
             let updatedUsersList = [];
             workingData[message.guildId].users.forEach(obj => {
+                let settingsArr = utils.getNewUserJSON("", "").settings;
                 let updatedEntry = utils.getNewUserJSON("","");
                 updatedEntry = Object.assign(updatedEntry, obj);
                 /*
@@ -330,6 +333,17 @@ client.on('messageCreate', (message) => {
                     }});
                 }
                 */
+                //TODO: delete this one if block after running once
+                if (!Array.isArray(updatedEntry.settings)) {
+                    updatedEntry.settings = settingsArr;
+                }
+
+                if (updatedEntry.settings.length < settingsArr.length) {
+                    for (index = updatedEntry.settings.length; index < settingsArr.length; index ++) {
+                        updatedEntry.settings.push(settingsArr[index]);
+                    }
+                }
+
                 updatedUsersList.push(updatedEntry);
             });
             workingData[message.guildId].users = updatedUsersList;
@@ -449,8 +463,10 @@ client.on('messageReactionAdd', (messageReaction, user) => {
                 return obj.id == messageReaction.message.author.id;
             });
 
+            let recipientStatsAndEffects = utils.checkStatsAndEffects(workingData, {guildId: messageReaction.message.guildId}, messageReaction.message.author.id);
+
             //award recipient edbucks
-            recipient.balance += config.reactAward;
+            recipient.balance += config.reactAward + recipientStatsAndEffects.stats.reactionBonus;
 
             //update lastAwarded parameter of the reactor to the current time 
             storedUserData.lastAwarded = currTime;
@@ -536,7 +552,6 @@ client.on('interactionCreate', async (interaction) => {
     let eventTokens = interaction.customId.split("-");
 
     //handlers for main menu interaction events
-
     switch (eventTokens.shift()) {
         //Main menu events
         case intEventTokens.mainMenuPrefix.slice(0, -1):
@@ -588,6 +603,7 @@ client.on('interactionCreate', async (interaction) => {
                     break;
 
                 case "settings":
+                    btnEventHandlers.mainMenu_settings(workingData, interaction);
                     break;
 
                 case "changelog":
@@ -680,7 +696,7 @@ client.on('interactionCreate', async (interaction) => {
         //Usables shop shelf select events
         case intEventTokens.usablesShopSelectShelfPrefix.slice(0, -1):
             //Open window displaying selected item's purchase page
-            btnEventHandlers.usablesShop_selectShelf(interaction, eventTokens);
+            btnEventHandlers.usablesShop_selectShelf(workingData, interaction, eventTokens);
             break;
 
         //Usables shop nav buttons events
@@ -760,6 +776,23 @@ client.on('interactionCreate', async (interaction) => {
                     btnEventHandlers.equipsInventory_toggleEquip(workingData, interaction, eventTokens);
                     break;
             }
+            break;
+
+        case intEventTokens.settingsNavPrefix.slice(0, -1):
+            switch(eventTokens.shift()) {
+                case "NEXT":
+                    interaction.update(uiBuilder.settingsUI(workingData, interaction, parseInt(eventTokens.shift()) + 1));
+                    break;
+
+                case "PREV":
+                    interaction.update(uiBuilder.settingsUI(workingData, interaction, parseInt(eventTokens.shift()) - 1));
+                    break;
+            }
+
+            break;
+
+        case intEventTokens.settingsEditValuePrefix.slice(0, -1):
+            //TODO: implement changing your settings
             break;
     }
 });

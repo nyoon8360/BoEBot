@@ -102,6 +102,67 @@ function menuUI(tButtonDisabled) {
     };
 }
 
+function settingsUI(workingData, interaction, pagenum) {
+    //get user settings
+    let userSettings = workingData[interaction.guildId].users.find(obj => {
+        return obj.id == interaction.user.id;
+    }).settings;
+
+    let msgContent = bold(`==========\nSETTINGS\n==========\n`);
+
+    for (index = pagenum*4; index < (pagenum + 1) * 4; index++) {
+        if (index < userSettings.length) {
+            msgContent += underscore(userSettings[index].description) + "\n";
+            msgContent += `[${index - (pagenum*4) + 1}]: ${typeof userSettings[index].value == "boolean" ? userSettings[index].value ? "Yes" : "No" : userSettings[index].value}\n\n`
+        } else {
+            break;
+        }
+    }
+
+    let row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(`${intEventTokens.settingsEditValuePrefix}${pagenum * 4}`)
+            .setLabel("Setting 1")
+            .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+            .setCustomId(`${intEventTokens.settingsEditValuePrefix}${(pagenum * 4) + 1}`)
+            .setLabel("Setting 2")
+            .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+            .setCustomId(`${intEventTokens.settingsEditValuePrefix}${(pagenum * 4) + 2}`)
+            .setLabel("Setting 3")
+            .setStyle(ButtonStyle.Success),
+        new ButtonBuilder()
+            .setCustomId(`${intEventTokens.settingsEditValuePrefix}${(pagenum * 4) + 3}`)
+            .setLabel("Setting 4")
+            .setStyle(ButtonStyle.Success),
+    )
+
+    let navRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(intEventTokens.settingsNavPrefix + "PREV-" + pagenum)
+            .setLabel("Prev")
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(pagenum <= 0),
+        new ButtonBuilder()
+            .setCustomId(intEventTokens.settingsNavPrefix + "PAGENUM")
+            .setLabel("Page " + (pagenum + 1))
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(true),
+        new ButtonBuilder()
+            .setCustomId(intEventTokens.settingsNavPrefix + "NEXT-" + pagenum)
+            .setLabel("Next")
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(pagenum >= Math.ceil(userSettings.length / 4) - 1),
+    )
+
+    return {
+        content: msgContent,
+        components: [row, navRow],
+        ephemeral: true
+    }
+}
+
 //UI builder for usables shop
 function usablesShopUI(shopPages_usables, pagenum) {
     if (pagenum > shopPages_usables.length || pagenum < 0) pagenum = 0;
@@ -428,6 +489,23 @@ function notifDontHaveItem() {
     };
 }
 
+function notifCantUseOnBot() {
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setLabel("Back")
+                .setStyle(ButtonStyle.Danger)
+                .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
+        );
+    
+    return {
+        content: "You can't use this item on a bot!",
+        components: [row],
+        ephemeral: true
+    };
+}
+
 module.exports = {
-    menuUI, usablesInvUI, equipsInvUI, equipsShopUI, usablesShopUI, changelogUI, userLeaderboardUI, notifCantSelfUse, notifDontHaveItem, notifTargetNotInVC
+    menuUI, settingsUI, usablesInvUI, equipsInvUI, equipsShopUI, usablesShopUI, changelogUI, userLeaderboardUI,
+    notifCantSelfUse, notifDontHaveItem, notifTargetNotInVC, notifCantUseOnBot
 }
