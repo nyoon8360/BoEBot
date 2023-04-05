@@ -82,7 +82,8 @@ function menuUI(tButtonDisabled) {
             .setCustomId(intEventTokens.mainMenuPrefix + 'settings-')
             .setLabel('Settings')
             .setStyle(ButtonStyle.Secondary)
-            .setEmoji('⚙️'),
+            .setEmoji('⚙️')
+            .setDisabled(true),
         new ButtonBuilder()
             .setCustomId(intEventTokens.mainMenuPrefix + 'changelog-')
             .setLabel('Changelog')

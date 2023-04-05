@@ -35,9 +35,9 @@
             "price": 60
         },
         {
-            "name": "equip_WIP2",
-            "displayName": "WIP2",
-            "description": "WIP2",
+            "name": "equip_megaphone",
+            "displayName": "Megaphone",
+            "description": "This technically counts as being extra active at the cost of everyone else's eardrums.",
             "effect": "Gives a 25% chance to gain 1 extra edbuck when awarded for being in an active voice chat.",
             "slot": "trinket",
             "effectingStat": "vocalLuck",
