@@ -384,7 +384,7 @@ itemFunctionMap.set('item_steal', (client, workingData, interaction, eventTokens
         let reflected = false;
 
         //handle passed modifiers
-        passedModifiers.forEach(effect => {
+        targetStatsAndEffects.effects.forEach(effect => {
             switch (effect) {
                 case "reflect":
                     reflected = true;
@@ -401,8 +401,8 @@ itemFunctionMap.set('item_steal', (client, workingData, interaction, eventTokens
         }
         
         //enact item effect
-        let randomInvSlot = Math.round(Math.random() * (targettedInv.length - 1));
         let targettedInv = finalTargetData.itemInventory;
+        let randomInvSlot = Math.round(Math.random() * (targettedInv.length - 1));
 
         let randomStealList = [
             "kidney", "liver", "leg", "wallet", "pokemon card collection", "V-bucks", "toes"
@@ -733,33 +733,33 @@ itemFunctionMap.set('item_expose', (client, workingData, interaction, eventToken
         let exposedMsg = (reflected ? casterData : targetData).lastChangedMsg;
         let embed;
 
-        if (exposedMsg) {
+        if (Object.keys(exposedMsg).length > 0) {
             embed = new EmbedBuilder()
                 .setAuthor({name: reflected ? casterString : targetString, iconURL: reflected ? interaction.member.avatarURL() : targetMemberObj.avatarURL()})
                 .setTitle("Time Sent")
                 .setDescription(time(exposedMsg.time,"F"))
         
             if (exposedMsg.newContent) {
-                embed.addFields(
+                embed.setFields(
                     {name: "Old Message", value: exposedMsg.oldContent},
                     {name: "New Message", value: exposedMsg.newContent}
                 )
             } else {
-                embed.addFields(
+                embed.setFields(
                     {name: "Deleted Message", value: exposedMsg.oldContent}
                 )
             }
         } else {
             embed = new EmbedBuilder()
-                .setAuthor(reflected ? casterString : targetString)
+                .setAuthor({name: reflected ? casterString : targetString, iconURL: reflected ? interaction.member.avatarURL() : targetMemberObj.avatarURL()})
                 .setTitle("Modified Message")
                 .setDescription("No Message To Expose")
-                .addFields({
-                    name: "No Message To Expose"
+                .setFields({
+                    name: "No Message To Expose", value: "No Message To Expose"
                 })
         }
 
-        client.guilds.cache.get(interaction.guildId).channels.cache.get(exposedMsg.channel).send({
+        client.guilds.cache.get(interaction.guildId).channels.cache.get(Object.keys(exposedMsg).length > 0 ? exposedMsg.channel : workingData[interaction.guildId].botNotifsChannelId).send({
             embeds: [embed]
         });
 
@@ -942,7 +942,7 @@ itemFunctionMap.set('item_emp', (client, workingData, interaction, eventTokens) 
         }
 
         //enact item effect
-        target.setBitrate(8000);
+        targetChannel.setBitrate(8000);
 
         (async (targetChannel) => {
             let timeoutDuration = config.itemEMPDuration + (casterStatsAndEffects.stats.usableCrit * 8);
