@@ -14,7 +14,6 @@ function getNewUserJSON(userTag, userId) {
         id: userId,
         lastAwarded: 0,
         balance: 10,
-        birthday: "",
         queuedForUnmute: false,
         lastChangedMsg: {},
         itemInventory: [],
@@ -37,9 +36,9 @@ function getNewUserJSON(userTag, userId) {
                 value: false
             },
             {
-            name: "userBirthday",
-            description: "Birthday",
-            value: ""
+                name: "userBirthday",
+                description: "Birthday",
+                value: ""
             }
         ],
         fStatReactionsAwarded: 0,
@@ -55,9 +54,9 @@ function getNewUserJSON(userTag, userId) {
 function saveData(client, workingData, sync) {
     client.guilds.cache.map(guild => guild.id).forEach((guildId) => {
         if (sync) {
-            fs.writeFileSync('./database' + guildId + '.json', JSON.stringify(workingData[guildId], null, 2));
+            fs.writeFileSync('./databases/database' + guildId + '.json', JSON.stringify(workingData[guildId], null, 2));
         } else {
-            fs.writeFile('./database' + guildId + '.json', JSON.stringify(workingData[guildId], null, 2), error => {
+            fs.writeFile('./databases/database' + guildId + '.json', JSON.stringify(workingData[guildId], null, 2), error => {
                 if (error) console.log("Error writing to file: \n" + error);
             });
         }
