@@ -65,8 +65,27 @@ function saveData(client, workingData, sync) {
 }
 
 function checkStatsAndEffects(workingData, interaction, targetId) {
+    //TODO: If a lot of stats and effects are added then add a filter parameter to the function signature that will only check and update
+    //the selected stats and effects in the filter object parameter.
+    let passedEffectsAndStats = {
+        effects: [],
+        stats: {
+            //NOTE: Add all existing stats here with default value of 0
+            reflectChance: 0,
+            treasureLuck: 0,
+            vocalLuck: 0,
+            reactionBonus: 0,
+            usableCrit: 0,
+            usableDiscount: 0
+        }
+    };
+
+    //List of stats that are chance based
+    //NOTE: Update this whenever a new chance stat is added
+    let chanceStats = ["reflectChance", "treasureLuck", "vocalLuck", "usableCrit"];
+
     //instantiate return array with passed stat checks/status effects
-    let passedStatsAndEffects = [];
+    let effects = [];
 
     //get the target's data
     let targetData = workingData[interaction.guildId].users.find(obj => {
@@ -76,8 +95,6 @@ function checkStatsAndEffects(workingData, interaction, targetId) {
     //get current time in seconds since epoch
     let currentTime = Math.floor(Date.now()/1000);
 
-    //TODO: once equips are implemented, aggregate stats and do roll checks on them
-
     //check status effects and roll for checks if applicable
     let statusEffects = targetData.statusEffects;
 
@@ -85,7 +102,7 @@ function checkStatsAndEffects(workingData, interaction, targetId) {
         switch(statusEffects[i].name) {
             case "reflect":
                 if (statusEffects[i].expires >= currentTime) {
-                    passedStatsAndEffects.push("reflect");
+                    effects.push("reflect");
                 } else {
                     statusEffects.splice(i, 1);
                     i--;
@@ -94,7 +111,32 @@ function checkStatsAndEffects(workingData, interaction, targetId) {
         }
     }
 
-    return passedStatsAndEffects;
+    passedEffectsAndStats.effects = effects;
+
+    //aggregate stats
+    let equippedItems = [];
+
+    Object.keys(targetData.equipmentInventory).forEach(key => {
+        let foundEquip = targetData.equipmentInventory[key].find(obj => {
+            return obj.equipped == true;
+        });
+        if (foundEquip != undefined) equippedItems.push(foundEquip);
+    });
+
+    equippedItems.forEach(obj => {
+        passedEffectsAndStats.stats[obj.effectingStat] += obj.effectAmount;
+    });
+
+    //roll any chance stats
+    Object.keys(passedEffectsAndStats.stats).forEach(key => {
+        if (chanceStats.includes(key)) {
+            let roll = Math.round(Math.random() * 99) + 1;
+
+            passedEffectsAndStats.stats[key] = roll <= passedEffectsAndStats.stats[key] ? 1 : 0;
+        }
+    });
+
+    return passedEffectsAndStats;
 }
 
 function getStatusEffectObject(name, expires, additionalProps) {

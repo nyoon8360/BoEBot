@@ -235,7 +235,7 @@ function usablesShop_selectShelf(interaction, eventTokens) {
         );
 
     interaction.update({
-        content: bold("===============\nUSABLES SHOP\n===============") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock("Description: " + itemInfo.description + "\nEffect: " + itemInfo.effect + "\nPrice: " + itemInfo.price + " EB"),
+        content: bold("===============\nUSABLES SHOP\n===============") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock(`Description: ${itemInfo.description}\nEffect: ${itemInfo.effect}${itemInfo.critEffect ? `\nCrit Effect: ${itemInfo.critEffect}` : ""}\nPrice: ${itemInfo.price} EB`),
         components: [row],
         ephemeral: true
     });
@@ -408,7 +408,7 @@ function usablesInventory_selectSlot(workingData, interaction, eventTokens) {
         );
 
     interaction.update({
-        content: bold("===================\nUSABLES INVENTORY\n===================") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock("Description: " + itemInfo.description + "\nEffect: " + itemInfo.effect + "\nCount: " + itemInfo.count),
+        content: bold("===================\nUSABLES INVENTORY\n===================") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock(`Description: ${itemInfo.description}\nEffect: ${itemInfo.effect}${itemInfo.critEffect ? `\nCrit Effect: ${itemInfo.critEffect}` : ""}\nCount: ${itemInfo.count}`),
         components: [row],
         ephemeral: true
     });

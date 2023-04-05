@@ -37,11 +37,12 @@ itemFunctionMap.set('item_kick', (client, workingData, interaction, eventTokens)
             ephemeral: true
         });
     } else {
-        //get caster data and member object
+        //get caster data, caster member object, and caster stats/effects
         let casterData = workingData[interaction.guildId].users.find(obj => {
             return obj.id == interaction.user.id;
         });
         let casterMemberObj = interaction.member;
+        let casterStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, interaction.user.id);
 
         //check if caster still has item
         let usedItemInvEntryIndex = casterData.itemInventory.findIndex(obj => {
@@ -49,27 +50,25 @@ itemFunctionMap.set('item_kick', (client, workingData, interaction, eventTokens)
         });
 
         if (usedItemInvEntryIndex < 0) {
-            uiBuilders.notifDontHaveItem(interaction);
+            interaction.update(uiBuilders.notifDontHaveItem(interaction));
             return;
         }
 
-        //get target data
+        //get target data and target stats/effects
         let targetMemberObj = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
+        let targetStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, targetMemberObj.user.id);
 
         //prevent self use
         if (targetMemberObj.user.id == casterData.id) {
-            uiBuilders.notifCantSelfUse(interaction);
+            interaction.update(uiBuilders.notifCantSelfUse(interaction));
             return;
         }
-
+        
         //prevent use on someone not in VC
         if (!targetMemberObj.voice.channelId) {
-            uiBuilders.notifTargetNotInVC(interaction);
+            interaction.update(uiBuilders.notifTargetNotInVC(interaction));
             return;
         }
-
-        //do stats and effects check
-        let passedModifiers = utils.checkStatsAndEffects(workingData, interaction, targetMemberObj.user.id);
 
         //consume item
         if (casterData.itemInventory[usedItemInvEntryIndex].count == 1) {
@@ -84,19 +83,38 @@ itemFunctionMap.set('item_kick', (client, workingData, interaction, eventTokens)
         let sNotifMsg = `${casterString} has used a Comically Large Boot on ${targetString}.`;
         let cNotifMsg = "You've used a Comically Large Boot on " + userMention(interaction.values[0]) + ".";
 
-        //handle passed modifiers
-        passedModifiers.forEach(effect => {
+        //handle target status effects
+        let itemEffect = (target) => {
+            if (target.voice.channelId) target.voice.disconnect();
+        };
+        let finalTargetMemberObj = targetMemberObj;
+
+        targetStatsAndEffects.effects.forEach(effect => {
             switch (effect) {
                 case "reflect":
-                    target = casterMemberObj;
+                    finalTargetMemberObj = casterMemberObj;
                     sNotifMsg = `${casterString} has used a Comically Large Boot on ${targetString} but it was reflected.`;
                     cNotifMsg = "You've used a Comically Large Boot on " + userMention(interaction.values[0]) + " but it was reflected."
                     break;
             }
         });
 
-        //ennact item effect
-        targetMemberObj.voice.disconnect();
+        if (targetStatsAndEffects.stats.reflectChance) {
+            finalTargetMemberObj = casterMemberObj;
+            sNotifMsg = `${casterString} has used a Comically Large Boot on ${targetString} but it was reflected.`;
+            cNotifMsg = "You've used a Comically Large Boot on " + userMention(interaction.values[0]) + " but it was reflected."
+        }
+
+        if (casterStatsAndEffects.stats.usableCrit) {
+            itemEffect = (target) => {
+                target.timeout(4 * 1000);
+            };
+            sNotifMsg += " The item crit!";
+            cNotifMsg += " The item crit!";
+        }
+
+        //enact effects
+        itemEffect(finalTargetMemberObj);
 
         //Send notification message to bot notifs channel
         interaction.member.guild.channels.cache.get(workingData[interaction.guildId].botNotifsChannelId).send({
@@ -138,27 +156,29 @@ itemFunctionMap.set('item_mute', (client, workingData, interaction, eventTokens)
             ephemeral: true
         });
     } else {
-        //get caster data and member obj
+        //get caster data, caster member obj, and caster stats/effects
         let casterMemberObj = interaction.member;
         let casterData = workingData[interaction.guildId].users.find(obj => {
             return obj.id == interaction.user.id;
         });
+        let casterStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, interaction.user.id);
 
-        //get target data and member obj
+        //get target data, target member obj, and target stats/effects
         let targetMemberObj = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
         let targetData = workingData[interaction.guildId].users.find(obj => {
             return obj.id == targetMemberObj.id;
         });
+        let targetStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, targetMemberObj.id);
 
         //prevent self use
         if (targetMemberObj.user.id == interaction.user.id) {
-            uiBuilders.notifCantSelfUse(interaction);
+            interaction.update(uiBuilders.notifCantSelfUse(interaction));
             return;
         }
 
         //prevent use on someone not in VC
         if (!targetMemberObj.voice.channelId) {
-            uiBuilders.notifTargetNotInVC(interaction);
+            interaction.update(uiBuilders.notifTargetNotInVC(interaction));
             return;
         }
 
@@ -168,13 +188,9 @@ itemFunctionMap.set('item_mute', (client, workingData, interaction, eventTokens)
         });
 
         if (itemEntryIndex < 0) {
-            uiBuilders.notifDontHaveItem(interaction);
+            interaction.update(uiBuilders.notifDontHaveItem(interaction));
             return;
         }
-
-        //do stats and effects check
-        let passedModifiers = utils.checkStatsAndEffects(workingData, interaction, targetMemberObj.id);
-        let reflected = false;
 
         //instantiate server/caster notification message
         let casterString = `${casterMemberObj.nickname ? `${casterMemberObj.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
@@ -182,22 +198,61 @@ itemFunctionMap.set('item_mute', (client, workingData, interaction, eventTokens)
         let sNotifMsg = `${casterString} has used Duct Tape on ${targetString}.`;
         let cNotifMsg = "You've used Duct Tape on " + userMention(interaction.values[0]) + ".";
 
-        //handle passed modifiers
-        passedModifiers.forEach(effect => {
+        //handle target stats and effects
+        let finalTargetMemberObj = targetMemberObj;
+        let finalTargetData = targetData;
+        let itemEffect = (targetMemObj, fTargetData) => {
+            if (targetMemObj.voice.channelId) targetMemObj.voice.setMute(true);
+
+            fTargetData.queuedForUnmute = false;
+
+            let existingStatusEffect = fTargetData.statusEffects.find(obj => {
+                return obj.name == "muted";
+            });
+
+            if (existingStatusEffect) {
+                existingStatusEffect.expires = Math.floor(Date.now()/1000) + config.itemMuteDuration + (casterStatsAndEffects.stats.usableCrit * 4);
+            } else {
+                fTargetData.statusEffects.push(utils.getStatusEffectObject("muted", Math.floor(Date.now()/1000) + config.itemMuteDuration));
+            }
+
+            (async (mutedTarget) => {
+                let timeoutDuration = config.itemMuteDuration + (casterStatsAndEffects.stats.usableCrit * 4);
+                await setTimeout(() => {
+                    if (mutedTarget.voice.channelId) {
+                        mutedTarget.voice.setMute(false)
+                    } else {
+                        fTargetData.queuedForUnmute = true;
+                    }
+                }, timeoutDuration * 1000);
+            })(targetMemObj)
+        };
+
+        targetStatsAndEffects.effects.forEach(effect => {
             switch (effect) {
                 case "reflect":
-                    targetMemberObj = casterMemberObj;
+                    finalTargetMemberObj = casterMemberObj;
+                    finalTargetData = casterData;
                     sNotifMsg = `${casterString} has used Duct Tape on ${targetString} but it was reflected.`;
                     cNotifMsg = "You've used Duct Tape on " + userMention(interaction.values[0]) + " but it was reflected."
-                    reflected = true;
                     break;
             }
         });
-        
-        //enact item effect if possible
-        if (targetMemberObj.voice.channelId) {
-            targetMemberObj.voice.setMute(true);
+
+        if (targetStatsAndEffects.stats.reflectChance) {
+            finalTargetMemberObj = casterMemberObj;
+            finalTargetData = casterData;
+            sNotifMsg = `${casterString} has used Duct Tape on ${targetString} but it was reflected.`;
+            cNotifMsg = "You've used Duct Tape on " + userMention(interaction.values[0]) + " but it was reflected."
         }
+
+        if (casterStatsAndEffects.stats.usableCrit) {
+            sNotifMsg += " The item crit!";
+            cNotifMsg += " The item crit!";
+        }
+        
+        //enact item effect
+        itemEffect(finalTargetMemberObj, finalTargetData);
 
         //consume item
         if (casterData.itemInventory[itemEntryIndex].count == 1) {
@@ -205,43 +260,6 @@ itemFunctionMap.set('item_mute', (client, workingData, interaction, eventTokens)
         } else {
             casterData.itemInventory[itemEntryIndex].count -= 1;
         }
-        
-        //apply muted status effect
-        let existingStatusEffect;
-        if (reflected) {
-            casterData.queuedForUnmute = false;
-            existingStatusEffect = casterData.statusEffects.find(obj => {
-                return obj.name == "muted";
-            });
-        } else {
-            targetData.queuedForUnmute = false;
-            existingStatusEffect = targetData.statusEffects.find(obj => {
-                return obj.name == "muted";
-            });
-        }
-
-        if (existingStatusEffect) {
-            existingStatusEffect.expires = Math.floor(Date.now()/1000) + config.itemMuteDuration;
-        } else if (reflected) {
-            casterData.statusEffects.push(utils.getStatusEffectObject("muted", Math.floor(Date.now()/1000) + config.itemMuteDuration));
-        } else {
-            targetData.statusEffects.push(utils.getStatusEffectObject("muted", Math.floor(Date.now()/1000) + config.itemMuteDuration));
-        }
-
-        (async (mutedTarget) => {
-            let timeoutDuration = config.itemMuteDuration;
-            await setTimeout(() => {
-                if (mutedTarget.voice.channelId) {
-                    mutedTarget.voice.setMute(false)
-                } else {
-                    if (reflected) {
-                        casterData.queuedForUnmute = true;
-                    } else {
-                        targetData.queuedForUnmute = true;
-                    }
-                }
-            }, timeoutDuration * 1000);
-        })(targetMemberObj)
 
         //send msg to notifs channel
         interaction.guild.channels.cache.get(workingData[interaction.guildId].botNotifsChannelId).send({
@@ -283,115 +301,123 @@ itemFunctionMap.set('item_steal', (client, workingData, interaction, eventTokens
             ephemeral: true
         });
     } else {
-        //get target data
+        //get caster data and stats/effects
+        let casterData = workingData[interaction.guildId].users.find(obj => {
+            return obj.id == interaction.user.id;
+        });
+        let casterStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, interaction.user.id);
+
+        //get target data and stats/effects
         let targetMemberObject = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
+        let targetData = workingData[interaction.guildId].users.find(obj => {
+            return obj.id == interaction.values[0];
+        });
+        let targetStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, interaction.user.id);
 
         //prevent self use
         if (targetMemberObject.user.id == interaction.user.id) {
-            uiBuilders.notifCantSelfUse(interaction);
+            interaction.update(uiBuilders.notifCantSelfUse(interaction));
             return;
         }
 
         //check if caster still has item
-        let caster = workingData[interaction.guildId].users.find(obj => {
-            return obj.id == interaction.user.id;
-        });
-
-        let itemEntryIndex = caster.itemInventory.findIndex(obj => {
+        let itemEntryIndex = casterData.itemInventory.findIndex(obj => {
             return obj.name == "item_steal";
         });
 
         if (itemEntryIndex < 0) {
-            uiBuilders.notifDontHaveItem(interaction);
+            interaction.update(uiBuilders.notifDontHaveItem(interaction));
             return;
         }
 
-        //do stats and effects check
-        let passedModifiers = utils.checkStatsAndEffects(workingData, interaction, targetMemberObject.user.id);
-
         //consume item
-        if (caster.itemInventory[itemEntryIndex].count == 1) {
-            caster.itemInventory.splice(itemEntryIndex, 1);
+        if (casterData.itemInventory[itemEntryIndex].count == 1) {
+            casterData.itemInventory.splice(itemEntryIndex, 1);
         } else {
-            caster.itemInventory[itemEntryIndex].count -= 1;
+            casterData.itemInventory[itemEntryIndex].count -= 1;
         }
 
         //instantiate server/caster notification message
-        let reflected = false;
+        let finalTargetData = targetData;
+        let finalCasterData = casterData;
+        let itemEffect = (fTargetData, fCasterData, oCasterStatsAndEffects, invSlot) => {
+            let stolenItemObj = fTargetData.itemInventory[invSlot];
+
+            if (fTargetData.itemInventory.length > 0) {
+                if (fTargetData.itemInventory[invSlot].count > 1) {
+                    fTargetData.itemInventory[invSlot].count -= 1;
+                } else {
+                    fTargetData.itemInventory.slice(invSlot, 1);
+                }
+
+                let existingItemEntry = fCasterData.itemInventory.find(obj => {
+                    return obj.name == stolenItemObj.name;
+                });
+
+                if (existingItemEntry) {
+                    existingItemEntry.count += 1;
+                } else {
+                    let newItemEntry = {...stolenItemObj};
+                    newItemEntry.count = 1;
+                    fCasterData.itemInventory.push(newItemEntry);
+                }
+
+                if (oCasterStatsAndEffects.stats.usableCrit) {
+                    fTargetData.balance -= 2;
+                    fCasterData.balance += 2;
+                }
+            } else {
+                if (oCasterStatsAndEffects.stats.usableCrit) {
+                    fTargetData.balance -= 2;
+                    fCasterData.balance += 2;
+                }
+
+                fCasterData.balance += 3;
+            }
+        };
+
         let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
         let targetString = `${targetMemberObject.nickname ? `${targetMemberObject.nickname}(${targetMemberObject.user.tag})` : targetMemberObject.user.tag}`;
         let sNotifMsg = "";
         let cNotifMsg = "";
+
+        let reflected = false;
 
         //handle passed modifiers
         passedModifiers.forEach(effect => {
             switch (effect) {
                 case "reflect":
                     reflected = true;
+                    finalTargetData = casterData;
+                    finalCasterData = targetData;
                     break;
             }
         });
+
+        if (targetStatsAndEffects.stats.reflectChance) {
+            reflected = true;
+            finalTargetData = casterData;
+            finalCasterData = targetData;
+        }
         
         //enact item effect
-        let randomInvSlot;
-        let targettedData = workingData[interaction.guildId].users.find(obj => {
-            return obj.id == (reflected ? interaction.user.id : targetMemberObject.user.id);
-        });
-        let targettedInv = targettedData.itemInventory;
+        let randomInvSlot = Math.round(Math.random() * (targettedInv.length - 1));
+        let targettedInv = finalTargetData.itemInventory;
 
         let randomStealList = [
             "kidney", "liver", "leg", "wallet", "pokemon card collection", "V-bucks", "toes"
         ];
 
+        //construct sNotifMsg and cNotifMsg
         if (targettedInv.length > 0 && !reflected) {
             //item inventory NOT empty AND item NOT reflected
-            randomInvSlot = Math.round(Math.random() * (targettedInv.length - 1));
             let stolenItem = targettedInv[randomInvSlot];
-            if (targettedInv[randomInvSlot].count > 1) {
-                targettedInv[randomInvSlot].count -= 1;
-            } else {
-                targettedInv.slice(randomInvSlot, 1);
-            }
-
-            let existingItemEntry = caster.itemInventory.find(obj => {
-                return obj.name == stolenItem.name;
-            });
-
-            if (existingItemEntry) {
-                existingItemEntry.count += 1;
-            } else {
-                let newItemEntry = {...stolenItem};
-                newItemEntry.count = 1;
-                caster.itemInventory.push(newItemEntry);
-            }
 
             cNotifMsg = "You've used a Goose with a Knife on " + userMention(interaction.values[0]) + " and stole 1x " + stolenItem.displayName + ".";
             sNotifMsg = `${casterString} has used Goose with a Knife on ${targetString}.`;
         } else if (targettedInv.length > 0 && reflected) {
             //item inventory NOT empty and item IS reflected
-            randomInvSlot = Math.round(Math.random() * (targettedInv.length - 1));
             let stolenItem = targettedInv[randomInvSlot];
-            if (targettedInv[randomInvSlot].count > 1) {
-                targettedInv[randomInvSlot].count -= 1;
-            } else {
-                targettedInv.slice(randomInvSlot, 1);
-            }
-
-            let targetWorkingDataObj = workingData[interaction.guildId].users.find(obj => {
-                return obj.id == targetMemberObject.user.id;
-            });
-
-            let existingItemEntry = targetWorkingDataObj.itemInventory.find(obj => {
-                return obj.name == stolenItem.name;
-            });
-
-            if (existingItemEntry) {
-                existingItemEntry.count += 1;
-            } else {
-                let newItemEntry = {...stolenItem};
-                newItemEntry.count = 1;
-                targetWorkingDataObj.itemInventory.push(newItemEntry);
-            }
 
             cNotifMsg = "You've used a Goose with a Knife on " + userMention(interaction.values[0]) + " but it was reflected (paid off). Now you're missing 1x " + stolenItem.displayName + ".";
             sNotifMsg = `${casterString} has used Goose with a Knife on ${targetString} but it was reflected (paid off).`;
@@ -400,19 +426,22 @@ itemFunctionMap.set('item_steal', (client, workingData, interaction, eventTokens
             //item inventory IS empty and item is NOT reflected
             let randomStolenItem = randomStealList[Math.round(Math.random() * (randomStealList.length - 1))];
 
-            caster.balance += 3;
-
             cNotifMsg = `You've used a Goose with a Knife on ${userMention(interaction.values[0])} but there was nothing to steal so it just took his ${randomStolenItem} and sold it on the black market. He gave you a 3 Edbuck cut.`;
             sNotifMsg = `${casterString} has used Goose with a Knife on ${targetString} but there was nothing to steal so it took his ${randomStolenItem} and sold it on the black market.`;
         } else {
             //item inventory IS empty and item IS reflected
             let randomStolenItem = randomStealList[Math.round(Math.random() * (randomStealList.length - 1))];
 
-            targettedData.balance += 3;
-
             cNotifMsg = `You've used a Goose with a Knife on ${userMention(interaction.values[0])} but it was reflected. There was nothing to steal so it just took your ${randomStolenItem} and sold it on the black market. It gave him a 3 Edbuck cut.`;
             sNotifMsg = `${casterString} has used Goose with a Knife on ${targetString} but it was reflected. There was nothing to steal so it just took his ${randomStolenItem} and sold it on the black market.`;
         }
+
+        if (casterStatsAndEffects.stats.usableCrit) {
+            cNotifMsg += " The item crit and the goose stole 2 edbucks too!";
+            sNotifMsg += " The item crit and the goose stole 2 edbucks too!";
+        }
+
+        itemEffect(finalTargetData, finalCasterData, casterStatsAndEffects, randomInvSlot)
 
         //send msg to notifs channel
         interaction.member.guild.channels.cache.get(workingData[interaction.guildId].botNotifsChannelId).send({
@@ -471,75 +500,92 @@ itemFunctionMap.set('item_polymorph', (client, workingData, interaction, eventTo
 
                 interaction.showModal(modal);
             } else {
+                //TODO: CURRENTLY HERE IN TERMS OF UPDATING ITEM CODE FOR STATS AND EFFECTS ALONG WITH ADDING interaction.update() TO NOTIFS
+                //get caster data and caster stats/effects
+                let casterData = workingData[interaction.guildId].users.find(obj => {
+                    return obj.id == interaction.user.id;
+                });
+                let casterStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, interaction.user.id);
+                let casterMemberObj = interaction.member;
+
+                //get target member obj, data, and stats/effects
+                let targetMemberObj = client.guilds.cache.get(interaction.guildId).members.cache.get(nextToken);
+                let targetData = workingData[interaction.guildId].users.find(obj => {
+                    return obj.id == targetMemberObj.user.id;
+                });
+                let targetStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, targetMemberObj.user.id);
+
                 //get target and new nickname
                 let newNickname = interaction.fields.getTextInputValue('newNickname');
                 let target = client.guilds.cache.get(interaction.guildId).members.cache.get(nextToken);
 
                 //prevent self use
-                if (target.user.id == interaction.user.id) {
-                    uiBuilders.notifCantSelfUse(interaction);
+                if (targetMemberObj.user.id == casterMemberObj.user.id) {
+                    interaction.update(uiBuilders.notifCantSelfUse(interaction));
                     return;
                 }
 
                 //check if caster still has item
-                let caster = workingData[interaction.guildId].users.find(obj => {
-                    return obj.id == interaction.user.id;
-                });
-
-                let itemEntryIndex = caster.itemInventory.findIndex(obj => {
+                let itemEntryIndex = casterData.itemInventory.findIndex(obj => {
                     return obj.name == "item_polymorph";
                 });
 
                 if (itemEntryIndex < 0) {
-                    uiBuilders.notifDontHaveItem(interaction);
+                    interaction.update(uiBuilders.notifDontHaveItem(interaction));
                     return;
                 }
 
-                //do stats and effects check
-                let passedModifiers = utils.checkStatsAndEffects(workingData, interaction, target.user.id);
-
                 //consume item
-                if (caster.itemInventory[itemEntryIndex].count == 1) {
-                    caster.itemInventory.splice(itemEntryIndex, 1);
+                if (casterData.itemInventory[itemEntryIndex].count == 1) {
+                    casterData.itemInventory.splice(itemEntryIndex, 1);
                 } else {
-                    caster.itemInventory[itemEntryIndex].count -= 1;
+                    casterData.itemInventory[itemEntryIndex].count -= 1;
                 }
 
                 //instantiate server/caster notification message
                 let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
-                let targetString = `${target.nickname ? `${target.nickname}(${target.user.tag})` : target.user.tag}`;
-                let sNotifMsg = `${casterString} has used Semi-permanent Nametag on ${targetString}.`;
+                let targetString = `${targetMemberObj.nickname ? `${targetMemberObj.nickname}(${targetMemberObj.user.tag})` : targetMemberObj.user.tag}`;
+                let sNotifMsg = `${casterString} has used a Semi-permanent Nametag with [${newNickname}] written on it on ${targetString}.`;
                 let cNotifMsg = "You've used Semi-permanent Nametag on " + userMention(nextToken) + ".";
 
                 //handle passed modifiers
-                passedModifiers.forEach(effect => {
+                let reflected = false;
+                targetStatsAndEffects.effects.forEach(effect => {
                     switch (effect) {
                         case "reflect":
-                            target = interaction.member;
-                            sNotifMsg = `${casterString} has used Semi-permanent Nametag on ${targetString} but it was reflected.`;
+                            reflected = true;
+                            sNotifMsg = `${casterString} has used Semi-permanent Nametag with [${newNickname}] written on it on ${targetString} but it was reflected.`;
                             cNotifMsg = "You've used Semi-permanent Nametag on " + userMention(nextToken) + " but it was reflected."
                             break;
                     }
                 });
-                
-                //apply polymorph status effect
-                let targetData = workingData[interaction.guildId].users.find(obj => {
-                    return obj.id == target.user.id;
-                });
 
-                let existingStatusEffect = targetData.statusEffects.find(obj => {
+                if (targetStatsAndEffects.stats.reflectChance) {
+                    reflected = true;
+                    sNotifMsg = `${casterString} has used Semi-permanent Nametag with [${newNickname}] written on it on ${targetString} but it was reflected.`;
+                    cNotifMsg = "You've used Semi-permanent Nametag on " + userMention(nextToken) + " but it was reflected.";
+                };
+
+                if (casterStatsAndEffects.stats.usableCrit) {
+                    sNotifMsg += " The item crit!";
+                    cNotifMsg += " The item crit!";
+                }
+
+                //apply item effect
+                //apply polymorph status effect
+                let existingStatusEffect = (reflected ? casterData : targetData).statusEffects.find(obj => {
                     return obj.name == "polymorph";
                 });
 
                 if (existingStatusEffect) {
-                    existingStatusEffect.expires = Math.floor(Date.now()/1000) + config.itemPolymorphDuration;
+                    existingStatusEffect.expires = Math.floor(Date.now()/1000) + config.itemPolymorphDuration + (casterStatsAndEffects.stats.usableCrit * 240);
                     existingStatusEffect.polyName = newNickname;
                 } else {
-                    targetData.statusEffects.push(utils.getStatusEffectObject("polymorph", Math.floor(Date.now()/1000) + config.itemPolymorphDuration, {polyName: newNickname}));
+                    targetData.statusEffects.push(utils.getStatusEffectObject("polymorph", Math.floor(Date.now()/1000) + config.itemPolymorphDuration + (casterStatsAndEffects.stats.usableCrit * 240), {polyName: newNickname}));
                 }
 
                 //enact item effects
-                target.setNickname(newNickname);
+                (reflected ? casterMemberObj : targetMemberObj).setNickname(newNickname);
 
                 //send msg to notifs channel
                 interaction.member.guild.channels.cache.get(workingData[interaction.guildId].botNotifsChannelId).send({
@@ -574,7 +620,7 @@ itemFunctionMap.set('item_reflect', (client, workingData, interaction, eventToke
     });
 
     if (itemEntryIndex < 0) {
-        uiBuilders.notifDontHaveItem(interaction);
+        interaction.update(uiBuilders.notifDontHaveItem(interaction));
         return;
     }
 
@@ -630,61 +676,66 @@ itemFunctionMap.set('item_expose', (client, workingData, interaction, eventToken
             ephemeral: true
         });
     } else {
-        //check if caster still has item
-        let caster = workingData[interaction.guildId].users.find(obj => {
+        //get caster data
+        let casterData = workingData[interaction.guildId].users.find(obj => {
             return obj.id == interaction.user.id;
         });
+        let casterStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, interaction.user.id);
 
-        let itemEntryIndex = caster.itemInventory.findIndex(obj => {
+        //get target data, member obj, and stats/effects
+        let targetData = workingData[interaction.guildId].users.find(obj => {
+            return obj.id == interaction.values[0];
+        });
+        let targetMemberObj = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
+        let targetStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, targetMemberObj.user.id);
+
+        //check if caster still has item
+        let itemEntryIndex = casterData.itemInventory.findIndex(obj => {
             return obj.name == "item_expose";
         });
 
         if (itemEntryIndex < 0) {
-            uiBuilders.notifDontHaveItem(interaction);
+            interaction.update(uiBuilders.notifDontHaveItem(interaction));
             return;
         }
 
-        //get target data
-        let targetMemberData = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
-
-        let targetData = workingData[interaction.guildId].users.find(obj => {
-            return obj.id == targetMemberData.user.id;
-        })
-
         //consume item
-        if (caster.itemInventory[itemEntryIndex].count == 1) {
-            caster.itemInventory.splice(itemEntryIndex, 1);
+        if (casterData.itemInventory[itemEntryIndex].count == 1) {
+            casterData.itemInventory.splice(itemEntryIndex, 1);
         } else {
-            caster.itemInventory[itemEntryIndex].count -= 1;
+            casterData.itemInventory[itemEntryIndex].count -= 1;
         }
-
-        let passedModifiers = utils.checkStatsAndEffects(workingData, interaction, targetData.id);
 
         //instantiate server/caster notification message
         let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
-        let targetString = `${targetMemberData.nickname ? `${targetMemberData.nickname}(${targetMemberData.user.tag})` : targetMemberData.user.tag}`;
+        let targetString = `${targetMemberObj.nickname ? `${targetMemberObj.nickname}(${targetMemberObj.user.tag})` : targetMemberObj.user.tag}`;
         let sNotifMsg = `${casterString} has used 4K HD Wide-angle Lens Camera on ${targetString}.`;
         let cNotifMsg = "You've used 4K HD Wide-angle Lens Camera on " + userMention(interaction.values[0]) + ".";
-        let reflected = false;
 
         //handle passed modifiers
-        passedModifiers.forEach(effect => {
+        let reflected = false;
+        targetStatsAndEffects.effects.forEach(effect => {
             switch (effect) {
                 case "reflect":
-                    targetData = caster;
-                    sNotifMsg = `${casterString} has used Duct Tape on ${targetString} but it was reflected.`;
-                    cNotifMsg = "You've used Duct Tape on " + userMention(interaction.values[0]) + " but it was reflected."
                     reflected = true;
+                    sNotifMsg = `${casterString} has used 4K HD Wide-angle Lens Camera on ${targetString} but it was reflected.`;
+                    cNotifMsg = "You've used 4K HD Wide-angle Lens Camera on " + userMention(interaction.values[0]) + " but it was reflected.";
                     break;
             }
         });
 
-        let exposedMsg = targetData.lastChangedMsg;
+        if (targetStatsAndEffects.stats.reflectChance) {
+            reflected = true;
+            sNotifMsg = `${casterString} has used 4K HD Wide-angle Lens Camera on ${targetString} but it was reflected.`;
+            cNotifMsg = "You've used 4K HD Wide-angle Lens Camera on " + userMention(interaction.values[0]) + " but it was reflected.";
+        }
+
+        let exposedMsg = (reflected ? casterData : targetData).lastChangedMsg;
         let embed;
 
         if (exposedMsg) {
             embed = new EmbedBuilder()
-                .setAuthor({name: reflected ? casterString : targetString, iconURL: reflected ? interaction.member.avatarURL() : targetMemberData.avatarURL()})
+                .setAuthor({name: reflected ? casterString : targetString, iconURL: reflected ? interaction.member.avatarURL() : targetMemberObj.avatarURL()})
                 .setTitle("Time Sent")
                 .setDescription(time(exposedMsg.time,"F"))
         
@@ -752,58 +803,65 @@ itemFunctionMap.set('item_edwindinner', (client, workingData, interaction, event
             ephemeral: true
         });
     } else {
+        //get caster data
+        let casterData = workingData[interaction.guildId].users.find(obj => {
+            return obj.id == interaction.user.id;
+        });
+        let casterMemberObj = interaction.member;
+        let casterStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, interaction.user.id);
+
         //get target data
-        let target = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
+        let targetMemberObj = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
+        let targetStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, targetMemberObj.user.id);
 
         //prevent self use
-        if (target.user.id == interaction.user.id) {
-            uiBuilders.notifCantSelfUse(interaction);
+        if (targetMemberObj.user.id == interaction.user.id) {
+            interaction.update(uiBuilders.notifCantSelfUse(interaction));
             return;
         }
 
-        //check if caster still has item
-        let caster = workingData[interaction.guildId].users.find(obj => {
-            return obj.id == interaction.user.id;
-        });
-
-        let itemEntryIndex = caster.itemInventory.findIndex(obj => {
+        let itemEntryIndex = casterData.itemInventory.findIndex(obj => {
             return obj.name == "item_edwindinner";
         });
 
         if (itemEntryIndex < 0) {
-            uiBuilders.notifDontHaveItem(interaction);
+            interaction.update(uiBuilders.notifDontHaveItem(interaction));
             return;
         }
 
-        //do stats and effects check
-        let passedModifiers = utils.checkStatsAndEffects(workingData, interaction, target.user.id);
-
         //consume item
-        if (caster.itemInventory[itemEntryIndex].count == 1) {
-            caster.itemInventory.splice(itemEntryIndex, 1);
+        if (casterData.itemInventory[itemEntryIndex].count == 1) {
+            casterData.itemInventory.splice(itemEntryIndex, 1);
         } else {
-            caster.itemInventory[itemEntryIndex].count -= 1;
+            casterData.itemInventory[itemEntryIndex].count -= 1;
         }
 
         //instantiate server/caster notification message
         let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
-        let targetString = `${target.nickname ? `${target.nickname}(${target.user.tag})` : target.user.tag}`;
+        let targetString = `${targetMemberObj.nickname ? `${targetMemberObj.nickname}(${targetMemberObj.user.tag})` : targetMemberObj.user.tag}`;
         let sNotifMsg = `${casterString} has used Edwin Dinner™ on ${targetString}.`;
         let cNotifMsg = "You've used Edwin Dinner™ on " + userMention(interaction.values[0]) + ".";
 
         //handle passed modifiers
-        passedModifiers.forEach(effect => {
+        let reflected = false;
+        targetStatsAndEffects.effects.forEach(effect => {
             switch (effect) {
                 case "reflect":
-                    target = interaction.member;
                     sNotifMsg = `${casterString} has used Edwin Dinner™ on ${targetString} but it was reflected.`;
-                    cNotifMsg = "You've used Edwin Dinner™ on " + userMention(interaction.values[0]) + " but it was reflected."
+                    cNotifMsg = "You've used Edwin Dinner™ on " + userMention(interaction.values[0]) + " but it was reflected.";
+                    reflected = true;
                     break;
             }
         });
+
+        //append crit notif if item crit.
+        if (casterStatsAndEffects.stats.usableCrit) {
+            cNotifMsg += " The item crit!";
+            sNotifMsg += " The item crit!";
+        }
         
         //enact item effect
-        target.timeout(config.itemTimeoutDuration * 1000);
+        (reflected ? casterMemberObj : targetMemberObj).timeout((config.itemTimeoutDuration * 1000) + (casterStatsAndEffects.stats.usableCrit * 4000));
 
         //send msg to notifs channel
         interaction.member.guild.channels.cache.get(workingData[interaction.guildId].botNotifsChannelId).send({
@@ -846,45 +904,52 @@ itemFunctionMap.set('item_emp', (client, workingData, interaction, eventTokens) 
             ephemeral: true
         });
     } else {
-        //check if caster still has item
-        let caster = workingData[interaction.guildId].users.find(obj => {
+        //get caster data and stats/effects
+        let casterData = workingData[interaction.guildId].users.find(obj => {
             return obj.id == interaction.user.id;
         });
+        let casterStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, interaction.user.id);
 
-        let itemEntryIndex = caster.itemInventory.findIndex(obj => {
+        //get targetted channel
+        let targetChannel = interaction.channels.get(interaction.values[0]);
+
+        let itemEntryIndex = casterData.itemInventory.findIndex(obj => {
             return obj.name == "item_emp";
         });
 
         if (itemEntryIndex < 0) {
-            uiBuilders.notifDontHaveItem(interaction);
+            interaction.update(uiBuilders.notifDontHaveItem(interaction));
             return;
         }
 
-        //get targetted channel
-        let target = interaction.channels.get(interaction.values[0]);
-
         //consume item
-        if (caster.itemInventory[itemEntryIndex].count == 1) {
-            caster.itemInventory.splice(itemEntryIndex, 1);
+        if (casterData.itemInventory[itemEntryIndex].count == 1) {
+            casterData.itemInventory.splice(itemEntryIndex, 1);
         } else {
-            caster.itemInventory[itemEntryIndex].count -= 1;
+            casterData.itemInventory[itemEntryIndex].count -= 1;
         }
 
         //instantiate server/caster notification message
         let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
-        let targetString = `${target.name}`;
+        let targetString = `${targetChannel.name}`;
         let sNotifMsg = `${casterString} has used 150 Tech-savy Apes on voice channel: ${targetString}.`;
         let cNotifMsg = "You've used Tech-savy Apes on the voice channel: " + targetString + ".";
         
+        //append crit notif if item crit.
+        if (casterStatsAndEffects.stats.usableCrit) {
+            cNotifMsg += " The item crit!";
+            sNotifMsg += " The item crit!";
+        }
+
         //enact item effect
         target.setBitrate(8000);
 
         (async (targetChannel) => {
-            let timeoutDuration = config.itemEMPDuration;
+            let timeoutDuration = config.itemEMPDuration + (casterStatsAndEffects.stats.usableCrit * 8);
             await setTimeout(() => {
                 targetChannel.setBitrate(64000);
             }, timeoutDuration * 1000);
-        })(target)
+        })(targetChannel)
 
         //send msg to notifs channel
         interaction.member.guild.channels.cache.get(workingData[interaction.guildId].botNotifsChannelId).send({

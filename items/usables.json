@@ -4,6 +4,7 @@
         "displayName": "Comically Large Boot",
         "description": "A weirdly fragile boot used to kick someone from voice chat that breaks after a single kick.",
         "effect": "Kicks a specified user from the voice chat they're in.",
+        "critEffect": "Times out the user instead for 4 seconds.",
         "price": 10
     },
     {
@@ -11,6 +12,7 @@
         "displayName": "Duct Tape",
         "description": "An ungodly amount of duct tape you can use to shut someone up for a bit.",
         "effect": "Server mutes a specified user for 8 seconds.",
+        "critEffect": "Increases the duration to 12 seconds.",
         "price": 7
     },
     {
@@ -18,6 +20,7 @@
         "displayName": "Goose With a Knife",
         "description": "An intimidating goose with beady soul-less eyes, a worn-down knife, and an insatiable thirst for violence. Send him out to mug someone.",
         "effect": "Steals a random item from a specified user.",
+        "critEffect": "Steals 2 edbucks as well.",
         "price": 11
     },
     {
@@ -25,6 +28,7 @@
         "displayName": "Semi-permanent Nametag",
         "description": "A giant \"Hello My Name Is\" nametag with a heaping glob of mousetrap glue on the back.",
         "effect": "Changes the nickname of a specified user and enforces it for 10 minutes.",
+        "critEffect": "Increases the duration to 14 minutes.",
         "price": 22
     },
     {
@@ -46,6 +50,7 @@
         "displayName": "Edwin Dinner™",
         "description": "A 4-course meal, 3 hour movie, full season of Breaking Bad, 30 minute nap, 2 hour study session, 4 online quizzes, 100% Hearts of Iron IV achievement run, 10 day wedding, 2 week honeymoon, 1 month vacation, and eventual heat death of the universe all in one easily microwaveable package! Force-feed this to anyone of your choice!",
         "effect": "Timeout a specified user for 10 seconds.",
+        "critEffect": "Increases the duration to 14 seconds.",
         "price": 20
     },
     {
@@ -53,6 +58,7 @@
         "displayName": "150 Tech-savy Apes",
         "description": "Hire 150 tech-savy apes to DDOS the discord servers. They accept payments in edbucks, bananas, Madagascan treasury bonds, and Bored-ape Yacht Club NFTs.",
         "effect": "Lowers the bitrate of the voice channel you are in for 20 seconds.",
+        "critEffect": "Increases the duration to 28 seconds.",
         "price": 18
     }
 ]
