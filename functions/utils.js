@@ -33,12 +33,16 @@ function getNewUserJSON(userTag, userId) {
             {
                 name: "pingOnTargetted",
                 description: "Get pinged when targetted by item.",
-                value: false
+                value: false,
+                valueType: "boolean",
+                changeable: true
             },
             {
                 name: "userBirthday",
-                description: "Birthday",
-                value: ""
+                description: "Birthday (CAN ONLY EDIT THIS ONCE)",
+                value: "",
+                valueType: "mm/dd",
+                changeable: true
             }
         ],
         fStatReactionsAwarded: 0,

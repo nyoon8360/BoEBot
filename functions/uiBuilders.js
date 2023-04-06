@@ -1,4 +1,4 @@
-const { ButtonStyle, ActionRowBuilder, ButtonBuilder, bold, underscore, codeBlock} = require('discord.js');
+const { ButtonStyle, ActionRowBuilder, ButtonBuilder, bold, underscore, codeBlock, inlineCode} = require('discord.js');
 const changelog = require('../changelog.json');
 const intEventTokens = require('../constants/intEventTokens.js');
 const config = require('../constants/configConsts.js');
@@ -82,8 +82,7 @@ function menuUI(tButtonDisabled) {
             .setCustomId(intEventTokens.mainMenuPrefix + 'settings-')
             .setLabel('Settings')
             .setStyle(ButtonStyle.Secondary)
-            .setEmoji('⚙️')
-            .setDisabled(true),
+            .setEmoji('⚙️'),
         new ButtonBuilder()
             .setCustomId(intEventTokens.mainMenuPrefix + 'changelog-')
             .setLabel('Changelog')
@@ -102,7 +101,7 @@ function menuUI(tButtonDisabled) {
     };
 }
 
-function settingsUI(workingData, interaction, pagenum) {
+function settingsUI(workingData, interaction, pagenum, changedSettingName) {
     //get user settings
     let userSettings = workingData[interaction.guildId].users.find(obj => {
         return obj.id == interaction.user.id;
@@ -110,33 +109,28 @@ function settingsUI(workingData, interaction, pagenum) {
 
     let msgContent = bold(`==========\nSETTINGS\n==========\n`);
 
+    let row = new ActionRowBuilder();
+
     for (index = pagenum*4; index < (pagenum + 1) * 4; index++) {
         if (index < userSettings.length) {
-            msgContent += underscore(userSettings[index].description) + "\n";
-            msgContent += `[${index - (pagenum*4) + 1}]: ${typeof userSettings[index].value == "boolean" ? userSettings[index].value ? "Yes" : "No" : userSettings[index].value}\n\n`
+            msgContent += `[${index - (pagenum*4) + 1}] ` + underscore(userSettings[index].description) + "\n";
+            msgContent += inlineCode(`${typeof userSettings[index].value == "boolean" ? userSettings[index].value ? "Yes" : "No" : userSettings[index].value}`) + 
+                `${userSettings[index].name == changedSettingName ? " Updated!":""}\n\n`;
+            row.addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`${intEventTokens.settingsEditValuePrefix}${pagenum}-${userSettings[index].name}`)
+                    .setLabel(`Setting ${index - (pagenum*4) + 1}`)
+                    .setStyle(ButtonStyle.Success)
+                    .setDisabled(!userSettings[index].changeable)
+            )
         } else {
             break;
         }
     }
 
-    let row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId(`${intEventTokens.settingsEditValuePrefix}${pagenum * 4}`)
-            .setLabel("Setting 1")
-            .setStyle(ButtonStyle.Success),
-        new ButtonBuilder()
-            .setCustomId(`${intEventTokens.settingsEditValuePrefix}${(pagenum * 4) + 1}`)
-            .setLabel("Setting 2")
-            .setStyle(ButtonStyle.Success),
-        new ButtonBuilder()
-            .setCustomId(`${intEventTokens.settingsEditValuePrefix}${(pagenum * 4) + 2}`)
-            .setLabel("Setting 3")
-            .setStyle(ButtonStyle.Success),
-        new ButtonBuilder()
-            .setCustomId(`${intEventTokens.settingsEditValuePrefix}${(pagenum * 4) + 3}`)
-            .setLabel("Setting 4")
-            .setStyle(ButtonStyle.Success),
-    )
+    if (changedSettingName == "INVALIDENTRY") {
+        msgContent += "Invalid Value Entry!"
+    }
 
     let navRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()

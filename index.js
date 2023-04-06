@@ -612,6 +612,10 @@ client.on('interactionCreate', async (interaction) => {
             }
             break;
 
+        case intEventTokens.settingsEditValuePrefix.slice(0, -1):
+            btnEventHandlers.settings_editSettingValue(workingData, interaction, eventTokens);
+            break;
+
         case intEventTokens.userLeaderboardNavPrefix.slice(0, -1):
             switch (eventTokens.shift()) {
                 case "PREV":

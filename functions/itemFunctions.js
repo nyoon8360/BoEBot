@@ -528,7 +528,6 @@ itemFunctionMap.set('item_polymorph', (client, workingData, interaction, eventTo
 
         //get target and new nickname
         let newNickname = interaction.fields.getTextInputValue('newNickname');
-        let target = client.guilds.cache.get(interaction.guildId).members.cache.get(nextToken);
 
         //prevent self use
         if (targetMemberObj.user.id == casterMemberObj.user.id) {
