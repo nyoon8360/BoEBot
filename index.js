@@ -69,7 +69,7 @@ client.on('ready', () => {
     //LOAD data from json database and assign it to workingData var
     client.guilds.cache.map(guild => guild.id).forEach((guildId) => {
         try {
-            if (!fs.existsSync("./database" + guildId + ".json")) {
+            if (!fs.existsSync("./databases/database" + guildId + ".json")) {
                 //if database file for this guild doesnt exist then make the file and assign the new data to workingData var
                 newData = {
                     activeMenuId: "",
@@ -81,13 +81,13 @@ client.on('ready', () => {
                     msgLeaderboard: []
                 }
 
-                fs.writeFileSync("./database" + guildId + ".json", JSON.stringify(newData, null, 2));
+                fs.writeFileSync("./databases/database" + guildId + ".json", JSON.stringify(newData, null, 2));
 
                 workingData[guildId] = newData;
             } else {
                 //read data from json database file and assign it to workingData var synchronously
 
-                workingData[guildId] = JSON.parse(fs.readFileSync("./database" + guildId + ".json"));
+                workingData[guildId] = JSON.parse(fs.readFileSync("./databases/database" + guildId + ".json"));
             }
         } catch(error) {
             console.log(error);
@@ -114,7 +114,7 @@ client.on('ready', () => {
                 workingData[guildId].users.push(utils.getNewUserJSON(newUser.tag, newUser.id));
             });
 
-            fs.writeFileSync('./database' + guildId + ".json", JSON.stringify(workingData[guildId], null, 2));
+            fs.writeFileSync('./databases/database' + guildId + ".json", JSON.stringify(workingData[guildId], null, 2));
         }).catch(console.error);
         
         //update menu in case pick up edbucks button is stuck
@@ -287,7 +287,7 @@ client.on('messageCreate', (message) => {
         case "load":
             client.guilds.cache.map(guild => guild.id).forEach((guildId) => {
                 try {
-                    if (!fs.existsSync("./database" + guildId + ".json")) {
+                    if (!fs.existsSync("./databases/database" + guildId + ".json")) {
                         //if database file for this guild doesnt exist then make the file and assign the new data to workingData var
                         newData = {
                             users:[],
@@ -296,12 +296,12 @@ client.on('messageCreate', (message) => {
                             msgLeaderboardFloor: 0
                         }
         
-                        fs.writeFileSync("./database" + guildId + ".json", JSON.stringify(newData, null, 2));
+                        fs.writeFileSync("./databases/database" + guildId + ".json", JSON.stringify(newData, null, 2));
         
                         workingData[guildId] = newData;
                     } else {
                         //read data from json database file and assign it to workingData var synchronously
-                        workingData[guildId] = JSON.parse(fs.readFileSync("./database" + guildId + ".json"));
+                        workingData[guildId] = JSON.parse(fs.readFileSync("./databases/database" + guildId + ".json"));
                     }
                 } catch(error) {
                     console.log(error);
