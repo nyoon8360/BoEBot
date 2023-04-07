@@ -3,7 +3,7 @@
         "currencyEmojiName": "edbuck",
         "saveInterval": 1200,
         "reactCooldown":1200,
-        "msgExpiration":3600,
+        "msgExpiration":7200,
         "usablesShopItemsPerRow": 3,
         "usablesInventoryItemsPerRow": 3,
         "equipsInventoryItemsPerRow": 3,

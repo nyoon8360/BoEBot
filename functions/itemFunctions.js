@@ -54,9 +54,12 @@ itemFunctionMap.set('item_kick', (client, workingData, interaction, eventTokens)
             return;
         }
 
-        //get target data and target stats/effects
+        //get target member obj, target stats/effects, and target settings
         let targetMemberObj = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
         let targetStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, targetMemberObj.user.id);
+        let targetSettings = workingData[interaction.guildId].users.find(obj => {
+            return obj.id == targetMemberObj.user.id;
+        }).settings;
 
         //prevent self use
         if (targetMemberObj.user.id == casterData.id) {
@@ -80,6 +83,15 @@ itemFunctionMap.set('item_kick', (client, workingData, interaction, eventTokens)
         //instantiate server/caster notification message
         let casterString = `${casterMemberObj.nickname ? `${casterMemberObj.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
         let targetString = `${targetMemberObj.nickname ? `${targetMemberObj.nickname}(${targetMemberObj.user.tag})` : targetMemberObj.user.tag}`;
+        
+        let targetPingSetting = targetSettings.find(obj => {
+            return obj.name == "pingOnTargetted";
+        });
+
+        if (targetPingSetting.value) {
+            targetString = userMention(targetMemberObj.user.id);
+        };
+        
         let sNotifMsg = `${casterString} has used a Comically Large Boot on ${targetString}.`;
         let cNotifMsg = "You've used a Comically Large Boot on " + userMention(interaction.values[0]) + ".";
 
@@ -169,6 +181,9 @@ itemFunctionMap.set('item_mute', (client, workingData, interaction, eventTokens)
             return obj.id == targetMemberObj.id;
         });
         let targetStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, targetMemberObj.id);
+        let targetSettings = workingData[interaction.guildId].users.find(obj => {
+            return obj.id == targetMemberObj.user.id;
+        }).settings;
 
         //prevent self use
         if (targetMemberObj.user.id == interaction.user.id) {
@@ -201,6 +216,15 @@ itemFunctionMap.set('item_mute', (client, workingData, interaction, eventTokens)
         //instantiate server/caster notification message
         let casterString = `${casterMemberObj.nickname ? `${casterMemberObj.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
         let targetString = `${targetMemberObj.nickname ? `${targetMemberObj.nickname}(${targetMemberObj.user.tag})` : targetMemberObj.user.tag}`;
+        
+        let targetPingSetting = targetSettings.find(obj => {
+            return obj.name == "pingOnTargetted";
+        });
+
+        if (targetPingSetting.value) {
+            targetString = userMention(targetMemberObj.user.id);
+        };
+        
         let sNotifMsg = `${casterString} has used Duct Tape on ${targetString}.`;
         let cNotifMsg = "You've used Duct Tape on " + userMention(interaction.values[0]) + ".";
 
@@ -319,6 +343,9 @@ itemFunctionMap.set('item_steal', (client, workingData, interaction, eventTokens
             return obj.id == interaction.values[0];
         });
         let targetStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, interaction.user.id);
+        let targetSettings = workingData[interaction.guildId].users.find(obj => {
+            return obj.id == targetMemberObj.user.id;
+        }).settings;
 
         //prevent self use
         if (targetMemberObj.user.id == interaction.user.id) {
@@ -390,6 +417,15 @@ itemFunctionMap.set('item_steal', (client, workingData, interaction, eventTokens
 
         let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
         let targetString = `${targetMemberObject.nickname ? `${targetMemberObject.nickname}(${targetMemberObject.user.tag})` : targetMemberObject.user.tag}`;
+        
+        let targetPingSetting = targetSettings.find(obj => {
+            return obj.name == "pingOnTargetted";
+        });
+
+        if (targetPingSetting.value) {
+            targetString = userMention(targetMemberObj.user.id);
+        };
+        
         let sNotifMsg = "";
         let cNotifMsg = "";
 
@@ -525,6 +561,9 @@ itemFunctionMap.set('item_polymorph', (client, workingData, interaction, eventTo
             return obj.id == targetMemberObj.user.id;
         });
         let targetStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, targetMemberObj.user.id);
+        let targetSettings = workingData[interaction.guildId].users.find(obj => {
+            return obj.id == targetMemberObj.user.id;
+        }).settings;
 
         //get target and new nickname
         let newNickname = interaction.fields.getTextInputValue('newNickname');
@@ -555,6 +594,17 @@ itemFunctionMap.set('item_polymorph', (client, workingData, interaction, eventTo
         //instantiate server/caster notification message
         let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
         let targetString = `${targetMemberObj.nickname ? `${targetMemberObj.nickname}(${targetMemberObj.user.tag})` : targetMemberObj.user.tag}`;
+
+        let targetPingSetting = targetSettings.find(obj => {
+            return obj.name == "pingOnTargetted";
+        });
+
+        console.log(targetPingSetting);
+
+        if (targetPingSetting.value) {
+            targetString = userMention(targetMemberObj.user.id);
+        };
+
         let sNotifMsg = `${casterString} has used a Semi-permanent Nametag with [${newNickname}] written on it on ${targetString}.`;
         let cNotifMsg = "You've used Semi-permanent Nametag on " + userMention(nextToken) + ".";
 
@@ -698,6 +748,9 @@ itemFunctionMap.set('item_expose', (client, workingData, interaction, eventToken
         });
         let targetMemberObj = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
         let targetStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, targetMemberObj.user.id);
+        let targetSettings = workingData[interaction.guildId].users.find(obj => {
+            return obj.id == targetMemberObj.user.id;
+        }).settings;
 
         //check if caster still has item
         let itemEntryIndex = casterData.itemInventory.findIndex(obj => {
@@ -725,6 +778,15 @@ itemFunctionMap.set('item_expose', (client, workingData, interaction, eventToken
         //instantiate server/caster notification message
         let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
         let targetString = `${targetMemberObj.nickname ? `${targetMemberObj.nickname}(${targetMemberObj.user.tag})` : targetMemberObj.user.tag}`;
+        
+        let targetPingSetting = targetSettings.find(obj => {
+            return obj.name == "pingOnTargetted";
+        });
+
+        if (targetPingSetting.value) {
+            targetString = userMention(targetMemberObj.user.id);
+        };
+        
         let sNotifMsg = `${casterString} has used 4K HD Wide-angle Lens Camera on ${targetString}.`;
         let cNotifMsg = "You've used 4K HD Wide-angle Lens Camera on " + userMention(interaction.values[0]) + ".";
 
@@ -829,6 +891,9 @@ itemFunctionMap.set('item_edwindinner', (client, workingData, interaction, event
         //get target data
         let targetMemberObj = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
         let targetStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, targetMemberObj.user.id);
+        let targetSettings = workingData[interaction.guildId].users.find(obj => {
+            return obj.id == targetMemberObj.user.id;
+        }).settings;
 
         //prevent use on bot
         if (targetMemberObj.user.bot) {
@@ -862,6 +927,15 @@ itemFunctionMap.set('item_edwindinner', (client, workingData, interaction, event
         //instantiate server/caster notification message
         let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
         let targetString = `${targetMemberObj.nickname ? `${targetMemberObj.nickname}(${targetMemberObj.user.tag})` : targetMemberObj.user.tag}`;
+        
+        let targetPingSetting = targetSettings.find(obj => {
+            return obj.name == "pingOnTargetted";
+        });
+
+        if (targetPingSetting.value) {
+            targetString = userMention(targetMemberObj.user.id);
+        };
+        
         let sNotifMsg = `${casterString} has used Edwin Dinner™ on ${targetString}.`;
         let cNotifMsg = "You've used Edwin Dinner™ on " + userMention(interaction.values[0]) + ".";
 

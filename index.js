@@ -33,7 +33,7 @@ const client = new Client({
         ...Options.DefaultSweeperSettings,
 		messages: {
 			interval: 3600, // Sweep message cache every hour
-			lifetime: 3780,	// Remove messages older than 1 hour 3 minutes.
+			lifetime: config.msgExpiration + 120,	// Remove messages older than msg expiration + 3 minutes.
 		}
     }
 });
