@@ -33,12 +33,16 @@ function getNewUserJSON(userTag, userId) {
             {
                 name: "pingOnTargetted",
                 description: "Get pinged when targetted by item.",
-                value: false
+                value: false,
+                valueType: "boolean",
+                changeable: true
             },
             {
                 name: "userBirthday",
-                description: "Birthday",
-                value: ""
+                description: "Birthday (CAN ONLY EDIT THIS ONCE)",
+                value: "",
+                valueType: "mm/dd",
+                changeable: true
             }
         ],
         fStatReactionsAwarded: 0,
@@ -162,4 +166,21 @@ function getStatusEffectObject(name, expires, additionalProps) {
     return returnedEffectObj;
 }
 
-module.exports = { getNewUserJSON, saveData, checkStatsAndEffects, getStatusEffectObject };
+function getUpdatedBirthdayDirectory(workingData, guildId) {
+    let bdayDirectory = {};
+
+    workingData[guildId].users.forEach(obj => {
+        let userBdaySetting = obj.settings.find(setting => {
+            return setting.name == 'userBirthday';
+        });
+
+        if (userBdaySetting.value) {
+            let parsedBday = userBdaySetting.value.split("/");
+            bdayDirectory[obj.id] = {month: parseInt(parsedBday[0]), day: parseInt(parsedBday[1])};
+        }
+    });
+
+    return bdayDirectory;
+}
+
+module.exports = { getNewUserJSON, saveData, checkStatsAndEffects, getStatusEffectObject, getUpdatedBirthdayDirectory };

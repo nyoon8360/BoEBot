@@ -1,4 +1,4 @@
-const { ButtonStyle, time, ActionRowBuilder, ButtonBuilder, inlineCode, bold, underscore, EmbedBuilder, codeBlock } = require('discord.js');
+const { ButtonStyle, time, ActionRowBuilder, ButtonBuilder, inlineCode, bold, underscore, EmbedBuilder, codeBlock, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 const fs = require('fs');
 const usables = require('../items/usables.json');
 const equipment = require('../items/equipment.json');
@@ -149,6 +149,8 @@ ${underscore('Main Sources Of Edbucks')}
     - This is checked every 25 minutes and awards 1 edbuck.
 - Being the first person to click on the "Pick Up Edbucks" button when it's randomly enabled.
     - Re-enables randomly between 1-2 hours after being clicked.
+- Typing "happy birthday" (or anything very similar) in any chat while it's someone's birthday.
+    - Awards 3 edbucks to the birthday wisher and 5 edbucks to the user whose birthday it is.
 - Winning minigames (WIP)
 
 ${underscore('Ways To Use Your Edbucks')}
@@ -219,6 +221,74 @@ async function mainMenu_msgLeaderboard(client, workingData, interaction) {
 
 function mainMenu_changelog(interaction) {
     interaction.reply(uiBuilders.changelogUI(0));
+}
+
+function settings_editSettingValue(workingData, interaction, eventTokens, birthdayDirectory) {
+    if (eventTokens.length == 2) {
+        //if no edit value is passed meaning we need to open the UI for the user to edit the value
+        //get user's setting object
+        let pageNum = eventTokens.shift();
+        let settingName = eventTokens.shift();
+
+        let settingObj = workingData[interaction.guildId].users.find(obj => {
+            return obj.id == interaction.user.id;
+        }).settings.find(obj => {
+            return obj.name == settingName;
+        });
+
+        switch (settingObj.valueType) {
+            case "boolean":
+                //no need to call UI builder. Simply swap the value.
+                settingObj.value = !settingObj.value;
+                interaction.update(uiBuilders.settingsUI(workingData, interaction, pageNum, settingName));
+                break;
+            
+            case "mm/dd":
+                let modal = new ModalBuilder()
+                    .setCustomId(intEventTokens.settingsEditValuePrefix + `${pageNum}-${settingName}-"valueEntered"`)
+                    .setTitle("Edit Setting")
+                    .addComponents(
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId("newSettingValue")
+                            .setStyle(TextInputStyle.Short)
+                            .setLabel("Enter Date in MM/DD format (Month/Day).")
+                        )
+                    )
+
+                interaction.showModal(modal);
+                break;
+        }
+    } else {
+        //if an edit value is passed meaning we need to edit the user's setting value then pass a successful edit UI
+        //get setting obj
+        let pageNum = eventTokens.shift();
+        let settingName = eventTokens.shift();
+
+        let settingObj = workingData[interaction.guildId].users.find(obj => {
+            return obj.id == interaction.user.id;
+        }).settings.find(obj => {
+            return obj.name == settingName;
+        });
+        
+        //validate the new value
+        switch(settingObj.valueType) {
+            case "mm/dd":
+                let newSettingValue = interaction.fields.getTextInputValue('newSettingValue');
+                let regex = new RegExp("^(0?[1-9]|1[0-2])/(0?[1-9]|[12][0-9]|3[01])$");
+                if(regex.test(newSettingValue)) {
+                    //valid entry
+                    settingObj.value = newSettingValue;
+                    settingObj.changeable = false;
+                    interaction.update(uiBuilders.settingsUI(workingData, interaction, pageNum, settingName));
+                    birthdayDirectory[interaction.guildId] = utils.getUpdatedBirthdayDirectory(workingData, interaction.guildId);
+                } else {
+                    //invalid entry
+                    interaction.update(uiBuilders.settingsUI(workingData, interaction, pageNum, "INVALIDENTRY"));
+                }
+                break;
+        }
+    }
 }
 
 function usablesShop_selectShelf(workingData, interaction, eventTokens) {
@@ -517,6 +587,7 @@ function equipsInventory_toggleEquip(workingData, interaction, eventTokens) {
 
 module.exports = {
     mainMenu_changelog, mainMenu_findTreasure, mainMenu_help, mainMenu_msgLeaderboard, mainMenu_openInv, mainMenu_shop, mainMenu_showStats, mainMenu_userLeaderboard, mainMenu_settings,
+    settings_editSettingValue,
     usablesInventory_selectSlot, usablesShop_purchase, usablesShop_selectShelf,
     equipsShop_selectShelf, equipsShop_purchase, equipsInventory_selectSlot, equipsInventory_toggleEquip
 }

@@ -24,6 +24,8 @@ module.exports = Object.freeze({
     activeVCReward: config.common.activeVCReward,
     equipsInvItemsPerRow: config.common.equipsInventoryItemsPerRow,
     equipsShopItemsPerRow: config.common.equipsShopItemsPerRow,
+    bdayWisherReward: config.common.bdayWisherReward,
+    bdayReceiverReward: config.common.bdayReceiverReward,
     
     //item config constants
     itemMuteDuration: config.items.itemMuteDuration,

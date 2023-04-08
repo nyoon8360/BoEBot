@@ -3,7 +3,7 @@
         "currencyEmojiName": "edbuck",
         "saveInterval": 1200,
         "reactCooldown":1200,
-        "msgExpiration":3600,
+        "msgExpiration":7200,
         "usablesShopItemsPerRow": 3,
         "usablesInventoryItemsPerRow": 3,
         "equipsInventoryItemsPerRow": 3,
@@ -18,6 +18,8 @@
         "checkActiveVCInterval": 1500,
         "activeVCMemberThreshold": 3,
         "activeVCReward": 1,
+        "bdayWisherReward": 3,
+        "bdayReceiverReward": 5,
         "admins": [
             "179049191601864704"
         ]
