@@ -166,4 +166,21 @@ function getStatusEffectObject(name, expires, additionalProps) {
     return returnedEffectObj;
 }
 
-module.exports = { getNewUserJSON, saveData, checkStatsAndEffects, getStatusEffectObject };
+function getUpdatedBirthdayDirectory(workingData, guildId) {
+    let bdayDirectory = {};
+
+    workingData[guildId].users.forEach(obj => {
+        let userBdaySetting = obj.settings.find(setting => {
+            return setting.name == 'userBirthday';
+        });
+
+        if (userBdaySetting.value) {
+            let parsedBday = userBdaySetting.value.split("/");
+            bdayDirectory[obj.id] = {month: parseInt(parsedBday[0]), day: parseInt(parsedBday[1])};
+        }
+    });
+
+    return bdayDirectory;
+}
+
+module.exports = { getNewUserJSON, saveData, checkStatsAndEffects, getStatusEffectObject, getUpdatedBirthdayDirectory };

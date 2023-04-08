@@ -221,7 +221,7 @@ function mainMenu_changelog(interaction) {
     interaction.reply(uiBuilders.changelogUI(0));
 }
 
-function settings_editSettingValue(workingData, interaction, eventTokens) {
+function settings_editSettingValue(workingData, interaction, eventTokens, birthdayDirectory) {
     if (eventTokens.length == 2) {
         //if no edit value is passed meaning we need to open the UI for the user to edit the value
         //get user's setting object
@@ -279,6 +279,7 @@ function settings_editSettingValue(workingData, interaction, eventTokens) {
                     settingObj.value = newSettingValue;
                     settingObj.changeable = false;
                     interaction.update(uiBuilders.settingsUI(workingData, interaction, pageNum, settingName));
+                    birthdayDirectory[interaction.guildId] = utils.getUpdatedBirthdayDirectory(workingData, interaction.guildId);
                 } else {
                     //invalid entry
                     interaction.update(uiBuilders.settingsUI(workingData, interaction, pageNum, "INVALIDENTRY"));

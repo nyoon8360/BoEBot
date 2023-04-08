@@ -15,6 +15,14 @@ dotenv for loading environment variables from .env file
 fs for reading/writing/editing json files
 */
 
+/*
+bdaysWished: {
+    0987153124211-2023(string composed of userID + "-" + year) : [
+        (array of user ids of users who have wished this bday already)
+    ]
+}
+*/
+
 // NOTE: Make sure to update intents if new events not in current intents are needed to be listened to
 const client = new Client({
     intents: [
@@ -45,6 +53,9 @@ var shopPages_usables = [];
 var shopPages_others = [];
 var shopPages_equipment = [];
 var shopPages_equipmentDirectory = [];
+
+//variable for directory of user birthdays
+var birthdayDirectory = {};
 
 //===================================================
 //===================================================
@@ -78,7 +89,8 @@ client.on('ready', () => {
                     botNotifsChannelId: "",
                     itemBanishChannelId: "",
                     users:[],
-                    msgLeaderboard: []
+                    msgLeaderboard: [],
+                    bdaysWished: {}
                 }
 
                 fs.writeFileSync("./databases/database" + guildId + ".json", JSON.stringify(newData, null, 2));
@@ -125,6 +137,8 @@ client.on('ready', () => {
         } catch (exception) {
             console.log("Automatic menu update failed.");
         }
+
+        birthdayDirectory[guildId] = utils.getUpdatedBirthdayDirectory(workingData, guildId);
     });
 
     
@@ -258,97 +272,147 @@ client.on("guildMemberAdd", member => {
 
 //event listener for messages mainly used for admin commands
 client.on('messageCreate', (message) => {
-    if (!message.content.charAt(0) == '>') return;
     if (message.author.bot) return;
 
-    //if command sender is not a bot admin then do not process command
-    if (!config.botAdmins.includes(message.author.id)) return;
+    if (message.content.charAt(0) == '>' && config.botAdmins.includes(message.author.id)) {
+        //admin commands implementation
+        let curDate = new Date(Date.now());
+        switch(message.content.substring(1)) {
+            case "spawnmenu":
+                message.channel.send(uiBuilder.menuUI()).then(msg => {
+                    workingData[message.guildId].activeMenuId = msg.id;
+                    workingData[message.guildId].activeMenuChannelId = msg.channelId;
+                });
+                break;
 
-    let curDate = new Date(Date.now());
-    switch(message.content.substring(1)) {
-        case "spawnmenu":
-            message.channel.send(uiBuilder.menuUI()).then(msg => {
-                workingData[message.guildId].activeMenuId = msg.id;
-                workingData[message.guildId].activeMenuChannelId = msg.channelId;
-            });
-            break;
+            case "save":
+                utils.saveData(client, workingData);
+                console.log(`(${curDate.toLocaleString()}) Manual Save Complete`);
+                break;
+            
+            case "shutdown":
+                utils.saveData(client, workingData, true);
+                console.log(`(${curDate.toLocaleString()}) Manual Shutdown for Server: ${message.guild.name}`);
+                client.destroy();
+                break;
 
-        case "save":
-            utils.saveData(client, workingData);
-            console.log(`(${curDate.toLocaleString()}) Manual Save Complete`);
-            break;
-        
-        case "shutdown":
-            utils.saveData(client, workingData, true);
-            console.log(`(${curDate.toLocaleString()}) Manual Shutdown for Server: ${message.guild.name}`);
-            client.destroy();
-            break;
-
-        case "load":
-            client.guilds.cache.map(guild => guild.id).forEach((guildId) => {
-                try {
-                    if (!fs.existsSync("./databases/database" + guildId + ".json")) {
-                        //if database file for this guild doesnt exist then make the file and assign the new data to workingData var
-                        newData = {
-                            users:[],
-                            activeMenuId: "",
-                            msgLeaderboard: [],
-                            msgLeaderboardFloor: 0
+            case "load":
+                client.guilds.cache.map(guild => guild.id).forEach((guildId) => {
+                    try {
+                        if (!fs.existsSync("./databases/database" + guildId + ".json")) {
+                            //if database file for this guild doesnt exist then make the file and assign the new data to workingData var
+                            newData = {
+                                users:[],
+                                activeMenuId: "",
+                                msgLeaderboard: [],
+                                msgLeaderboardFloor: 0
+                            }
+            
+                            fs.writeFileSync("./databases/database" + guildId + ".json", JSON.stringify(newData, null, 2));
+            
+                            workingData[guildId] = newData;
+                        } else {
+                            //read data from json database file and assign it to workingData var synchronously
+                            workingData[guildId] = JSON.parse(fs.readFileSync("./databases/database" + guildId + ".json"));
                         }
-        
-                        fs.writeFileSync("./databases/database" + guildId + ".json", JSON.stringify(newData, null, 2));
-        
-                        workingData[guildId] = newData;
-                    } else {
-                        //read data from json database file and assign it to workingData var synchronously
-                        workingData[guildId] = JSON.parse(fs.readFileSync("./databases/database" + guildId + ".json"));
+                    } catch(error) {
+                        console.log(error);
                     }
-                } catch(error) {
-                    console.log(error);
-                }
-            });
-            console.log(`(${curDate.toLocaleString()}) Manual Load Complete`)
-            break;
+                });
+                console.log(`(${curDate.toLocaleString()}) Manual Load Complete`)
+                break;
 
-        case "updatemenu":
-            message.guild.channels.cache.get(workingData[message.guildId].activeMenuChannelId).messages.fetch(workingData[message.guildId].activeMenuId).then(result => {
-                result.edit(uiBuilder.menuUI());
-            });
-            console.log(`(${curDate.toLocaleString()}) Manual Menu Update Complete`);
-            break;
+            case "updatemenu":
+                message.guild.channels.cache.get(workingData[message.guildId].activeMenuChannelId).messages.fetch(workingData[message.guildId].activeMenuId).then(result => {
+                    result.edit(uiBuilder.menuUI());
+                });
+                console.log(`(${curDate.toLocaleString()}) Manual Menu Update Complete`);
+                break;
 
-        case "updateuserprops":
-            let updatedUsersList = [];
-            workingData[message.guildId].users.forEach(obj => {
-                let settingsArr = utils.getNewUserJSON("", "").settings;
-                let updatedEntry = utils.getNewUserJSON("","");
-                updatedEntry = Object.assign(updatedEntry, obj);
-                /*
-                if (updatedEntry.equipmentInventory.length <= 0) {
-                    updatedEntry = Object.assign(updatedEntry, {equipmentInventory: {
-                        head: [],
-                        body: [],
-                        trinket: [],
-                        shoes: []
-                    }});
-                }
-                */
-                //TODO: delete this one if block after running once
-                if (!Array.isArray(updatedEntry.settings)) {
-                    updatedEntry.settings = settingsArr;
-                }
+            case "updateuserprops":
+                let updatedUsersList = [];
+                workingData[message.guildId].users.forEach(obj => {
+                    let settingsArr = utils.getNewUserJSON("", "").settings;
+                    let updatedEntry = utils.getNewUserJSON("","");
+                    updatedEntry = Object.assign(updatedEntry, obj);
+                    /*
+                    if (updatedEntry.equipmentInventory.length <= 0) {
+                        updatedEntry = Object.assign(updatedEntry, {equipmentInventory: {
+                            head: [],
+                            body: [],
+                            trinket: [],
+                            shoes: []
+                        }});
+                    }
+                    */
+                    //TODO: delete this one if block after running once
+                    if (!Array.isArray(updatedEntry.settings)) {
+                        updatedEntry.settings = settingsArr;
+                    }
 
-                if (updatedEntry.settings.length < settingsArr.length) {
-                    for (index = updatedEntry.settings.length; index < settingsArr.length; index ++) {
-                        updatedEntry.settings.push(settingsArr[index]);
+                    if (updatedEntry.settings.length < settingsArr.length) {
+                        for (index = updatedEntry.settings.length; index < settingsArr.length; index ++) {
+                            updatedEntry.settings.push(settingsArr[index]);
+                        }
+                    }
+
+                    updatedUsersList.push(updatedEntry);
+                });
+                workingData[message.guildId].users = updatedUsersList;
+                console.log(`(${curDate.toLocaleString()}) Manual User Properties Update Complete! Changes in database will take effect on next save.`);
+                break;
+        }
+    } else {
+        //check whether a message is wishing happy birthday
+        let lcMessage = message.content.toLowerCase();
+        let happyStrings = ["happy", "hppy", "appy"];
+        let birthdayStrings = ["birthday", "bday", "birfday", "birth day"];
+        //check if message is wishing happy birthday
+        if (new RegExp(happyStrings.join("|")).test(lcMessage) && new RegExp(birthdayStrings.join("|")).test(lcMessage)) {
+            //check if it's close to anyones bday
+            let curDate = new Date(Date.now());
+            let reacted = false;
+            Object.keys(birthdayDirectory[message.guildId]).forEach(key => {
+                //prevent users from wishing themselves happy bday
+                if (key == message.author.id) return;
+                if (birthdayDirectory[message.guildId][key].month == curDate.getMonth() + 1 && curDate.getDate() - 1 <= birthdayDirectory[message.guildId][key].day <= curDate.getDate() + 1) {
+                    if (!workingData[message.guildId].bdaysWished[`${key}-${curDate.getFullYear()}`]) {
+                        //if bdaysWished property of this combo of bday person id + year doesnt exist then create the property and award edbucks accordingly
+                        workingData[message.guildId].bdaysWished[`${key}-${curDate.getFullYear()}`] = [message.author.id];
+                        let bdayWisher = workingData[message.guildId].users.find(obj => {
+                            return obj.id == message.author.id;
+                        });
+                        let bdayUser = workingData[message.guildId].users.find(obj => {
+                            return obj.id == key;
+                        });
+                        bdayWisher.balance += config.bdayWisherReward;
+                        bdayUser.balance += config.bdayReceiverReward;
+
+                        if (!reacted) message.react('🎉');
+                        
+                        reacted = true;
+
+                    } else if (!workingData[message.guildId].bdaysWished[`${key}-${curDate.getFullYear()}`].includes(message.author.id)) {
+                        //if bdaysWished property of this combo of bday person id + year does exist but the wisher is not in value array then add them to the array and award edbucks accordingly
+                        workingData[message.guildId].bdaysWished[`${key}-${curDate.getFullYear()}`].push(message.author.id);
+                        let bdayWisher = workingData[message.guildId].users.find(obj => {
+                            return obj.id == message.author.id;
+                        });
+                        let bdayUser = workingData[message.guildId].users.find(obj => {
+                            return obj.id == key;
+                        });
+                        bdayWisher.balance += config.bdayWisherReward;
+                        bdayUser.balance += config.bdayReceiverReward;
+
+
+                        if (!reacted) message.react('🎉');
+                        
+                        reacted = true;
+
                     }
                 }
-
-                updatedUsersList.push(updatedEntry);
             });
-            workingData[message.guildId].users = updatedUsersList;
-            console.log(`(${curDate.toLocaleString()}) Manual User Properties Update Complete! Changes in database will take effect on next save.`);
-            break;
+        }
     }
 });
 
@@ -613,7 +677,7 @@ client.on('interactionCreate', async (interaction) => {
             break;
 
         case intEventTokens.settingsEditValuePrefix.slice(0, -1):
-            btnEventHandlers.settings_editSettingValue(workingData, interaction, eventTokens);
+            btnEventHandlers.settings_editSettingValue(workingData, interaction, eventTokens, birthdayDirectory);
             break;
 
         case intEventTokens.userLeaderboardNavPrefix.slice(0, -1):

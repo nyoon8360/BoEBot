@@ -18,6 +18,8 @@
         "checkActiveVCInterval": 1500,
         "activeVCMemberThreshold": 3,
         "activeVCReward": 1,
+        "bdayWisherReward": 3,
+        "bdayReceiverReward": 5,
         "admins": [
             "179049191601864704"
         ]
