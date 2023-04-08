@@ -149,6 +149,8 @@ ${underscore('Main Sources Of Edbucks')}
     - This is checked every 25 minutes and awards 1 edbuck.
 - Being the first person to click on the "Pick Up Edbucks" button when it's randomly enabled.
     - Re-enables randomly between 1-2 hours after being clicked.
+- Typing "happy birthday" (or anything very similar) in any chat while it's someone's birthday.
+    - Awards 3 edbucks to the birthday wisher and 5 edbucks to the user whose birthday it is.
 - Winning minigames (WIP)
 
 ${underscore('Ways To Use Your Edbucks')}

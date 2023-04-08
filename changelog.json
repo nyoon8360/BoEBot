@@ -1,5 +1,14 @@
 [
     {
+        "version": "1.1.1 The Birthday and Settings Update",
+        "changes": [
+            "-Enabled the settings button on the main menu with new settings you can edit.",
+            "-Added edbucks rewards for wishing people happy birthday.",
+            "-Updated help menu with explanation on happy birthday wishing feature.",
+            "-Increased the expiration timer of messages for reactions from 1 hour to 2 hours."
+        ]
+    },
+    {
         "version": "1.1.0 The Equipment Update",
         "changes": [
             "-Added equipment as a new type of item that provide unique effects.",
