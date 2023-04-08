@@ -138,7 +138,11 @@ client.on('ready', () => {
             console.log("Automatic menu update failed.");
         }
 
-        birthdayDirectory[guildId] = utils.getUpdatedBirthdayDirectory(workingData, guildId);
+        try {
+            birthdayDirectory[guildId] = utils.getUpdatedBirthdayDirectory(workingData, guildId)
+        } catch {
+            
+        }
     });
 
     
