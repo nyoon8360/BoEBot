@@ -1,0 +1,26 @@
+{
+    "reflectChance": {
+        "displayName": "Reflect Chance",
+        "description": "Each point of value provides a 1% chance to reflect any item used on you back to the user."
+    },
+    "treasureLuck": {
+        "displayName": "Pickup Luck",
+        "description": "Each point of value provides a 1% chance to double edbucks gained on clicking the Pickup Edbucks button."
+    },
+    "vocalLuck": {
+        "displayName": "Vocal Luck",
+        "description": "Each point of value provides a 1% chance to gain 1 extra edbuck when awarded for being in an active VC."
+    },
+    "reactionBonus": {
+        "displayName": "Reaction Bonus",
+        "description": "Each point of value provides 1 extra edbuck when receiving a valid edbuck reaction."
+    },
+    "usableCrit": {
+        "displayName": "Usables Crit Chance",
+        "description": "Each point of value provides a 1% chance to land a critical use when using items that have a critical effect."
+    },
+    "usablesDiscount": {
+        "displayName": "Usables Shop Discount",
+        "description": "Each point of value provides a 1% discount when buying items from the usables shop."
+    }
+}

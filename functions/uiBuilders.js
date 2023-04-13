@@ -1,4 +1,4 @@
-const { ButtonStyle, ActionRowBuilder, ButtonBuilder, bold, underscore, codeBlock, inlineCode} = require('discord.js');
+const { ButtonStyle, ActionRowBuilder, ButtonBuilder, bold, underscore, codeBlock, inlineCode, userMention} = require('discord.js');
 const changelog = require('../changelog.json');
 const intEventTokens = require('../constants/intEventTokens.js');
 const config = require('../constants/configConsts.js');
@@ -218,7 +218,7 @@ function equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, pagenum
     let dirEntry = shopPages_equipmentDirectory[pagenum];
 
     return {
-        content: bold("==================\nEQUIPMENT SHOP\n==================") + `\n${underscore(dirEntry[0].charAt(0).toUpperCase() + dirEntry[0].slice(1) + " " + (dirEntry[1] + 1))}`,
+        content: bold("==================\nEQUIPMENT SHOP\n==================") + `\n${underscore(dirEntry[0].charAt(0).toUpperCase() + dirEntry[0].slice(1) + " Page " + (dirEntry[1] + 1))}`,
         components: shopPage,
         ephemeral: true
     }
@@ -406,7 +406,7 @@ function userLeaderboardUI(workingData, interaction, pageNum) {
     sortedLeaderboard = sortedLeaderboard.slice(pageNum * config.userLeaderboardEntriesPerPage, (pageNum + 1) * config.userLeaderboardEntriesPerPage);
 
     sortedLeaderboard.forEach((user, index) => {
-        leaderboard += "(" + (index + 1 + (pageNum * config.userLeaderboardEntriesPerPage)) + ") " + user.tag + ": " + user.balance + " EB \n"
+        leaderboard += "(" + (index + 1 + (pageNum * config.userLeaderboardEntriesPerPage)) + ") " + (user.id ? userMention(user.id) : user.tag) + ": " + user.balance + " EB \n"
     })
 
     let row = new ActionRowBuilder()

@@ -6,7 +6,7 @@ const intEventTokens = require('../constants/intEventTokens.js');
 const config = require('../constants/configConsts.js');
 const uiBuilders = require('./uiBuilders.js');
 const utils = require('./utils.js');
-const { workerData } = require('worker_threads');
+const statInfo = require('../constants/statInfo.json');
 
 //===================================================
 //===================================================
@@ -41,6 +41,14 @@ function mainMenu_showStats(workingData, interaction) {
         }
     }
 
+    let userStatsString = "";
+
+    let userStatsObj = utils.checkStatsAndEffects(workingData, interaction, interaction.user.id, true);
+
+    Object.keys(userStatsObj.stats).forEach(key => {
+        userStatsString += `-${statInfo[key].displayName}: ${userStatsObj.stats[key]}\n`;
+    });
+
     interaction.reply({
         content: `
 ${bold('============\nYOUR STATS\n============')}
@@ -48,7 +56,8 @@ Edbuck Balance: ${requester.balance}
 Last Edbuck Awarded: ${lastAwarded}
 Edbuck Reactions Awarded: ${requester.fStatReactionsAwarded}
 Edbuck Reactions Received: ${requester.fStatReactionsReceived}
-Status Effects:
+Stats:
+${userStatsString}Status Effects:
 ${afflictedBy}
         `,
         ephemeral: true
