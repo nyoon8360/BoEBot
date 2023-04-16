@@ -67,7 +67,7 @@ function saveData(client, workingData, sync) {
     });
 }
 
-function checkStatsAndEffects(workingData, interaction, targetId) {
+function checkStatsAndEffects(workingData, interaction, targetId, getRawChances) {
     //TODO: If a lot of stats and effects are added then add a filter parameter to the function signature that will only check and update
     //the selected stats and effects in the filter object parameter.
     let passedEffectsAndStats = {
@@ -131,13 +131,15 @@ function checkStatsAndEffects(workingData, interaction, targetId) {
     });
 
     //roll any chance stats
-    Object.keys(passedEffectsAndStats.stats).forEach(key => {
-        if (chanceStats.includes(key)) {
-            let roll = Math.round(Math.random() * 99) + 1;
-
-            passedEffectsAndStats.stats[key] = roll <= passedEffectsAndStats.stats[key] ? 1 : 0;
-        }
-    });
+    if (!getRawChances) {
+        Object.keys(passedEffectsAndStats.stats).forEach(key => {
+            if (chanceStats.includes(key)) {
+                let roll = Math.round(Math.random() * 99) + 1;
+    
+                passedEffectsAndStats.stats[key] = roll <= passedEffectsAndStats.stats[key] ? 1 : 0;
+            }
+        });
+    }
 
     return passedEffectsAndStats;
 }

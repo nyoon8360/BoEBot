@@ -19,6 +19,74 @@ function usableItemsFunctionalities(client, workingData, interaction, eventToken
     itemFunctionMap.get(eventTokens.shift())(client, workingData, interaction, eventTokens);
 }
 
+const defaultOptions = {
+    preventSelfUse: true,
+    vcUserUseOnly: false
+}
+
+function templateItemFunction(client, workingData, interaction, eventTokens, options) {
+    if (options) {
+        let defaultOptionsCopy = {...defaultOptions};
+        options = Object.assign(defaultOptionsCopy, options);
+    } else {
+        options = defaultOptions;
+    }
+
+    //get caster data, member object, and stats/effects
+    let casterData = workingData[interaction.guildId].users.find(obj => {
+        return obj.id == interaction.user.id;
+    });
+    let casterMemberObj = interaction.member;
+    let casterStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, interaction.user.id);
+
+    //get target data, member object, stats/effects, and settings
+    let targetData = workingData[interaction.guildId].users.find(obj => {
+        return obj.id == interaction.values[0];
+    });
+    let targetMemberObj = client.guilds.cache.get(interaction.guildId).members.cache.get(interaction.values[0]);
+    let targetStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, targetMemberObj.user.id);
+    let targetSettings = targetData.settings;
+
+    //check if caster still has item
+    let usedItemInvEntryIndex = casterData.itemInventory.findIndex(obj => {
+        return obj.name == "item_kick";
+    });
+
+    if (usedItemInvEntryIndex < 0) {
+        interaction.update(uiBuilders.notifDontHaveItem());
+        return;
+    }
+
+    if (options.preventSelfUse) {
+        //prevent self use
+        if (targetMemberObj.user.id == casterData.id) {
+            interaction.update(uiBuilders.notifCantSelfUse());
+            return;
+        }
+    }
+
+    //prevent use on someone not in VC
+    if (!targetMemberObj.voice.channelId) {
+        interaction.update(uiBuilders.notifTargetNotInVC());
+        return;
+    }
+
+    if (options.vcUserUseOnly) {
+        //prevent use on someone not in VC
+        if (!targetMemberObj.voice.channelId) {
+            interaction.update(uiBuilders.notifTargetNotInVC());
+            return;
+        }
+    }
+
+    //consume item
+    if (casterData.itemInventory[usedItemInvEntryIndex].count == 1) {
+        casterData.itemInventory.splice(usedItemInvEntryIndex, 1);
+    } else {
+        casterData.itemInventory[usedItemInvEntryIndex].count -= 1;
+    }
+}
+
 itemFunctionMap.set('item_kick', (client, workingData, interaction, eventTokens) => {
     if (eventTokens.length <= 0) {
         //select target
@@ -598,8 +666,6 @@ itemFunctionMap.set('item_polymorph', (client, workingData, interaction, eventTo
         let targetPingSetting = targetSettings.find(obj => {
             return obj.name == "pingOnTargetted";
         });
-
-        console.log(targetPingSetting);
 
         if (targetPingSetting.value) {
             targetString = userMention(targetMemberObj.user.id);
