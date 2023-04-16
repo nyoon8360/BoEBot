@@ -1,5 +1,14 @@
 [
     {
+        "version": "1.1.2 Im Dumb",
+        "changes": [
+            "-Changed user leaderboard to use mentions rather than displaying user tags in plain text.",
+            "-Added user stats to the Show Stats menu.",
+            "-Fixed bug with chance stats always applying.",
+            "-Lowered cost of Semi-permanent Nametag from 22 to 17."
+        ]
+    },
+    {
         "version": "1.1.1 The Birthday and Settings Update",
         "changes": [
             "-Enabled the settings button on the main menu with new settings you can edit.",

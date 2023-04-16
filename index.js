@@ -349,10 +349,6 @@ client.on('messageCreate', (message) => {
                         }});
                     }
                     */
-                    //TODO: delete this one if block after running once
-                    if (!Array.isArray(updatedEntry.settings)) {
-                        updatedEntry.settings = settingsArr;
-                    }
 
                     if (updatedEntry.settings.length < settingsArr.length) {
                         for (index = updatedEntry.settings.length; index < settingsArr.length; index ++) {

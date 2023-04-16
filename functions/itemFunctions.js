@@ -20,7 +20,8 @@ function usableItemsFunctionalities(client, workingData, interaction, eventToken
 }
 
 const defaultOptions = {
-    VCUserUseOnly: false
+    preventSelfUse: true,
+    vcUserUseOnly: false
 }
 
 function templateItemFunction(client, workingData, interaction, eventTokens, options) {
@@ -56,16 +57,33 @@ function templateItemFunction(client, workingData, interaction, eventTokens, opt
         return;
     }
 
-    //prevent self use
-    if (targetMemberObj.user.id == casterData.id) {
-        interaction.update(uiBuilders.notifCantSelfUse());
-        return;
+    if (options.preventSelfUse) {
+        //prevent self use
+        if (targetMemberObj.user.id == casterData.id) {
+            interaction.update(uiBuilders.notifCantSelfUse());
+            return;
+        }
     }
 
     //prevent use on someone not in VC
     if (!targetMemberObj.voice.channelId) {
         interaction.update(uiBuilders.notifTargetNotInVC());
         return;
+    }
+
+    if (options.vcUserUseOnly) {
+        //prevent use on someone not in VC
+        if (!targetMemberObj.voice.channelId) {
+            interaction.update(uiBuilders.notifTargetNotInVC());
+            return;
+        }
+    }
+
+    //consume item
+    if (casterData.itemInventory[usedItemInvEntryIndex].count == 1) {
+        casterData.itemInventory.splice(usedItemInvEntryIndex, 1);
+    } else {
+        casterData.itemInventory[usedItemInvEntryIndex].count -= 1;
     }
 }
 
@@ -648,8 +666,6 @@ itemFunctionMap.set('item_polymorph', (client, workingData, interaction, eventTo
         let targetPingSetting = targetSettings.find(obj => {
             return obj.name == "pingOnTargetted";
         });
-
-        console.log(targetPingSetting);
 
         if (targetPingSetting.value) {
             targetString = userMention(targetMemberObj.user.id);

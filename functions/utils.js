@@ -131,7 +131,7 @@ function checkStatsAndEffects(workingData, interaction, targetId, getRawChances)
     });
 
     //roll any chance stats
-    if (getRawChances) {
+    if (!getRawChances) {
         Object.keys(passedEffectsAndStats.stats).forEach(key => {
             if (chanceStats.includes(key)) {
                 let roll = Math.round(Math.random() * 99) + 1;

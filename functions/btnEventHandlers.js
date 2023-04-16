@@ -90,6 +90,7 @@ function mainMenu_findTreasure(workingData, interaction) {
     let treasure = Math.round(Math.random() * (config.treasureUR - config.treasureLR)) + config.treasureLR;
     let oTreasure = treasure;
     let doubledMsg = "";
+    console.log(userStatsAndEffects.stats.treasureLuck);
     if (userStatsAndEffects.stats.treasureLuck) {
         treasure *= 2;
         doubledMsg = `\nThis amount was doubled for a total of ${treasure} edbucks!\n`;
@@ -99,7 +100,7 @@ function mainMenu_findTreasure(workingData, interaction) {
 
     interaction.reply({
         content: `
-You've found ${oTreasure} edbucks dropped by a wild Edwin!
+You've found ${oTreasure} edbucks dropped by a wild Edwin!${doubledMsg}
 All the local Edwins have been spooked back into hiding.
 Check back again later to see if they've come back!
         `,
