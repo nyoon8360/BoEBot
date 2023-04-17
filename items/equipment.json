@@ -20,7 +20,7 @@
             "slot": "body",
             "effectingStat": "usableCrit",
             "effectAmount": 15,
-            "price": 80
+            "price": 55
         }
     ],
     "trinket": [
@@ -42,7 +42,7 @@
             "slot": "trinket",
             "effectingStat": "vocalLuck",
             "effectAmount": 25,
-            "price": 100
+            "price": 60
         },
         {
             "name": "equip_taxEvasion",
@@ -52,7 +52,7 @@
             "slot": "trinket",
             "effectingStat": "reactionBonus",
             "effectAmount": 1,
-            "price": 120
+            "price": 60
         }
     ],
     "shoes": [
@@ -64,7 +64,7 @@
             "slot": "shoes",
             "effectingStat": "usablesDiscount",
             "effectAmount": 20,
-            "price": 80
+            "price": 60
         }
     ]
 }
