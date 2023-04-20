@@ -93,7 +93,7 @@ function mainMenu_findTreasure(workingData, interaction) {
     console.log(userStatsAndEffects.stats.treasureLuck);
     if (userStatsAndEffects.stats.treasureLuck) {
         treasure *= 2;
-        doubledMsg = `\nThis amount was doubled for a total of ${treasure} edbucks!\n`;
+        doubledMsg = `\nThis amount was doubled for a total of ${treasure} edbucks!`;
     }
 
     user.balance += treasure;

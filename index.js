@@ -4,15 +4,18 @@ const fs = require('fs');
 const usables = require('./items/usables.json');
 const equipment = require('./items/equipment.json');
 const intEventTokens = require('./constants/intEventTokens.js');
+//import * as intEventTokens from './constants/intEventTokens.js';
 const config = require('./constants/configConsts.js');
 const { usableItemsFunctionalities } = require('./functions/itemFunctions.js');
 const uiBuilder = require('./functions/uiBuilders.js');
 const utils = require('./functions/utils.js');
 const btnEventHandlers = require('./functions/btnEventHandlers.js');
+const axios = require('axios');
 
 /*
 dotenv for loading environment variables from .env file
 fs for reading/writing/editing json files
+axios for sending easy http request
 */
 
 /*
@@ -339,16 +342,6 @@ client.on('messageCreate', (message) => {
                     let settingsArr = utils.getNewUserJSON("", "").settings;
                     let updatedEntry = utils.getNewUserJSON("","");
                     updatedEntry = Object.assign(updatedEntry, obj);
-                    /*
-                    if (updatedEntry.equipmentInventory.length <= 0) {
-                        updatedEntry = Object.assign(updatedEntry, {equipmentInventory: {
-                            head: [],
-                            body: [],
-                            trinket: [],
-                            shoes: []
-                        }});
-                    }
-                    */
 
                     if (updatedEntry.settings.length < settingsArr.length) {
                         for (index = updatedEntry.settings.length; index < settingsArr.length; index ++) {
@@ -365,8 +358,8 @@ client.on('messageCreate', (message) => {
     } else {
         //check whether a message is wishing happy birthday
         let lcMessage = message.content.toLowerCase();
-        let happyStrings = ["happy", "hppy", "appy"];
-        let birthdayStrings = ["birthday", "bday", "birfday", "birth day"];
+        let happyStrings = ["happy", "hppy", "appy", "hbd"];
+        let birthdayStrings = ["birthday", "bday", "birfday", "birth day", "hbd"];
         //check if message is wishing happy birthday
         if (new RegExp(happyStrings.join("|")).test(lcMessage) && new RegExp(birthdayStrings.join("|")).test(lcMessage)) {
             //check if it's close to anyones bday
@@ -375,7 +368,7 @@ client.on('messageCreate', (message) => {
             Object.keys(birthdayDirectory[message.guildId]).forEach(key => {
                 //prevent users from wishing themselves happy bday
                 if (key == message.author.id) return;
-                if (birthdayDirectory[message.guildId][key].month == curDate.getMonth() + 1 && curDate.getDate() - 1 <= birthdayDirectory[message.guildId][key].day <= curDate.getDate() + 1) {
+                if (birthdayDirectory[message.guildId][key].month == curDate.getMonth() + 1 && curDate.getDate() - 1 <= birthdayDirectory[message.guildId][key].day && birthdayDirectory[message.guildId][key].day <= curDate.getDate() + 1) {
                     if (!workingData[message.guildId].bdaysWished[`${key}-${curDate.getFullYear()}`]) {
                         //if bdaysWished property of this combo of bday person id + year doesnt exist then create the property and award edbucks accordingly
                         workingData[message.guildId].bdaysWished[`${key}-${curDate.getFullYear()}`] = [message.author.id];
