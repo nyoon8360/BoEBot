@@ -264,6 +264,10 @@ client.on('ready', () => {
 
     let curDate = new Date(Date.now());
     console.log(`(${client.user.tag}) is ready! ${curDate.toLocaleString()}`);
+
+    axios("https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=IBM&interval=5min&apikey=" + process.env.ALPHA_VANTAGE_API_TOKEN).then((response) => {
+        console.log(response.data);
+    });
 });
 
 //on new guild user join, add entry to database if not already existing
@@ -511,6 +515,66 @@ client.on('messageReactionAdd', (messageReaction, user) => {
 
     let currTime = Math.floor(Date.now() / 1000);
 
+    //check and update msg leaderboard
+    let messageScore = messageReaction.message.reactions.cache.find(obj => {
+        return obj.emoji.name == config.currencyEmojiName;
+    }).count;
+
+    //if the message's edbuck reaction count is greater than or equal to the current leaderboard floor then update leaderboard
+    if (messageScore >= workingData[messageReaction.message.guildId].msgLeaderboardFloor) {
+        let currLeaderboard = workingData[messageReaction.message.guildId].msgLeaderboard;
+
+        let messageSnippet = (messageReaction.message.embeds.length || messageReaction.message.attachments.size || messageReaction.message.content.length <= 0) ? "MEDIA POST" : messageReaction.message.content.length > 20 ? messageReaction.message.content.substring(0, 17) + "...": messageReaction.message.content.substring(0, 20);
+
+        //Check if current message is already on leaderboard and if so then remove it from the leaderboard before processing where to update its position
+        let dupeIndex = currLeaderboard.findIndex((entry) => {
+            return entry.id == messageReaction.message.id;
+        });
+
+        if (dupeIndex >= 0) {
+            currLeaderboard.splice(dupeIndex, 1);
+        }
+
+        if (currLeaderboard.length == 0) {
+            //if leaderboard is unpopulated, automatically push message to leaderboard
+            let leaderboardEntry = {
+                id: messageReaction.message.id,
+                score: messageScore,
+                snippet: messageSnippet,
+                author: messageReaction.message.author.tag,
+                channelid: messageReaction.message.channelId
+            };
+            currLeaderboard.push(leaderboardEntry);
+        } else {
+            //if leaderboard is populated, iterate through leaderboard to check if current message has
+            //higher or equal score to any of the entries and replace if so
+            let replaceIndex = config.msgLeaderboardLimit;
+
+            for (i in currLeaderboard) {
+                if (messageScore >= currLeaderboard[i].score) {
+                    replaceIndex = i;
+                    break;
+                }
+            }
+            if (replaceIndex < config.msgLeaderboardLimit) {
+                let leaderboardEntry = {
+                    id: messageReaction.message.id,
+                    score: messageScore,
+                    snippet: messageSnippet,
+                    author: messageReaction.message.author.tag,
+                    channelid: messageReaction.message.channelId
+                };
+                currLeaderboard.splice(replaceIndex, 0, leaderboardEntry);
+            }
+
+            //pop any excess entries above the leaderboard limit
+            while (currLeaderboard.length > config.msgLeaderboardLimit) currLeaderboard.pop();
+
+            //update leaderboard floor
+            workingData[messageReaction.message.guildId].msgLeaderboardFloor = currLeaderboard[currLeaderboard.length - 1].score;
+        }
+    }
+
     if (currTime - storedUserData.lastAwarded >= config.reactCooldown) {
 
         //do a time check for the reacted to message
@@ -520,6 +584,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
                 return obj.id == messageReaction.message.author.id;
             });
 
+            //get recipient stats and effects
             let recipientStatsAndEffects = utils.checkStatsAndEffects(workingData, {guildId: messageReaction.message.guildId}, messageReaction.message.author.id);
 
             //award recipient edbucks
@@ -531,66 +596,6 @@ client.on('messageReactionAdd', (messageReaction, user) => {
             //update fun stats
             storedUserData.fStatReactionsAwarded += 1;
             recipient.fStatReactionsReceived += 1;
-
-            //check and update msg leaderboard
-            let messageScore = messageReaction.message.reactions.cache.find(obj => {
-                return obj.emoji.name == config.currencyEmojiName;
-            }).count;
-
-            //if the message's edbuck reaction count is greater than or equal to the current leaderboard floor then update leaderboard
-            if (messageScore >= workingData[messageReaction.message.guildId].msgLeaderboardFloor) {
-                let currLeaderboard = workingData[messageReaction.message.guildId].msgLeaderboard;
-
-                let messageSnippet = (messageReaction.message.embeds.length || messageReaction.message.attachments.size || messageReaction.message.content.length <= 0) ? "MEDIA POST" : messageReaction.message.content.length > 20 ? messageReaction.message.content.substring(0, 17) + "...": messageReaction.message.content.substring(0, 20);
-
-                //Check if current message is already on leaderboard and if so then remove it from the leaderboard before processing where to update its position
-                let dupeIndex = currLeaderboard.findIndex((entry) => {
-                    return entry.id == messageReaction.message.id;
-                });
-
-                if (dupeIndex >= 0) {
-                    currLeaderboard.splice(dupeIndex, 1);
-                }
-
-                if (currLeaderboard.length == 0) {
-                    //if leaderboard is unpopulated, automatically push message to leaderboard
-                    let leaderboardEntry = {
-                        id: messageReaction.message.id,
-                        score: messageScore,
-                        snippet: messageSnippet,
-                        author: messageReaction.message.author.tag,
-                        channelid: messageReaction.message.channelId
-                    };
-                    currLeaderboard.push(leaderboardEntry);
-                } else {
-                    //if leaderboard is populated, iterate through leaderboard to check if current message has
-                    //higher or equal score to any of the entries and replace if so
-                    let replaceIndex = config.msgLeaderboardLimit;
-
-                    for (i in currLeaderboard) {
-                        if (messageScore >= currLeaderboard[i].score) {
-                            replaceIndex = i;
-                            break;
-                        }
-                    }
-                    if (replaceIndex < config.msgLeaderboardLimit) {
-                        let leaderboardEntry = {
-                            id: messageReaction.message.id,
-                            score: messageScore,
-                            snippet: messageSnippet,
-                            author: messageReaction.message.author.tag,
-                            channelid: messageReaction.message.channelId
-                        };
-                        currLeaderboard.splice(replaceIndex, 0, leaderboardEntry);
-                    }
-
-                    //pop any excess entries above the leaderboard limit
-                    while (currLeaderboard.length > config.msgLeaderboardLimit) currLeaderboard.pop();
-
-                    //update leaderboard floor
-                    workingData[messageReaction.message.guildId].msgLeaderboardFloor = currLeaderboard[currLeaderboard.length - 1].score;
-                }
-            }
         } else {
             //TODO: Find a way to send a non-spammy message saying the reacted to message is expired
         }
