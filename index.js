@@ -265,9 +265,36 @@ client.on('ready', () => {
     let curDate = new Date(Date.now());
     console.log(`(${client.user.tag}) is ready! ${curDate.toLocaleString()}`);
 
+    axios("https://api.twelvedata.com/time_series?symbol=AAPL,AMZN&interval=15min&apikey=" + process.env.TWELVE_DATA_API_TOKEN).then(response => {
+        console.log(response.data);
+    })
+
+    /*
     axios("https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=IBM&interval=5min&apikey=" + process.env.ALPHA_VANTAGE_API_TOKEN).then((response) => {
         console.log(response.data);
     });
+    
+    store stock data with 15/30 minute life time in a json file
+    this means we retrieve api data 48 times a day
+    with the limit being 800, we can retrieve 8/16 different equities which would total 768 api calls a day
+
+    create a util function that checks whether the stock data file is past it's lifetime and if so it will make api
+        calls to update and overwrite the file with the updated stock info and update a local variable that will hold a copy
+        of this data to avoid having to re-read the stock data file every time it's needed
+
+    call the util function any time a stock related function that displays stock info is called
+
+    have a part of the UI that displays when the last time the stock info was updated
+
+    The Edbuck Exchange
+    -------------------
+    Exchange: NASDAQ
+    Last Updated: |April 25th 3:44 PM|
+    Overall Change:
+    [$APPL][$AMZN][$JNJ][$META]
+    [$GOOGL][$NFLX][$JPM][$SBUX]
+    [Refresh]
+    */
 });
 
 //on new guild user join, add entry to database if not already existing
