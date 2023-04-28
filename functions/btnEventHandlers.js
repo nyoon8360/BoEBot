@@ -52,7 +52,7 @@ function mainMenu_showStats(workingData, interaction) {
     interaction.reply({
         content: `
 ${bold('============\nYOUR STATS\n============')}
-Edbuck Balance: ${requester.balance}
+Edbuck Balance: ${requester.balance.toLocaleString("en-US")}
 Last Edbuck Awarded: ${lastAwarded}
 Edbuck Reactions Awarded: ${requester.fStatReactionsAwarded}
 Edbuck Reactions Received: ${requester.fStatReactionsReceived}
@@ -231,6 +231,10 @@ async function mainMenu_msgLeaderboard(client, workingData, interaction) {
 
 function mainMenu_changelog(interaction) {
     interaction.reply(uiBuilders.changelogUI(0));
+}
+
+function mainMenu_stockExchange(workingData, interaction, realtimeStockData) {
+    interaction.reply(uiBuilders.stockExchangeUI(workingData, interaction, realtimeStockData, 0))
 }
 
 function settings_editSettingValue(workingData, interaction, eventTokens, birthdayDirectory) {
@@ -596,7 +600,7 @@ function equipsInventory_toggleEquip(workingData, interaction, eventTokens) {
 }
 
 module.exports = {
-    mainMenu_changelog, mainMenu_findTreasure, mainMenu_help, mainMenu_msgLeaderboard, mainMenu_openInv, mainMenu_shop, mainMenu_showStats, mainMenu_userLeaderboard, mainMenu_settings,
+    mainMenu_changelog, mainMenu_findTreasure, mainMenu_help, mainMenu_msgLeaderboard, mainMenu_openInv, mainMenu_shop, mainMenu_showStats, mainMenu_userLeaderboard, mainMenu_settings, mainMenu_stockExchange,
     settings_editSettingValue,
     usablesInventory_selectSlot, usablesShop_purchase, usablesShop_selectShelf,
     equipsShop_selectShelf, equipsShop_purchase, equipsInventory_selectSlot, equipsInventory_toggleEquip

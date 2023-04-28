@@ -1,4 +1,4 @@
-const { ButtonStyle, ActionRowBuilder, ButtonBuilder, bold, underscore, codeBlock, inlineCode, userMention} = require('discord.js');
+const { ButtonStyle, ActionRowBuilder, ButtonBuilder, bold, time, underscore, codeBlock, inlineCode, userMention} = require('discord.js');
 const changelog = require('../changelog.json');
 const intEventTokens = require('../constants/intEventTokens.js');
 const config = require('../constants/configConsts.js');
@@ -64,7 +64,12 @@ function menuUI(tButtonDisabled) {
             .setCustomId(intEventTokens.mainMenuPrefix + 'shop-')
             .setLabel('Shop')
             .setStyle(ButtonStyle.Danger)
-            .setEmoji('🛒')
+            .setEmoji('🛒'),
+        new ButtonBuilder()
+            .setCustomId(intEventTokens.mainMenuPrefix + 'stockexchange-')
+            .setLabel('Stock Exchange')
+            .setStyle(ButtonStyle.Danger)
+            .setEmoji('🏢')
     );
 
     let row4 = new ActionRowBuilder().addComponents(
@@ -435,6 +440,70 @@ function userLeaderboardUI(workingData, interaction, pageNum) {
     }
 }
 
+function stockExchangeUI(workingData, interaction, realtimeStockData, pagenum) {
+    /*
+    THE EDBUCK EXCHANGE
+    -------------------
+    Last Updated: |April 25th 3:44 PM|
+    Total Investments Made: 132 EB
+    Total Profit Made: 40 EB
+    Current Total Investments: 60 EB
+
+    [$APPL][$AMZN][$JNJ][$META]
+    [$GOOGL][$NFLX][$JPM][$SBUX]
+    [$NVDA][$DIS]
+    [Refresh] [Prev] [Pagenum] [Next]
+    */
+    //get data of the user accessing the stock exchange UI
+    let accessingUser = workingData[interaction.guildId].users.find(obj => {
+        return obj.id == interaction.user.id;
+    });
+
+    //calculate total value of all of the user's investments
+    let totalInvestmentsValue = 0;
+    Object.keys(accessingUser.stockInvestments).forEach(key => {
+        accessingUser.stockInvestments[key].forEach(investment => {
+            totalInvestmentsValue += investment.investmentAmount;
+        })
+    });
+
+    let contentString = bold("========================\nTHE EDBUCK EXCHANGE\n========================");
+    contentString += `
+Last Updated: ${time(realtimeStockData.lastUpdated, "f")}
+Total Investments Made: ${accessingUser.fStatValueOfTotalInvestmentsMade}
+Total Profit Made: ${accessingUser.fStatTotalInvestmentProfits}
+Current Total Investments: ${totalInvestmentsValue}
+------------------------------`;
+    let navRow = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setLabel("Refresh")
+                .setStyle(ButtonStyle.Primary)
+                .setCustomId(intEventTokens.stockExchangeNavPrefix + "REFRESH")
+                .setEmoji("🔄"),
+            new ButtonBuilder()
+                .setLabel("Prev")
+                .setStyle(ButtonStyle.Primary)
+                .setCustomId(intEventTokens.stockExchangeNavPrefix + "PREV")
+                .setDisabled(!(pagenum > 0)),
+            new ButtonBuilder()
+                .setLabel("Page " + (pagenum + 1))
+                .setStyle(ButtonStyle.Primary)
+                .setCustomId(intEventTokens.stockExchangeNavPrefix + "PAGENUM")
+                .setDisabled(true),
+            new ButtonBuilder()
+                .setLabel("Next")
+                .setStyle(ButtonStyle.Primary)
+                .setCustomId(intEventTokens.stockExchangeNavPrefix + "NEXT")
+        )
+
+    return {
+        content: contentString,
+        components: [navRow],
+        ephemeral: true
+    }
+}
+
 function notifCantSelfUse() {
     let row = new ActionRowBuilder()
         .addComponents(
@@ -500,6 +569,6 @@ function notifCantUseOnBot() {
 }
 
 module.exports = {
-    menuUI, settingsUI, usablesInvUI, equipsInvUI, equipsShopUI, usablesShopUI, changelogUI, userLeaderboardUI,
+    menuUI, settingsUI, usablesInvUI, equipsInvUI, equipsShopUI, usablesShopUI, changelogUI, userLeaderboardUI, stockExchangeUI,
     notifCantSelfUse, notifDontHaveItem, notifTargetNotInVC, notifCantUseOnBot
 }

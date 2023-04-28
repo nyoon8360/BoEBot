@@ -30,5 +30,11 @@
         "itemReflectDuration": 15,
         "itemTimeoutDuration": 10,
         "itemEMPDuration": 20
+    },
+    "stocks": {
+        "stocksPerRow": 4,
+        "trackedStocks": [
+            "AMZN", "AAPL", "NVDA"
+        ]
     }
 }

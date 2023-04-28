@@ -39,6 +39,11 @@ module.exports = Object.freeze({
     changelogNavPrefix: "CHANGELOGNAV-",
 
     //User leaderboard navigation tokens
-    userLeaderboardNavPrefix: "USERLEADERBOARDNAV-"
+    userLeaderboardNavPrefix: "USERLEADERBOARDNAV-",
+
+    //Stock exchange tokens
+    stockExchangeNavPrefix: "STOCKEXCHANGENAV-",
+    stockExchangeSelectStockPrefix: "STOCKEXCHANGESELECTSTOCK-",
+    stockExchangeInfoPagePrefix: "STOCKEXCHANGEINFO-"
 });
 

@@ -4,13 +4,13 @@ const fs = require('fs');
 const usables = require('./items/usables.json');
 const equipment = require('./items/equipment.json');
 const intEventTokens = require('./constants/intEventTokens.js');
-//import * as intEventTokens from './constants/intEventTokens.js';
 const config = require('./constants/configConsts.js');
 const { usableItemsFunctionalities } = require('./functions/itemFunctions.js');
 const uiBuilder = require('./functions/uiBuilders.js');
 const utils = require('./functions/utils.js');
 const btnEventHandlers = require('./functions/btnEventHandlers.js');
 const axios = require('axios');
+const canvas = require('canvas');
 
 /*
 dotenv for loading environment variables from .env file
@@ -59,6 +59,45 @@ var shopPages_equipmentDirectory = [];
 
 //variable for directory of user birthdays
 var birthdayDirectory = {};
+
+var realtimeStockData = {lastUpdated: 0};
+var tenDayStockData = {lastUpdated: 0};
+
+/*
+var realtimeStockData
+Object holding current realtime data of different tracked stocks and a unix timestamp of the last time this data was updated.
+format:
+realtimeStockData = {
+    lastUpdated: (unix timestamp),
+    AAPL: {
+        symbol: 'AAPL',
+        name: 'Apple Inc',
+        exchange: 'NASDAQ',
+        mic_code: 'XNGS',
+        currency: 'USD',
+        datetime: '2023-04-27',
+        timestamp: 1682625599,
+        open: '165.19000',
+        high: '168.56000',
+        low: '165.19000'
+    },
+    AMZN: {
+        (same as above with amazon data retrieved from API)
+    }
+}
+
+var tenDayStockData
+Object holding ten day stock data of different tracked stocks for graph drawing purposes.
+format:
+tenDayStockData = {
+    lastUpdated: (unix timestamp),
+    AAPL: {
+        values: [(array of data points retrieved from API)],
+        graphBuffer: (png buffer of drawn graph for easy re-use),
+        graphLastUpdated: (unix timestamp of last time graph was updated and redrawn)
+    }
+}
+*/
 
 //===================================================
 //===================================================
@@ -265,15 +304,11 @@ client.on('ready', () => {
     let curDate = new Date(Date.now());
     console.log(`(${client.user.tag}) is ready! ${curDate.toLocaleString()}`);
 
-    axios("https://api.twelvedata.com/time_series?symbol=AAPL,AMZN&interval=15min&apikey=" + process.env.TWELVE_DATA_API_TOKEN).then(response => {
-        console.log(response.data);
-    })
-
     /*
-    axios("https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=IBM&interval=5min&apikey=" + process.env.ALPHA_VANTAGE_API_TOKEN).then((response) => {
+    axios("https://api.twelvedata.com/quote?symbol=AAPL&interval=1day&apikey=" + process.env.TWELVE_DATA_API_TOKEN).then(response => {
         console.log(response.data);
     });
-    
+    /*
     store stock data with 15/30 minute life time in a json file
     this means we retrieve api data 48 times a day
     with the limit being 800, we can retrieve 8/16 different equities which would total 768 api calls a day
@@ -286,14 +321,79 @@ client.on('ready', () => {
 
     have a part of the UI that displays when the last time the stock info was updated
 
+    change the color of the equity buttons depending on whether they went up or down from their last point
+
     The Edbuck Exchange
     -------------------
-    Exchange: NASDAQ
     Last Updated: |April 25th 3:44 PM|
-    Overall Change:
+    Total Investments Made: 132 EB
+    Total Profit Made: 40 EB
+    Current Total Investments: 60 EB
+
     [$APPL][$AMZN][$JNJ][$META]
     [$GOOGL][$NFLX][$JPM][$SBUX]
-    [Refresh]
+    [$NVDA][$DIS]
+    [Refresh] [Prev] [Pagenum] [Next]
+
+    (Can set emojis for buttons with up/down arrow depending on their current day trend)
+
+     |
+[any ticker]
+     V
+    
+    The Edbuck Exchange
+    -------------------
+    Equity: Apple Inc
+    Ticker: $AAPL
+    Current Price: $168.42999
+    Exchange: NASDAQ
+    Day Percent Change: 2.85173%
+    Open Price: $165.19000
+    Trade Volume: 51,528,660
+    Market Status: Open | Closed
+    Last Updated: |April 25th 3:44 PM|
+
+    Total Original Investments Value: 47 EB
+    Total Current Investments Value: 65.83 EB
+    [Refresh] [Sell] [Invest]
+
+    <IMAGE ATTACHMENT DRAWN FROM DAY INTERVAL GRAPH
+     OF STOCK PERFORMANCE OVER PAST 10 DATA POINTS >
+
+     |
+   [Sell]
+     V
+
+    The Edbuck Exchange
+    -------------------
+    Equity: Apple Inc
+    Ticker: $AAPL
+    Current Price: $168.42999
+    Last Updated: |April 25th 3:44 PM|
+
+    Total Original Investments Value: 47 EB
+    Total Current Investments Value: 65.83 EB
+
+    Stock Profit Bonus: 20%
+
+    [Investment 1]
+    Original Investment: 20EB
+    Date/Time Entered: April 24th 6:32 PM
+    Price Entered At: $162.21164
+    % Change: ((curPrice/entPrice) - 1) * 100 = 12.28%
+    Current Investment Value: 23 (oInvestment * (curPrice/entPrice)) IF (curPrice/entPrice) > 1 THEN multiply PROFITS by profit multiplier
+
+    [Inv 1] [Inv 2] [Inv 3] [Inv 4]
+    [Back] [Previous] [Pagenum] [Next]
+
+    o1 = investment1
+    o2 = investment2
+    sv1 = investment1 stock value
+    sv2 = investment2 stock value
+    nv = final stock value
+
+    (o1 * (nv/sv1)) + (o2 * (nv/sv2)) = total new
+    o1 + o2 = total original investment
     */
 });
 
@@ -384,6 +484,28 @@ client.on('messageCreate', (message) => {
                 });
                 workingData[message.guildId].users = updatedUsersList;
                 console.log(`(${curDate.toLocaleString()}) Manual User Properties Update Complete! Changes in database will take effect on next save.`);
+                break;
+
+            //a command used solely for random testing purposes
+            case "testcommand":
+                let cnvas = canvas.createCanvas(200,200);
+                let ctx = cnvas.getContext('2d');
+
+                ctx.font = '30px Impact';
+                ctx.rotate(.1);
+                ctx.fillText("Awesome!", 50, 100);
+
+                var te = ctx.measureText('Awesome!');
+                ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+                ctx.beginPath();
+                ctx.lineTo(50, 102);
+                ctx.lineTo(50 + te.width, 102);
+                ctx.stroke();
+
+                message.channel.send({
+                    content: "test command :D",
+                    files:[{attachment: cnvas.toBuffer(), name: "testImage.png"}]
+                })
                 break;
         }
     } else {
@@ -676,6 +798,10 @@ client.on('interactionCreate', async (interaction) => {
                     btnEventHandlers.mainMenu_shop(interaction);
                     break;
         
+                case "stockexchange":
+                    btnEventHandlers.mainMenu_stockExchange(workingData, interaction, realtimeStockData);
+                    break;
+
                 case "help":
                     //Show help text for the bot
                     btnEventHandlers.mainMenu_help(interaction);

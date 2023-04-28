@@ -32,5 +32,8 @@ module.exports = Object.freeze({
     itemReflectDuration: config.items.itemReflectDuration,
     itemPolymorphDuration: config.items.itemPolymorphDuration,
     itemTimeoutDuration: config.items.itemTimeoutDuration,
-    itemEMPDuration: config.items.itemEMPDuration
+    itemEMPDuration: config.items.itemEMPDuration,
+
+    //stocks config consts
+    trackedStocks: config.stocks.trackedStocks
 });

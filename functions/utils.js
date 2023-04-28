@@ -45,10 +45,13 @@ function getNewUserJSON(userTag, userId) {
                 changeable: true
             }
         ],
+        stockInvestments:{},
         fStatReactionsAwarded: 0,
         fStatReactionsReceived: 0,
         fStatItemsUsed: 0,
-        fStatHighestBal: 0
+        fStatHighestBal: 0,
+        fStatTotalInvestmentProfits: 0,
+        fStatValueOfTotalInvestmentsMade: 0
     }
 
     return userObj;
