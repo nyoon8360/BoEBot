@@ -62,6 +62,7 @@ var birthdayDirectory = {};
 
 var realtimeStockData = {lastUpdated: 0};
 var tenDayStockData = {lastUpdated: 0};
+var lastStockAPICall = 0;
 
 /*
 var realtimeStockData
@@ -350,7 +351,6 @@ client.on('ready', () => {
     Day Percent Change: 2.85173%
     Open Price: $165.19000
     Trade Volume: 51,528,660
-    Market Status: Open | Closed
     Last Updated: |April 25th 3:44 PM|
 
     Total Original Investments Value: 47 EB
@@ -488,6 +488,7 @@ client.on('messageCreate', (message) => {
 
             //a command used solely for random testing purposes
             case "testcommand":
+                /*
                 let cnvas = canvas.createCanvas(200,200);
                 let ctx = cnvas.getContext('2d');
 
@@ -506,6 +507,16 @@ client.on('messageCreate', (message) => {
                     content: "test command :D",
                     files:[{attachment: cnvas.toBuffer(), name: "testImage.png"}]
                 })
+                */
+                console.log("test command run");
+                utils.getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall).then((values) => {
+                    realtimeStockData = values[0];
+                    tenDayStockData = values[1];
+                    lastStockAPICall = values[2];
+                    console.log(JSON.stringify(realtimeStockData, null, 2));
+                    console.log(JSON.stringify(tenDayStockData, null, 2));
+                    console.log("Last API Call: " + lastStockAPICall);
+                });
                 break;
         }
     } else {
@@ -799,6 +810,11 @@ client.on('interactionCreate', async (interaction) => {
                     break;
         
                 case "stockexchange":
+                    await utils.getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall).then((values) => {
+                        realtimeStockData = values[0];
+                        tenDayStockData = values[1];
+                        lastStockAPICall = values[2];
+                    });
                     btnEventHandlers.mainMenu_stockExchange(workingData, interaction, realtimeStockData);
                     break;
 

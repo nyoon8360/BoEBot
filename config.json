@@ -32,9 +32,24 @@
         "itemEMPDuration": 20
     },
     "stocks": {
-        "stocksPerRow": 4,
+        "realtimeStockDataLifetime": 480,
         "trackedStocks": [
-            "AMZN", "AAPL", "NVDA"
+            {
+                "ticker": "AMZN",
+                "name": "Amazon.com Inc"
+            },
+            {
+                "ticker": "AAPL",
+                "name": "Apple Inc"
+            },
+            {
+                "ticker": "NVDA",
+                "name": "NVIDIA Corp"
+            },
+            {
+                "ticker": "JNJ",
+                "name": "Johnson & Johnson"
+            }
         ]
     }
 }

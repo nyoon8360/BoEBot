@@ -234,7 +234,7 @@ function mainMenu_changelog(interaction) {
 }
 
 function mainMenu_stockExchange(workingData, interaction, realtimeStockData) {
-    interaction.reply(uiBuilders.stockExchangeUI(workingData, interaction, realtimeStockData, 0))
+    interaction.reply(uiBuilders.stockExchangeUI(workingData, interaction, realtimeStockData, 0));
 }
 
 function settings_editSettingValue(workingData, interaction, eventTokens, birthdayDirectory) {

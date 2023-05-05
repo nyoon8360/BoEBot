@@ -474,6 +474,33 @@ Total Investments Made: ${accessingUser.fStatValueOfTotalInvestmentsMade}
 Total Profit Made: ${accessingUser.fStatTotalInvestmentProfits}
 Current Total Investments: ${totalInvestmentsValue}
 ------------------------------`;
+
+    //create equity buttons rows
+    //NOTE: this is hard coded in as 2 rows of 4 equities each since API limits dictate 8 max equities tracked
+    let equityRows = [new ActionRowBuilder(), new ActionRowBuilder()];
+    for (let r = 0; r < 2; r++) {
+        for (let i = 0; i < 4; i++) {
+            if (config.trackedStocks[(4*r) + i] != undefined) {
+                let equityInfo = realtimeStockData[config.trackedStocks[(4*r) + i].ticker];
+                equityRows[r].addComponents(
+                    new ButtonBuilder()
+                        .setLabel("$" + config.trackedStocks[(4*r) + i].ticker)
+                        .setStyle(equityInfo.close >= equityInfo.open ? ButtonStyle.Success : ButtonStyle.Danger)
+                        .setCustomId(intEventTokens.stockExchangeSelectStockPrefix + config.trackedStocks[(4*r) + i].ticker)
+                )
+            } else {
+                equityRows[r].addComponents(
+                    new ButtonBuilder()
+                        .setLabel("EMPTY")
+                        .setStyle(ButtonStyle.Secondary)
+                        .setCustomId("EMPTYEQUITY_" + (4*r + i))
+                        .setDisabled(true)
+                )
+            }
+        }
+    }
+    
+    //create navigation buttons row
     let navRow = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
@@ -495,11 +522,12 @@ Current Total Investments: ${totalInvestmentsValue}
                 .setLabel("Next")
                 .setStyle(ButtonStyle.Primary)
                 .setCustomId(intEventTokens.stockExchangeNavPrefix + "NEXT")
-        )
-
+        );
+    
+    equityRows.push(navRow);
     return {
         content: contentString,
-        components: [navRow],
+        components: equityRows,
         ephemeral: true
     }
 }
