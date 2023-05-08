@@ -1,3 +1,4 @@
+"use strict";
 require('dotenv').config();
 const { Client, IntentsBitField, ButtonStyle, ActionRowBuilder, ButtonBuilder, Options} = require('discord.js');
 const fs = require('fs');
@@ -306,37 +307,6 @@ client.on('ready', () => {
     console.log(`(${client.user.tag}) is ready! ${curDate.toLocaleString()}`);
 
     /*
-    axios("https://api.twelvedata.com/quote?symbol=AAPL&interval=1day&apikey=" + process.env.TWELVE_DATA_API_TOKEN).then(response => {
-        console.log(response.data);
-    });
-    /*
-    store stock data with 15/30 minute life time in a json file
-    this means we retrieve api data 48 times a day
-    with the limit being 800, we can retrieve 8/16 different equities which would total 768 api calls a day
-
-    create a util function that checks whether the stock data file is past it's lifetime and if so it will make api
-        calls to update and overwrite the file with the updated stock info and update a local variable that will hold a copy
-        of this data to avoid having to re-read the stock data file every time it's needed
-
-    call the util function any time a stock related function that displays stock info is called
-
-    have a part of the UI that displays when the last time the stock info was updated
-
-    change the color of the equity buttons depending on whether they went up or down from their last point
-
-    The Edbuck Exchange
-    -------------------
-    Last Updated: |April 25th 3:44 PM|
-    Total Investments Made: 132 EB
-    Total Profit Made: 40 EB
-    Current Total Investments: 60 EB
-
-    [$APPL][$AMZN][$JNJ][$META]
-    [$GOOGL][$NFLX][$JPM][$SBUX]
-    [$NVDA][$DIS]
-    [Refresh] [Prev] [Pagenum] [Next]
-
-    (Can set emojis for buttons with up/down arrow depending on their current day trend)
 
      |
 [any ticker]
@@ -1026,8 +996,8 @@ client.on('interactionCreate', async (interaction) => {
 
             break;
 
-        case intEventTokens.settingsEditValuePrefix.slice(0, -1):
-            //TODO: implement changing your settings
+        case intEventTokens.stockExchangeSelectStockPrefix.slice(0, -1):
+            btnEventHandlers.stockExchange_selectStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens);
             break;
     }
 });

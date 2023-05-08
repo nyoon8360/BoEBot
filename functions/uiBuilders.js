@@ -441,19 +441,8 @@ function userLeaderboardUI(workingData, interaction, pageNum) {
 }
 
 function stockExchangeUI(workingData, interaction, realtimeStockData, pagenum) {
-    /*
-    THE EDBUCK EXCHANGE
-    -------------------
-    Last Updated: |April 25th 3:44 PM|
-    Total Investments Made: 132 EB
-    Total Profit Made: 40 EB
-    Current Total Investments: 60 EB
+    //NOTE: pagenum is kinda useless right now since current API limits restrict us to tracking 8 equities
 
-    [$APPL][$AMZN][$JNJ][$META]
-    [$GOOGL][$NFLX][$JPM][$SBUX]
-    [$NVDA][$DIS]
-    [Refresh] [Prev] [Pagenum] [Next]
-    */
     //get data of the user accessing the stock exchange UI
     let accessingUser = workingData[interaction.guildId].users.find(obj => {
         return obj.id == interaction.user.id;
@@ -522,12 +511,97 @@ Current Total Investments: ${totalInvestmentsValue}
                 .setLabel("Next")
                 .setStyle(ButtonStyle.Primary)
                 .setCustomId(intEventTokens.stockExchangeNavPrefix + "NEXT")
+                .setDisabled(true) /*NOTE: Set manually to disabled since we're limited to 8 equities atm*/
         );
     
+    //append the navrow to the equityRows array and add equityRows as components parameter of the return
     equityRows.push(navRow);
     return {
         content: contentString,
         components: equityRows,
+        ephemeral: true
+    }
+}
+
+function stockExchangeStockInfoUI(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens) {
+    /*
+    The Edbuck Exchange
+    -------------------
+    Equity: Apple Inc
+    Ticker: $AAPL
+    Current Price: $168.42999
+    Exchange: NASDAQ
+    Day Percent Change: 2.85173%
+    Open Price: $165.19000
+    Trade Volume: 51,528,660
+    Market Status: OPEN | CLOSED
+    Last Updated: |April 25th 3:44 PM|
+
+    Total Original Investments Value: 47 EB
+    Total Current Investments Value: 65.83 EB
+    [Back] [Refresh] [Sell] [Invest]
+
+    <IMAGE ATTACHMENT DRAWN FROM DAY INTERVAL GRAPH
+     OF STOCK PERFORMANCE OVER PAST 10 DATA POINTS >
+    */
+    let accessingUser = workingData[interaction.guildId].users.find(user => {
+        return user.id == interaction.user.id;
+    });
+    let stockTicker = eventTokens.shift();
+    let stockInfo = realtimeStockData[stockTicker];
+
+    let totalOriginalInvestmentsValue = 0;
+    let totalCurrentInvestmentsValue = 0;
+
+    if (accessingUser.stockInvestments[stockTicker] != undefined) {
+        accessingUser.stockInvestments[stockTicker].forEach(investment => {
+            totalOriginalInvestmentsValue += investment.investmentAmount;
+    
+            totalCurrentInvestmentsValue += investment.investmentAmount * (stockInfo.close/investment.investmentPrice);
+        });
+    }
+    
+    totalCurrentInvestmentsValue = Math.round(totalCurrentInvestmentsValue * 1000) / 1000;
+
+    let contentString = bold("========================\nTHE EDBUCK EXCHANGE\n========================");
+    contentString += `
+Equity: ${config.trackedStocks.find(entry => { return entry.ticker == stockTicker }).name}
+Ticker: $${stockTicker}
+Current Price: $${stockInfo.close}
+Exchange: ${stockInfo.exchange == null ? "Unknown" : stockInfo.exchange}
+Day Percent Change: %${Math.round( ( ((stockInfo.close / stockInfo.open) - 1) + Number.EPSILON) * 10000) / 100}
+Open Price: $${stockInfo.open}
+Trade Volume: ${parseInt(stockInfo.volume).toLocaleString("en-US")}
+Market Status: ${stockInfo.is_market_open == null ? "Unknown" : stockInfo.is_market_open ? "OPEN" : "CLOSE"}
+Last Updated: ${time(realtimeStockData.lastUpdated, "f")}
+
+Total Original Investments Value: ${totalOriginalInvestmentsValue}
+Total Current Investments Value: ${totalCurrentInvestmentsValue}
+`;
+
+    let navRow = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setLabel("Back")
+                .setStyle(ButtonStyle.Danger)
+                .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "BACK"),
+            new ButtonBuilder()
+                .setLabel("Refresh")
+                .setStyle(ButtonStyle.Primary)
+                .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "REFRESH"),
+            new ButtonBuilder()
+                .setLabel("Invest")
+                .setStyle(ButtonStyle.Success)
+                .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "INVEST"),
+            new ButtonBuilder()
+                .setLabel("Sell")
+                .setStyle(ButtonStyle.Secondary)
+                .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "SELL"),
+        );
+
+    return {
+        content: contentString,
+        components: [navRow],
         ephemeral: true
     }
 }
@@ -598,5 +672,5 @@ function notifCantUseOnBot() {
 
 module.exports = {
     menuUI, settingsUI, usablesInvUI, equipsInvUI, equipsShopUI, usablesShopUI, changelogUI, userLeaderboardUI, stockExchangeUI,
-    notifCantSelfUse, notifDontHaveItem, notifTargetNotInVC, notifCantUseOnBot
+    stockExchangeStockInfoUI, notifCantSelfUse, notifDontHaveItem, notifTargetNotInVC, notifCantUseOnBot
 }

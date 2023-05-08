@@ -599,9 +599,14 @@ function equipsInventory_toggleEquip(workingData, interaction, eventTokens) {
     });
 }
 
+function stockExchange_selectStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens) {
+    interaction.update(uiBuilders.stockExchangeStockInfoUI(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens));
+}
+
 module.exports = {
     mainMenu_changelog, mainMenu_findTreasure, mainMenu_help, mainMenu_msgLeaderboard, mainMenu_openInv, mainMenu_shop, mainMenu_showStats, mainMenu_userLeaderboard, mainMenu_settings, mainMenu_stockExchange,
     settings_editSettingValue,
     usablesInventory_selectSlot, usablesShop_purchase, usablesShop_selectShelf,
-    equipsShop_selectShelf, equipsShop_purchase, equipsInventory_selectSlot, equipsInventory_toggleEquip
+    equipsShop_selectShelf, equipsShop_purchase, equipsInventory_selectSlot, equipsInventory_toggleEquip,
+    stockExchange_selectStock
 }
