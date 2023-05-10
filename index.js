@@ -10,8 +10,6 @@ const { usableItemsFunctionalities } = require('./functions/itemFunctions.js');
 const uiBuilder = require('./functions/uiBuilders.js');
 const utils = require('./functions/utils.js');
 const btnEventHandlers = require('./functions/btnEventHandlers.js');
-const axios = require('axios');
-const canvas = require('canvas');
 
 /*
 dotenv for loading environment variables from .env file

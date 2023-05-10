@@ -600,7 +600,9 @@ function equipsInventory_toggleEquip(workingData, interaction, eventTokens) {
 }
 
 function stockExchange_selectStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens) {
-    interaction.update(uiBuilders.stockExchangeStockInfoUI(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens));
+    uiBuilders.stockExchangeStockInfoUI(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens).then(ui => {
+        interaction.update(ui);
+    })
 }
 
 module.exports = {

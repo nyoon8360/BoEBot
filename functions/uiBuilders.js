@@ -2,6 +2,7 @@ const { ButtonStyle, ActionRowBuilder, ButtonBuilder, bold, time, underscore, co
 const changelog = require('../changelog.json');
 const intEventTokens = require('../constants/intEventTokens.js');
 const config = require('../constants/configConsts.js');
+const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
 
 //===================================================
 //===================================================
@@ -523,7 +524,7 @@ Current Total Investments: ${totalInvestmentsValue}
     }
 }
 
-function stockExchangeStockInfoUI(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens) {
+async function stockExchangeStockInfoUI(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens) {
     /*
     The Edbuck Exchange
     -------------------
@@ -544,6 +545,7 @@ function stockExchangeStockInfoUI(workingData, interaction, realtimeStockData, t
     <IMAGE ATTACHMENT DRAWN FROM DAY INTERVAL GRAPH
      OF STOCK PERFORMANCE OVER PAST 10 DATA POINTS >
     */
+
     let accessingUser = workingData[interaction.guildId].users.find(user => {
         return user.id == interaction.user.id;
     });
@@ -563,15 +565,57 @@ function stockExchangeStockInfoUI(workingData, interaction, realtimeStockData, t
     
     totalCurrentInvestmentsValue = Math.round(totalCurrentInvestmentsValue * 1000) / 1000;
 
+    /*TODO:
+    -add the graph buffer to tenDayStockData.graphBuffer and update tenDayStockData.graphLastUpdated 
+    -add a check for if an updated graph buffer already exists for the requested stock and if so simply send the cached image buffer instead of redrawing
+    */
+    //Building line graph for historical data
+    let labels = tenDayStockData[stockTicker].values.reduce((accumulator, curVal) => {
+        accumulator.push(curVal.datetime.substring(curVal.datetime.indexOf(' ')));
+        return accumulator;
+    }, []).reverse();
+
+    let graphData = tenDayStockData[stockTicker].values.reduce((accumulator, curVal) => {
+        accumulator.push(parseFloat(curVal.close));
+        return accumulator;
+    }, []).reverse();
+
+    let data = {
+        labels: labels,
+        datasets: [{
+            label: '10 Day Stock Performance',
+            fill: false,
+            borderColor: 'rgb(75, 192, 192)',
+            tension: 0.1,
+            data: graphData
+        }],
+        options: {
+            scale: {
+                ticks:{
+                    precision: 2
+                }
+            }
+        }
+    }
+
+    let stockChartCanvas = new ChartJSNodeCanvas({width: 400, height: 400, backgroundColour: 'white'});
+
+    let stockChartConfig = {
+        type: 'line',
+        data: data
+    };
+
+    let stockChartBuffer = await stockChartCanvas.renderToBuffer(stockChartConfig);
+
     let contentString = bold("========================\nTHE EDBUCK EXCHANGE\n========================");
     contentString += `
 Equity: ${config.trackedStocks.find(entry => { return entry.ticker == stockTicker }).name}
 Ticker: $${stockTicker}
 Current Price: $${stockInfo.close}
-Exchange: ${stockInfo.exchange == null ? "Unknown" : stockInfo.exchange}
-Day Percent Change: %${Math.round( ( ((stockInfo.close / stockInfo.open) - 1) + Number.EPSILON) * 10000) / 100}
 Open Price: $${stockInfo.open}
+Day Percent Change: %${Math.round( ( ((stockInfo.close / stockInfo.open) - 1) + Number.EPSILON) * 10000) / 100}
 Trade Volume: ${parseInt(stockInfo.volume).toLocaleString("en-US")}
+Exchange: ${stockInfo.exchange == null ? "Unknown" : stockInfo.exchange}
 Market Status: ${stockInfo.is_market_open == null ? "Unknown" : stockInfo.is_market_open ? "OPEN" : "CLOSE"}
 Last Updated: ${time(realtimeStockData.lastUpdated, "f")}
 
@@ -602,6 +646,7 @@ Total Current Investments Value: ${totalCurrentInvestmentsValue}
     return {
         content: contentString,
         components: [navRow],
+        files: [{attachment: stockChartBuffer, name: stockTicker + 'StockChart.png'}],
         ephemeral: true
     }
 }
