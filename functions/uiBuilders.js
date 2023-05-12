@@ -525,33 +525,14 @@ Current Total Investments: ${totalInvestmentsValue}
 }
 
 async function stockExchangeStockInfoUI(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens) {
-    /*
-    The Edbuck Exchange
-    -------------------
-    Equity: Apple Inc
-    Ticker: $AAPL
-    Current Price: $168.42999
-    Exchange: NASDAQ
-    Day Percent Change: 2.85173%
-    Open Price: $165.19000
-    Trade Volume: 51,528,660
-    Market Status: OPEN | CLOSED
-    Last Updated: |April 25th 3:44 PM|
-
-    Total Original Investments Value: 47 EB
-    Total Current Investments Value: 65.83 EB
-    [Back] [Refresh] [Sell] [Invest]
-
-    <IMAGE ATTACHMENT DRAWN FROM DAY INTERVAL GRAPH
-     OF STOCK PERFORMANCE OVER PAST 10 DATA POINTS >
-    */
-
+    //get accessing user's data, realtime stock data, and stock ticker
     let accessingUser = workingData[interaction.guildId].users.find(user => {
         return user.id == interaction.user.id;
     });
     let stockTicker = eventTokens.shift();
     let stockInfo = realtimeStockData[stockTicker];
 
+    //calculate total original investments value and total current investments value
     let totalOriginalInvestmentsValue = 0;
     let totalCurrentInvestmentsValue = 0;
 
@@ -565,48 +546,52 @@ async function stockExchangeStockInfoUI(workingData, interaction, realtimeStockD
     
     totalCurrentInvestmentsValue = Math.round(totalCurrentInvestmentsValue * 1000) / 1000;
 
-    /*TODO:
-    -add the graph buffer to tenDayStockData.graphBuffer and update tenDayStockData.graphLastUpdated 
-    -add a check for if an updated graph buffer already exists for the requested stock and if so simply send the cached image buffer instead of redrawing
-    */
-    //Building line graph for historical data
-    let labels = tenDayStockData[stockTicker].values.reduce((accumulator, curVal) => {
-        accumulator.push(curVal.datetime.substring(curVal.datetime.indexOf(' ')));
-        return accumulator;
-    }, []).reverse();
-
-    let graphData = tenDayStockData[stockTicker].values.reduce((accumulator, curVal) => {
-        accumulator.push(parseFloat(curVal.close));
-        return accumulator;
-    }, []).reverse();
-
-    let data = {
-        labels: labels,
-        datasets: [{
-            label: '10 Day Stock Performance',
-            fill: false,
-            borderColor: 'rgb(75, 192, 192)',
-            tension: 0.1,
-            data: graphData
-        }],
-        options: {
-            scale: {
-                ticks:{
-                    precision: 2
+    //check if graphBuffer is null (No need for time check since every time tenDayStockData values are updated, graph buffer is cleared)
+    if (tenDayStockData[stockTicker].graphBuffer == null) {
+        //Building line graph for historical data
+        //Get X-axis labels and graph points
+        let labels = tenDayStockData[stockTicker].values.reduce((accumulator, curVal) => {
+            accumulator.push(curVal.datetime.substring(curVal.datetime.indexOf(' ')));
+            return accumulator;
+        }, []).reverse();
+    
+        let graphData = tenDayStockData[stockTicker].values.reduce((accumulator, curVal) => {
+            accumulator.push(parseFloat(curVal.close));
+            return accumulator;
+        }, []).reverse();
+    
+        //instantiate data and options for graph
+        let data = {
+            labels: labels,
+            datasets: [{
+                label: '10 Day Stock Performance',
+                fill: false,
+                borderColor: graphData[0] <= graphData[graphData.length - 1] ? 'rgb(27, 186, 9)' : 'rgb(252, 10, 10)',
+                tension: 0.1,
+                data: graphData
+            }],
+            options: {
+                scale: {
+                    ticks:{
+                        precision: 2
+                    }
                 }
             }
         }
+    
+        //create canvas for graph and instantiate graph configs
+        let stockChartCanvas = new ChartJSNodeCanvas({width: 400, height: 400, backgroundColour: 'white'});
+    
+        let stockChartConfig = {
+            type: 'line',
+            data: data
+        };
+    
+        //render graph buffer and assign to tenDayStockData
+        tenDayStockData[stockTicker].graphBuffer = await stockChartCanvas.renderToBuffer(stockChartConfig);
     }
 
-    let stockChartCanvas = new ChartJSNodeCanvas({width: 400, height: 400, backgroundColour: 'white'});
-
-    let stockChartConfig = {
-        type: 'line',
-        data: data
-    };
-
-    let stockChartBuffer = await stockChartCanvas.renderToBuffer(stockChartConfig);
-
+    //instantiate content of returned message object
     let contentString = bold("========================\nTHE EDBUCK EXCHANGE\n========================");
     contentString += `
 Equity: ${config.trackedStocks.find(entry => { return entry.ticker == stockTicker }).name}
@@ -619,10 +604,11 @@ Exchange: ${stockInfo.exchange == null ? "Unknown" : stockInfo.exchange}
 Market Status: ${stockInfo.is_market_open == null ? "Unknown" : stockInfo.is_market_open ? "OPEN" : "CLOSE"}
 Last Updated: ${time(realtimeStockData.lastUpdated, "f")}
 
-Total Original Investments Value: ${totalOriginalInvestmentsValue}
-Total Current Investments Value: ${totalCurrentInvestmentsValue}
+Investments Total Original Value: ${totalOriginalInvestmentsValue}
+Investments Total Current Value: ${totalCurrentInvestmentsValue}
 `;
 
+    //instantiate navigation button row
     let navRow = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
@@ -643,10 +629,11 @@ Total Current Investments Value: ${totalCurrentInvestmentsValue}
                 .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "SELL"),
         );
 
+    //return message object with content, navigation buttons, and graph png attachment
     return {
         content: contentString,
         components: [navRow],
-        files: [{attachment: stockChartBuffer, name: stockTicker + 'StockChart.png'}],
+        files: [{attachment: tenDayStockData[stockTicker].graphBuffer, name: stockTicker + 'StockChart.png'}],
         ephemeral: true
     }
 }

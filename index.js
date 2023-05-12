@@ -17,14 +17,6 @@ fs for reading/writing/editing json files
 axios for sending easy http request
 */
 
-/*
-bdaysWished: {
-    0987153124211-2023(string composed of userID + "-" + year) : [
-        (array of user ids of users who have wished this bday already)
-    ]
-}
-*/
-
 // NOTE: Make sure to update intents if new events not in current intents are needed to be listened to
 const client = new Client({
     intents: [
@@ -362,6 +354,29 @@ client.on('ready', () => {
 
     (o1 * (nv/sv1)) + (o2 * (nv/sv2)) = total new
     o1 + o2 = total original investment
+
+        *
+        |
+    [Invest]
+        |
+        V
+    
+    The Edbuck Exchange
+    -------------------
+    Equity: Apple Inc
+    Ticker: $AAPL
+    Current Price: $168.42999
+    Exchange: NASDAQ
+    Day Percent Change: 2.85173%
+    Open Price: $165.19000
+    Trade Volume: 51,528,660
+    Last Updated: |April 25th 3:44 PM|
+
+    Total Original Investments Value: 47 EB
+    Total Current Investments Value: 65.83 EB
+
+    
+    
     */
 });
 

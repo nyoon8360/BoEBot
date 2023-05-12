@@ -214,7 +214,7 @@ async function getUpdatedStockData(realtimeStockData, tenDayStockData, lastStock
                 realtimeStockData.lastUpdated = Math.floor(Date.now()/1000);
 
                 Object.keys(response.data).forEach(key => {
-                    tenDayStockData[key] = {values: response.data[key].values, graphBuffer: null, graphLastUpdated: 0};
+                    tenDayStockData[key] = {values: response.data[key].values, graphBuffer: null};
                     realtimeStockData[key] = {
                         open: response.data[key].values[0].open,
                         close: response.data[key].values[0].close,
