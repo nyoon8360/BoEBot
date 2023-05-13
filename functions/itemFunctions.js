@@ -612,6 +612,9 @@ itemFunctionMap.set('item_polymorph', (client, workingData, interaction, eventTo
                     .setCustomId("newNickname")
                     .setStyle(TextInputStyle.Short)
                     .setLabel("New Nickname")
+                    .setMinLength(1)
+                    .setMaxLength(32)
+                    .setRequired(true)
             )
         )
 

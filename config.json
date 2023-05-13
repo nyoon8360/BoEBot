@@ -1,6 +1,6 @@
 {
     "common": {
-        "currencyEmojiName": "edbuck",
+        "currencyEmojiName": "😀",
         "saveInterval": 1200,
         "reactCooldown":1200,
         "msgExpiration":7200,

@@ -618,15 +618,15 @@ Investments Total Current Value: ${totalCurrentInvestmentsValue}
             new ButtonBuilder()
                 .setLabel("Refresh")
                 .setStyle(ButtonStyle.Primary)
-                .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "REFRESH"),
+                .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "REFRESH-" + stockTicker),
             new ButtonBuilder()
                 .setLabel("Invest")
                 .setStyle(ButtonStyle.Success)
-                .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "INVEST"),
+                .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "INVEST-" + stockTicker),
             new ButtonBuilder()
                 .setLabel("Sell")
                 .setStyle(ButtonStyle.Secondary)
-                .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "SELL"),
+                .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "SELL-" + stockTicker),
         );
 
     //return message object with content, navigation buttons, and graph png attachment

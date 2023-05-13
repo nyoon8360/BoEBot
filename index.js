@@ -1,6 +1,6 @@
 "use strict";
 require('dotenv').config();
-const { Client, IntentsBitField, ButtonStyle, ActionRowBuilder, ButtonBuilder, Options} = require('discord.js');
+const { Client, IntentsBitField, ButtonStyle, ActionRowBuilder, ButtonBuilder, Options, Partials} = require('discord.js');
 const fs = require('fs');
 const usables = require('./items/usables.json');
 const equipment = require('./items/equipment.json');
@@ -37,7 +37,10 @@ const client = new Client({
 			interval: 3600, // Sweep message cache every hour
 			lifetime: config.msgExpiration + 120,	// Remove messages older than msg expiration + 3 minutes.
 		}
-    }
+    },
+    partials: [
+        Partials.Reaction, Partials.Message, Partials.User
+    ]
 });
 
 var workingData = {}; //In-memory data
@@ -354,29 +357,6 @@ client.on('ready', () => {
 
     (o1 * (nv/sv1)) + (o2 * (nv/sv2)) = total new
     o1 + o2 = total original investment
-
-        *
-        |
-    [Invest]
-        |
-        V
-    
-    The Edbuck Exchange
-    -------------------
-    Equity: Apple Inc
-    Ticker: $AAPL
-    Current Price: $168.42999
-    Exchange: NASDAQ
-    Day Percent Change: 2.85173%
-    Open Price: $165.19000
-    Trade Volume: 51,528,660
-    Last Updated: |April 25th 3:44 PM|
-
-    Total Original Investments Value: 47 EB
-    Total Current Investments Value: 65.83 EB
-
-    
-    
     */
 });
 
@@ -471,35 +451,9 @@ client.on('messageCreate', (message) => {
 
             //a command used solely for random testing purposes
             case "testcommand":
-                /*
-                let cnvas = canvas.createCanvas(200,200);
-                let ctx = cnvas.getContext('2d');
+                
+                message.react("😀");
 
-                ctx.font = '30px Impact';
-                ctx.rotate(.1);
-                ctx.fillText("Awesome!", 50, 100);
-
-                var te = ctx.measureText('Awesome!');
-                ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-                ctx.beginPath();
-                ctx.lineTo(50, 102);
-                ctx.lineTo(50 + te.width, 102);
-                ctx.stroke();
-
-                message.channel.send({
-                    content: "test command :D",
-                    files:[{attachment: cnvas.toBuffer(), name: "testImage.png"}]
-                })
-                */
-                console.log("test command run");
-                utils.getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall).then((values) => {
-                    realtimeStockData = values[0];
-                    tenDayStockData = values[1];
-                    lastStockAPICall = values[2];
-                    console.log(JSON.stringify(realtimeStockData, null, 2));
-                    console.log(JSON.stringify(tenDayStockData, null, 2));
-                    console.log("Last API Call: " + lastStockAPICall);
-                });
                 break;
         }
     } else {
@@ -588,6 +542,7 @@ client.on('guildMemberUpdate', (oldMember, newMember) => {
 })
 
 client.on('messageDelete', (message) => {
+    if (message.partial) return;
     if (!message.guildId) return;
 
     let messageAuthorData = workingData[message.guildId].users.find(obj => {
@@ -603,6 +558,7 @@ client.on('messageDelete', (message) => {
 })
 
 client.on('messageUpdate', (oldMessage, newMessage) => {
+    if (oldMessage.partial || newMessage.partial) return;
     if (!newMessage.guildId) return;
     if (newMessage.author.bot) return;
 
@@ -643,8 +599,30 @@ client.on('voiceStateUpdate', (oldState, newState) => {
     }
 });
 
-client.on('messageReactionAdd', (messageReaction, user) => {
+client.on('messageReactionAdd', async (messageReaction, user) => {
     //base system for awarding edbucks to users whose msgs get edbuck reactions
+    let messageScore = 0;
+
+    //handle partials
+    if (messageReaction.partial) {
+        try {
+            await messageReaction.fetch();
+        } catch (err) {
+            console.log(err);
+            return;
+        }
+
+        await messageReaction.message.channel.messages.fetch(messageReaction.message.id).then(msg => {
+            messageScore = msg.reactions.cache.find(reaction => {
+                return reaction.emoji.name == config.currencyEmojiName;
+            }).count;
+        });
+    } else {
+        messageScore = messageReaction.message.reactions.cache.find(reaction => {
+            return reaction.emoji.name == config.currencyEmojiName;
+        }).count;
+    }
+
     if (messageReaction.emoji.name != config.currencyEmojiName) return;
     if (!messageReaction.message.guildId) return;
 
@@ -659,10 +637,6 @@ client.on('messageReactionAdd', (messageReaction, user) => {
     let currTime = Math.floor(Date.now() / 1000);
 
     //check and update msg leaderboard
-    let messageScore = messageReaction.message.reactions.cache.find(obj => {
-        return obj.emoji.name == config.currencyEmojiName;
-    }).count;
-
     //if the message's edbuck reaction count is greater than or equal to the current leaderboard floor then update leaderboard
     if (messageScore >= workingData[messageReaction.message.guildId].msgLeaderboardFloor) {
         let currLeaderboard = workingData[messageReaction.message.guildId].msgLeaderboard;
@@ -692,10 +666,10 @@ client.on('messageReactionAdd', (messageReaction, user) => {
             //if leaderboard is populated, iterate through leaderboard to check if current message has
             //higher or equal score to any of the entries and replace if so
             let replaceIndex = config.msgLeaderboardLimit;
-
-            for (i in currLeaderboard) {
+            for (let i in currLeaderboard) {
                 if (messageScore >= currLeaderboard[i].score) {
                     replaceIndex = i;
+                    console.log("Replace Index: " + i);
                     break;
                 }
             }
@@ -1010,7 +984,37 @@ client.on('interactionCreate', async (interaction) => {
             break;
 
         case intEventTokens.stockExchangeSelectStockPrefix.slice(0, -1):
+            await utils.getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall).then((values) => {
+                realtimeStockData = values[0];
+                tenDayStockData = values[1];
+                lastStockAPICall = values[2];
+            });
             btnEventHandlers.stockExchange_selectStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens);
+            break;
+
+        case intEventTokens.stockExchangeInfoPagePrefix.slice(0, -1):
+            await utils.getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall).then((values) => {
+                realtimeStockData = values[0];
+                tenDayStockData = values[1];
+                lastStockAPICall = values[2];
+            });
+            switch (eventTokens.shift()) {
+                case "BACK":
+                    btnEventHandlers.stockExchange_refreshStockInfo(workingData, interaction, realtimeStockData);
+                    break;
+
+                case "REFRESH":
+                    btnEventHandlers.stockExchange_selectStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens);
+                    break;
+
+                case "SELL":
+                    
+                    break;
+
+                case "INVEST":
+                    btnEventHandlers.stockExchange_investInStock(workingData, interaction, realtimeStockData, eventTokens);
+                    break;
+            }
             break;
     }
 });
