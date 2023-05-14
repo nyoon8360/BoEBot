@@ -3,6 +3,7 @@ const changelog = require('../changelog.json');
 const intEventTokens = require('../constants/intEventTokens.js');
 const config = require('../constants/configConsts.js');
 const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
+const utils = require('./utils.js');
 
 //===================================================
 //===================================================
@@ -639,6 +640,108 @@ Investments Total Current Value: ${totalCurrentInvestmentsValue}
     }
 }
 
+function stockExchangeSellStocksUI(workingData, interaction, realtimeStockData, eventTokens, pagenum) {
+    //get accessing user's data, accessing user's stats, stock ticker, and stock info
+    let accessingUser = workingData[interaction.guildId].users.find(user => {
+        return user.id == interaction.user.id;
+    });
+    let accessingUserStats = utils.checkStatsAndEffects(workingData, interaction, interaction.user.id);
+    let stockTicker = eventTokens.shift();
+    let stockInfo = realtimeStockData[stockTicker];
+
+    //calculate total original investments value and total current investments value
+    let totalOriginalInvestmentsValue = 0;
+    let totalCurrentInvestmentsValue = 0;
+
+    if (accessingUser.stockInvestments[stockTicker] != undefined) {
+        accessingUser.stockInvestments[stockTicker].forEach(investment => {
+            totalOriginalInvestmentsValue += investment.investmentAmount;
+    
+            totalCurrentInvestmentsValue += investment.investmentAmount * (stockInfo.close/investment.investmentPrice);
+        });
+    }
+    
+    totalCurrentInvestmentsValue = Math.round(totalCurrentInvestmentsValue * 1000) / 1000;
+
+    //instantiate main text of UI
+    let contentString = bold("========================\nTHE EDBUCK EXCHANGE\n========================");
+    contentString += `
+Equity: ${config.trackedStocks.find(entry => { return entry.ticker == stockTicker }).name}
+Ticker: $${stockTicker}
+Current Price: $${stockInfo.close}
+Open Price: $${stockInfo.open}
+Day Percent Change: %${Math.round((((stockInfo.close / stockInfo.open) - 1) + Number.EPSILON) * 10000) / 100}
+Trade Volume: ${parseInt(stockInfo.volume).toLocaleString("en-US")}
+Exchange: ${stockInfo.exchange == null ? "Unknown" : stockInfo.exchange}
+Market Status: ${stockInfo.is_market_open == null ? "Unknown" : stockInfo.is_market_open ? "OPEN" : "CLOSE"}
+Last Updated: ${time(realtimeStockData.lastUpdated, "f")}
+
+Investments Total Original Value: ${totalOriginalInvestmentsValue}
+Investments Total Current Value: ${totalCurrentInvestmentsValue}
+
+Your Investment Profit Bonus: ${accessingUserStats.stats.stockProfitBonus}%
+`;
+
+    //construct investments section of UI and sell investments button
+    let investmentsString = "";
+
+    let sellButtonsActionRow = new ActionRowBuilder();
+
+    if (accessingUser.stockInvestments[stockTicker] != undefined && accessingUser.stockInvestments[stockTicker].length > 0) {
+        for (let i = (pagenum * config.investmentsDisplayedPerPage); i < ((pagenum + 1) * config.investmentsDisplayedPerPage); i++) {
+            let investmentObj = accessingUser.stockInvestments[stockTicker][i];
+            if (investmentObj != undefined) {
+                let curInvestmentValue = investmentObj.investmentAmount * (stockInfo.close/investmentObj.investmentPrice);
+                investmentsString += `
+${bold(`[Investment ${i - ((pagenum * config.investmentsDisplayedPerPage) - 1)}]`)}
+Original Investment: ${investmentObj.investmentAmount}
+Date/Time Entered: ${time(investmentObj.investmentTimestamp, "F")}
+Price Entered At: ${investmentObj.investmentPrice}
+% Change:  ${Math.round( ( ((stockInfo.close / investmentObj.investmentPrice) - 1) + Number.EPSILON) * 10000) / 100}
+Current Investment Value: ${Math.round(curInvestmentValue + (investmentObj.investmentAmount > curInvestmentValue ? 0 : (curInvestmentValue - investmentObj.investmentAmount) * (1 + (accessingUserStats.stats.stockProfitBonus/100))))}
+`;
+                sellButtonsActionRow.addComponents(
+                    new ButtonBuilder()
+                        .setLabel("Sell Investment " + (i - ((pagenum * config.investmentsDisplayedPerPage) - 1)))
+                        .setStyle(ButtonStyle.Success)
+                        .setCustomId(intEventTokens.stockExchangeSellPagePrefix + "SELL-" + (i - ((pagenum * config.investmentsDisplayedPerPage) - 1) + (pagenum * config.investmentsDisplayedPerPage)))
+                )
+            }
+        }
+    }
+
+    if (!investmentsString) {
+        investmentsString = "\nYou have no investments in this equity!";
+    };
+
+    contentString += investmentsString;
+
+    //instantiate back button
+    let backButtonRow = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setLabel("Back")
+                .setCustomId(intEventTokens.stockExchangeSellPagePrefix + "BACK-" + stockTicker)
+                .setStyle(ButtonStyle.Danger)
+        )
+
+    if (sellButtonsActionRow.components.length > 0) {
+        return {
+            content: contentString,
+            components: [sellButtonsActionRow, backButtonRow],
+            files: [],
+            ephemeral: true
+        }
+    } else {
+        return {
+            content: contentString,
+            components: [backButtonRow],
+            files: [],
+            ephemeral: true
+        }
+    }
+}
+
 function notifCantSelfUse() {
     let row = new ActionRowBuilder()
         .addComponents(
@@ -704,6 +807,6 @@ function notifCantUseOnBot() {
 }
 
 module.exports = {
-    menuUI, settingsUI, usablesInvUI, equipsInvUI, equipsShopUI, usablesShopUI, changelogUI, userLeaderboardUI, stockExchangeUI,
+    menuUI, settingsUI, usablesInvUI, equipsInvUI, equipsShopUI, usablesShopUI, changelogUI, userLeaderboardUI, stockExchangeUI, stockExchangeSellStocksUI,
     stockExchangeStockInfoUI, notifCantSelfUse, notifDontHaveItem, notifTargetNotInVC, notifCantUseOnBot
 }

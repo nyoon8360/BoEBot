@@ -37,4 +37,5 @@ module.exports = Object.freeze({
     //stocks config consts
     realtimeStockDataLifetime: config.stocks.realtimeStockDataLifetime, //the life time of real time stock data before needing an update
     trackedStocks: config.stocks.trackedStocks, //an array of strings denoting the tickers of the stocks being offered in the stock exchange menu
+    investmentsDisplayedPerPage: config.stocks.investmentsDisplayedPerPage
 });

@@ -1008,7 +1008,7 @@ client.on('interactionCreate', async (interaction) => {
                     break;
 
                 case "SELL":
-                    
+                    btnEventHandlers.stockExchange_sellStocks(workingData, interaction, realtimeStockData, eventTokens);
                     break;
 
                 case "INVEST":
@@ -1017,6 +1017,18 @@ client.on('interactionCreate', async (interaction) => {
                 
                 case "NOTIFBACK":
                     btnEventHandlers.stockExchange_selectStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens);
+                    break;
+            }
+            break;
+
+        case intEventTokens.stockExchangeSellPagePrefix.slice(0, -1):
+            switch (eventTokens.shift()) {
+                case "BACK":
+                    btnEventHandlers.stockExchange_selectStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens);
+                    break;
+
+                case "SELL":
+
                     break;
             }
             break;

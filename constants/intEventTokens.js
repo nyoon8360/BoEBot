@@ -44,6 +44,7 @@ module.exports = Object.freeze({
     //Stock exchange tokens
     stockExchangeNavPrefix: "STOCKEXCHANGENAV-",
     stockExchangeSelectStockPrefix: "STOCKEXCHANGESELECTSTOCK-",
-    stockExchangeInfoPagePrefix: "STOCKEXCHANGEINFO-"
+    stockExchangeInfoPagePrefix: "STOCKEXCHANGEINFO-",
+    stockExchangeSellPagePrefix: "STOCKEXCHANGESELLPAGE-"
 });
 

@@ -33,6 +33,7 @@
     },
     "stocks": {
         "realtimeStockDataLifetime": 480,
+        "investmentsDisplayedPerPage": 3,
         "trackedStocks": [
             {
                 "ticker": "AMZN",

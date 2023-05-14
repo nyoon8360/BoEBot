@@ -79,13 +79,14 @@ function checkStatsAndEffects(workingData, interaction, targetId, getRawChances)
     let passedEffectsAndStats = {
         effects: [],
         stats: {
-            //NOTE: Add all existing stats here with default value of 0
+            //NOTE: Add all existing stats here with their base value
             reflectChance: 0,
             treasureLuck: 0,
             vocalLuck: 0,
             reactionBonus: 0,
             usableCrit: 0,
-            usablesDiscount: 0
+            usablesDiscount: 0,
+            stockProfitBonus: 20
         }
     };
 

@@ -609,6 +609,10 @@ function stockExchange_refreshStockInfo(workingData, interaction, realtimeStockD
     interaction.update(uiBuilders.stockExchangeUI(workingData, interaction, realtimeStockData, 0));
 }
 
+function stockExchange_sellStocks(workingData, interaction, realtimeStockData, eventTokens) {
+    interaction.update(uiBuilders.stockExchangeSellStocksUI(workingData, interaction, realtimeStockData, eventTokens, 0));
+}
+
 function stockExchange_investInStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens) {
     let stockTicker = eventTokens.shift();
     let nextToken = eventTokens.shift();
@@ -731,5 +735,5 @@ module.exports = {
     settings_editSettingValue,
     usablesInventory_selectSlot, usablesShop_purchase, usablesShop_selectShelf,
     equipsShop_selectShelf, equipsShop_purchase, equipsInventory_selectSlot, equipsInventory_toggleEquip,
-    stockExchange_selectStock, stockExchange_refreshStockInfo, stockExchange_investInStock
+    stockExchange_selectStock, stockExchange_refreshStockInfo, stockExchange_investInStock, stockExchange_sellStocks
 }
