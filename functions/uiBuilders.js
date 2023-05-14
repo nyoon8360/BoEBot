@@ -618,7 +618,8 @@ Investments Total Current Value: ${totalCurrentInvestmentsValue}
             new ButtonBuilder()
                 .setLabel("Refresh")
                 .setStyle(ButtonStyle.Primary)
-                .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "REFRESH-" + stockTicker),
+                .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "REFRESH-" + stockTicker)
+                .setEmoji("🔄"),
             new ButtonBuilder()
                 .setLabel("Invest")
                 .setStyle(ButtonStyle.Success)

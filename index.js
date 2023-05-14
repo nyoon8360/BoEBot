@@ -1012,7 +1012,11 @@ client.on('interactionCreate', async (interaction) => {
                     break;
 
                 case "INVEST":
-                    btnEventHandlers.stockExchange_investInStock(workingData, interaction, realtimeStockData, eventTokens);
+                    btnEventHandlers.stockExchange_investInStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens);
+                    break;
+                
+                case "NOTIFBACK":
+                    btnEventHandlers.stockExchange_selectStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens);
                     break;
             }
             break;

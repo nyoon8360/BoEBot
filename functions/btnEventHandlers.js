@@ -609,7 +609,7 @@ function stockExchange_refreshStockInfo(workingData, interaction, realtimeStockD
     interaction.update(uiBuilders.stockExchangeUI(workingData, interaction, realtimeStockData, 0));
 }
 
-function stockExchange_investInStock(workingData, interaction, realtimeStockData, eventTokens) {
+function stockExchange_investInStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens) {
     let stockTicker = eventTokens.shift();
     let nextToken = eventTokens.shift();
 
@@ -622,7 +622,7 @@ function stockExchange_investInStock(workingData, interaction, realtimeStockData
                     new TextInputBuilder()
                         .setCustomId("investmentAmount")
                         .setStyle(TextInputStyle.Short)
-                        .setLabel("Investment Amount (Must be whole number from 10-999)")
+                        .setLabel("Investment Amount (10-999)")
                         .setRequired(true)
                         .setMinLength(2)
                         .setMaxLength(10)
@@ -642,48 +642,40 @@ function stockExchange_investInStock(workingData, interaction, realtimeStockData
 
         //check if enteredInvestment is not a number, just whitespace, not an integer, above 999, or below 10
         if (isNaN(enteredInvestment) || isNaN(parsedInvestment) || parsedInvestment != parseFloat(enteredInvestment) || parsedInvestment > 999 || parsedInvestment < 10) {
-            let modal = new ModalBuilder()
-                .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "INVEST-" + stockTicker + "-SUBMIT")
-                .setTitle("Investment Form For: " + stockTicker)
+            let backButtonRow = new ActionRowBuilder()
                 .addComponents(
-                    new ActionRowBuilder().addComponents(
-                        new TextInputBuilder()
-                            .setCustomId("investmentAmount")
-                            .setStyle(TextInputStyle.Short)
-                            .setLabel("Investment Amount (Must be whole number from 10-999)")
-                            .setRequired(true)
-                            .setMinLength(2)
-                            .setMaxLength(10)
-                            .setPlaceholder("Invalid entry!")
-                            
-                    )
+                    new ButtonBuilder()
+                        .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "NOTIFBACK-" + stockTicker)
+                        .setStyle(ButtonStyle.Danger)
+                        .setLabel("Back")
                 )
-            
-            interaction.showModal(modal);
+
+            interaction.update({
+                content: "Invalid Amount Entered!",
+                components: [backButtonRow],
+                files: [],
+                ephemeral: true
+            });
             return;
         //check if investment amount entered is above user's balance
         } else if (parsedInvestment > userData.balance) {
-            let modal = new ModalBuilder()
-                .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "INVEST-" + stockTicker + "-SUBMIT")
-                .setTitle("Investment Form For: " + stockTicker)
+            let backButtonRow = new ActionRowBuilder()
                 .addComponents(
-                    new ActionRowBuilder().addComponents(
-                        new TextInputBuilder()
-                            .setCustomId("investmentAmount")
-                            .setStyle(TextInputStyle.Short)
-                            .setLabel("Investment Amount (Must be whole number from 10-999)")
-                            .setRequired(true)
-                            .setMinLength(2)
-                            .setMaxLength(10)
-                            .setPlaceholder("Not enough balance!")
-                    )
+                    new ButtonBuilder()
+                        .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "NOTIFBACK-" + stockTicker)
+                        .setStyle(ButtonStyle.Danger)
+                        .setLabel("Back")
                 )
-            
-            interaction.showModal(modal);
+
+            interaction.update({
+                content: "Insufficient Balance!",
+                components: [backButtonRow],
+                files: [],
+                ephemeral: true
+            });
             return;
         }
 
-        //TODO: add investment object to user's data
         /*
         "stockInvestments": {
             "AAPL": [
@@ -716,8 +708,21 @@ function stockExchange_investInStock(workingData, interaction, realtimeStockData
 
         //subtract investment amount from user's balance
         userData.balance -= parsedInvestment;
+        
+        let backButtonRow = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "NOTIFBACK-" + stockTicker)
+                        .setStyle(ButtonStyle.Danger)
+                        .setLabel("Back")
+                )
 
-        //TODO: add success message
+        interaction.update({
+            content: "Investment Successful!",
+            components: [backButtonRow],
+            files: [],
+            ephemeral: true
+        });
     }
 }
 
