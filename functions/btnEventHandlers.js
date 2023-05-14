@@ -697,6 +697,9 @@ function stockExchange_investInStock(workingData, interaction, realtimeStockData
             }
         )
 
+        //update funstats
+        userData.fStatValueOfTotalInvestmentsMade += parsedInvestment;
+
         //subtract investment amount from user's balance
         userData.balance -= parsedInvestment;
         
@@ -717,8 +720,35 @@ function stockExchange_investInStock(workingData, interaction, realtimeStockData
     }
 }
 
-function stockExchange_executeStockSell() {
+function stockExchange_executeStockSell(workingData, interaction, realtimeStockData, eventTokens) {
+    //get stock ticker and investment index from event tokens
+    let stockTicker = eventTokens.shift();
+    let investmentIndex = parseInt(eventTokens.shift());
 
+    //get accessing user's data and stats
+    let accessingUser = workingData[interaction.guildId].users.find(user => {
+        return user.id == interaction.user.id;
+    });
+    let accessingUserStats = utils.checkStatsAndEffects(workingData, interaction, accessingUser.id);
+
+    //get stock info and investment info
+    let stockInfo = realtimeStockData[stockTicker];
+    let investmentObj = accessingUser.stockInvestments[stockTicker][investmentIndex];
+
+    //calculate final investment value
+    let curInvestmentValue = investmentObj.investmentAmount * (stockInfo.close/investmentObj.investmentPrice);
+    let finalInvestmentValue = Math.round(curInvestmentValue + (investmentObj.investmentAmount > curInvestmentValue ? 0 : (curInvestmentValue - investmentObj.investmentAmount) * (1 + (accessingUserStats.stats.stockProfitBonus/100))))
+
+    //update funstats
+    accessingUser.fStatTotalInvestmentProfits += (investmentObj.investmentAmount > curInvestmentValue ? 0 : (curInvestmentValue - investmentObj.investmentAmount) * (1 + (accessingUserStats.stats.stockProfitBonus/100)));
+
+    //remove investment from user's data
+    accessingUser.stockInvestments[stockTicker].splice(investmentIndex, 1);
+
+    //add final investment value to user's balance
+    accessingUser.balance += finalInvestmentValue;
+
+    interaction.update(uiBuilders.stockExchangeSellStocksUI(workingData, interaction, realtimeStockData, [stockTicker], 0, `You've sold $${stockTicker} stock and gained ${finalInvestmentValue} EB!`))
 }
 
 module.exports = {

@@ -521,7 +521,8 @@ Current Total Investments: ${totalInvestmentsValue}
     return {
         content: contentString,
         components: equityRows,
-        ephemeral: true
+        ephemeral: true,
+        files: []
     }
 }
 
@@ -640,7 +641,7 @@ Investments Total Current Value: ${totalCurrentInvestmentsValue}
     }
 }
 
-function stockExchangeSellStocksUI(workingData, interaction, realtimeStockData, eventTokens, pagenum) {
+function stockExchangeSellStocksUI(workingData, interaction, realtimeStockData, eventTokens, pagenum, notifMsg = "") {
     //get accessing user's data, accessing user's stats, stock ticker, and stock info
     let accessingUser = workingData[interaction.guildId].users.find(user => {
         return user.id == interaction.user.id;
@@ -698,23 +699,24 @@ Original Investment: ${investmentObj.investmentAmount}
 Date/Time Entered: ${time(investmentObj.investmentTimestamp, "F")}
 Price Entered At: ${investmentObj.investmentPrice}
 % Change:  ${Math.round( ( ((stockInfo.close / investmentObj.investmentPrice) - 1) + Number.EPSILON) * 10000) / 100}
-Current Investment Value: ${Math.round(curInvestmentValue + (investmentObj.investmentAmount > curInvestmentValue ? 0 : (curInvestmentValue - investmentObj.investmentAmount) * (1 + (accessingUserStats.stats.stockProfitBonus/100))))}
+Current Investment Value (With Bonus): ${Math.round(curInvestmentValue + (investmentObj.investmentAmount > curInvestmentValue ? 0 : (curInvestmentValue - investmentObj.investmentAmount) * (1 + (accessingUserStats.stats.stockProfitBonus/100))))}
 `;
                 sellButtonsActionRow.addComponents(
                     new ButtonBuilder()
                         .setLabel("Sell Investment " + (i - ((pagenum * config.investmentsDisplayedPerPage) - 1)))
                         .setStyle(ButtonStyle.Success)
-                        .setCustomId(intEventTokens.stockExchangeSellPagePrefix + "SELL-" + stockTicker + "-" + (i - ((pagenum * config.investmentsDisplayedPerPage) - 1) + (pagenum * config.investmentsDisplayedPerPage)))
+                        .setCustomId(intEventTokens.stockExchangeSellPagePrefix + "SELL-" + stockTicker + "-" + (i - ((pagenum * config.investmentsDisplayedPerPage)) + (pagenum * config.investmentsDisplayedPerPage)))
                 )
             }
         }
     }
 
     if (!investmentsString) {
-        investmentsString = "\nYou have no investments in this equity!";
+        investmentsString = "\nYou have no investments in this equity!\n";
     };
 
     contentString += investmentsString;
+    contentString += "\n" + notifMsg;
 
     //instantiate back button
     let backButtonRow = new ActionRowBuilder()
@@ -726,17 +728,17 @@ Current Investment Value: ${Math.round(curInvestmentValue + (investmentObj.inves
             new ButtonBuilder()
                 .setLabel("Prev")
                 .setCustomId(intEventTokens.stockExchangeSellPagePrefix + "PREV-" + pagenum + "-" + stockTicker)
-                .setStyle(ButtonStyle.Danger)
+                .setStyle(ButtonStyle.Primary)
                 .setDisabled(!(pagenum > 0)),
             new ButtonBuilder()
                 .setLabel("Page " + (pagenum + 1))
                 .setCustomId(intEventTokens.stockExchangeSellPagePrefix + "PAGENUM")
-                .setStyle(ButtonStyle.Danger)
+                .setStyle(ButtonStyle.Primary)
                 .setDisabled(true),
             new ButtonBuilder()
                 .setLabel("Next")
                 .setCustomId(intEventTokens.stockExchangeSellPagePrefix + "NEXT-" + pagenum + "-" + stockTicker)
-                .setStyle(ButtonStyle.Danger)
+                .setStyle(ButtonStyle.Primary)
                 .setDisabled(sellButtonsActionRow.components.length == 0 || accessingUser.stockInvestments[stockTicker].length <= ((pagenum + 1) * config.investmentsDisplayedPerPage))
         )
 

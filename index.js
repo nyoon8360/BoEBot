@@ -983,6 +983,16 @@ client.on('interactionCreate', async (interaction) => {
 
             break;
 
+        case intEventTokens.stockExchangeNavPrefix.slice(0, -1):
+            //NOTE: No need for switch statement here since only refresh button needs to be implemented since we cant have more than 1 page currently due to API limits
+            await utils.getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall).then((values) => {
+                realtimeStockData = values[0];
+                tenDayStockData = values[1];
+                lastStockAPICall = values[2];
+            });
+            btnEventHandlers.stockExchange_refreshStockInfo(workingData, interaction, realtimeStockData);
+            break;
+
         case intEventTokens.stockExchangeSelectStockPrefix.slice(0, -1):
             await utils.getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall).then((values) => {
                 realtimeStockData = values[0];
@@ -1033,17 +1043,17 @@ client.on('interactionCreate', async (interaction) => {
                     break;
 
                 case "PREV":
-                    let prevPagenum = eventTokens.shift() - 1;
+                    let prevPagenum = parseInt(eventTokens.shift()) - 1;
                     btnEventHandlers.stockExchange_openInvestments(workingData, interaction, realtimeStockData, eventTokens, prevPagenum);
                     break;
 
                 case "NEXT":
-                    let nextPagenum = eventTokens.shift() + 1;
+                    let nextPagenum = parseInt(eventTokens.shift()) + 1;
                     btnEventHandlers.stockExchange_openInvestments(workingData, interaction, realtimeStockData, eventTokens, nextPagenum);
                     break;
 
                 case "SELL":
-                    
+                    btnEventHandlers.stockExchange_executeStockSell(workingData, interaction, realtimeStockData, eventTokens);
                     break;
             }
             break;
