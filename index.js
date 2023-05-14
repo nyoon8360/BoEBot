@@ -1008,7 +1008,7 @@ client.on('interactionCreate', async (interaction) => {
                     break;
 
                 case "SELL":
-                    btnEventHandlers.stockExchange_sellStocks(workingData, interaction, realtimeStockData, eventTokens);
+                    btnEventHandlers.stockExchange_openInvestments(workingData, interaction, realtimeStockData, eventTokens, 0);
                     break;
 
                 case "INVEST":
@@ -1022,13 +1022,28 @@ client.on('interactionCreate', async (interaction) => {
             break;
 
         case intEventTokens.stockExchangeSellPagePrefix.slice(0, -1):
+            await utils.getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall).then((values) => {
+                realtimeStockData = values[0];
+                tenDayStockData = values[1];
+                lastStockAPICall = values[2];
+            });
             switch (eventTokens.shift()) {
                 case "BACK":
                     btnEventHandlers.stockExchange_selectStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens);
                     break;
 
-                case "SELL":
+                case "PREV":
+                    let prevPagenum = eventTokens.shift() - 1;
+                    btnEventHandlers.stockExchange_openInvestments(workingData, interaction, realtimeStockData, eventTokens, prevPagenum);
+                    break;
 
+                case "NEXT":
+                    let nextPagenum = eventTokens.shift() + 1;
+                    btnEventHandlers.stockExchange_openInvestments(workingData, interaction, realtimeStockData, eventTokens, nextPagenum);
+                    break;
+
+                case "SELL":
+                    
                     break;
             }
             break;

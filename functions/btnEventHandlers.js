@@ -147,6 +147,7 @@ function mainMenu_shop(interaction) {
 }
 
 function mainMenu_help(interaction) {
+    //TODO: Overhaul the help menu
     interaction.reply({
         content:`
 ${bold('=====\nHELP\n=====')}
@@ -611,8 +612,8 @@ function stockExchange_refreshStockInfo(workingData, interaction, realtimeStockD
     interaction.update(uiBuilders.stockExchangeUI(workingData, interaction, realtimeStockData, 0));
 }
 
-function stockExchange_sellStocks(workingData, interaction, realtimeStockData, eventTokens) {
-    interaction.update(uiBuilders.stockExchangeSellStocksUI(workingData, interaction, realtimeStockData, eventTokens, 0));
+function stockExchange_openInvestments(workingData, interaction, realtimeStockData, eventTokens, pagenum) {
+    interaction.update(uiBuilders.stockExchangeSellStocksUI(workingData, interaction, realtimeStockData, eventTokens, pagenum));
 }
 
 function stockExchange_investInStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens) {
@@ -682,22 +683,6 @@ function stockExchange_investInStock(workingData, interaction, realtimeStockData
             return;
         }
 
-        /*
-        "stockInvestments": {
-            "AAPL": [
-                {
-                "investmentTimestamp": "7632542357 (unix timestamp)",
-                "investmentAmount": 40,
-                "investmentPrice:": 174.16
-                },
-                {
-                "investmentTimestamp": "423560982 (unix timestamp)",
-                "investmentAmount": 20,
-                "investmentPrice:": 191.43
-                }
-            ]
-        }
-        */
         //instantiate stock ticker entry in user's stock investments if it doesnt exist
         if (!(stockTicker in userData.stockInvestments)) {
             userData.stockInvestments[stockTicker] = [];
@@ -732,10 +717,14 @@ function stockExchange_investInStock(workingData, interaction, realtimeStockData
     }
 }
 
+function stockExchange_executeStockSell() {
+
+}
+
 module.exports = {
     mainMenu_changelog, mainMenu_findTreasure, mainMenu_help, mainMenu_msgLeaderboard, mainMenu_openInv, mainMenu_shop, mainMenu_showStats, mainMenu_userLeaderboard, mainMenu_settings, mainMenu_stockExchange,
     settings_editSettingValue,
     usablesInventory_selectSlot, usablesShop_purchase, usablesShop_selectShelf,
     equipsShop_selectShelf, equipsShop_purchase, equipsInventory_selectSlot, equipsInventory_toggleEquip,
-    stockExchange_selectStock, stockExchange_refreshStockInfo, stockExchange_investInStock, stockExchange_sellStocks
+    stockExchange_selectStock, stockExchange_refreshStockInfo, stockExchange_investInStock, stockExchange_openInvestments, stockExchange_executeStockSell
 }

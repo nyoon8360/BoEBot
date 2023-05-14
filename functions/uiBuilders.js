@@ -704,7 +704,7 @@ Current Investment Value: ${Math.round(curInvestmentValue + (investmentObj.inves
                     new ButtonBuilder()
                         .setLabel("Sell Investment " + (i - ((pagenum * config.investmentsDisplayedPerPage) - 1)))
                         .setStyle(ButtonStyle.Success)
-                        .setCustomId(intEventTokens.stockExchangeSellPagePrefix + "SELL-" + (i - ((pagenum * config.investmentsDisplayedPerPage) - 1) + (pagenum * config.investmentsDisplayedPerPage)))
+                        .setCustomId(intEventTokens.stockExchangeSellPagePrefix + "SELL-" + stockTicker + "-" + (i - ((pagenum * config.investmentsDisplayedPerPage) - 1) + (pagenum * config.investmentsDisplayedPerPage)))
                 )
             }
         }
@@ -722,7 +722,22 @@ Current Investment Value: ${Math.round(curInvestmentValue + (investmentObj.inves
             new ButtonBuilder()
                 .setLabel("Back")
                 .setCustomId(intEventTokens.stockExchangeSellPagePrefix + "BACK-" + stockTicker)
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setLabel("Prev")
+                .setCustomId(intEventTokens.stockExchangeSellPagePrefix + "PREV-" + pagenum + "-" + stockTicker)
                 .setStyle(ButtonStyle.Danger)
+                .setDisabled(!(pagenum > 0)),
+            new ButtonBuilder()
+                .setLabel("Page " + (pagenum + 1))
+                .setCustomId(intEventTokens.stockExchangeSellPagePrefix + "PAGENUM")
+                .setStyle(ButtonStyle.Danger)
+                .setDisabled(true),
+            new ButtonBuilder()
+                .setLabel("Next")
+                .setCustomId(intEventTokens.stockExchangeSellPagePrefix + "NEXT-" + pagenum + "-" + stockTicker)
+                .setStyle(ButtonStyle.Danger)
+                .setDisabled(sellButtonsActionRow.components.length == 0 || accessingUser.stockInvestments[stockTicker].length <= ((pagenum + 1) * config.investmentsDisplayedPerPage))
         )
 
     if (sellButtonsActionRow.components.length > 0) {
