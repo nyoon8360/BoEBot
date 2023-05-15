@@ -94,6 +94,13 @@ tenDayStockData = {
 }
 */
 
+/*
+TODO:
+-Expand message leaderboard to multipage with 50 entries
+-Overhaul help menu
+-Add info showing what stocks you are invested into on main stock exchange menu
+*/
+
 //===================================================
 //===================================================
 //
@@ -600,6 +607,9 @@ client.on('voiceStateUpdate', (oldState, newState) => {
 });
 
 client.on('messageReactionAdd', async (messageReaction, user) => {
+    if (messageReaction.emoji.name != config.currencyEmojiName) return;
+    if (!messageReaction.message.guildId) return;
+
     //base system for awarding edbucks to users whose msgs get edbuck reactions
     let messageScore = 0;
 
@@ -622,9 +632,6 @@ client.on('messageReactionAdd', async (messageReaction, user) => {
             return reaction.emoji.name == config.currencyEmojiName;
         }).count;
     }
-
-    if (messageReaction.emoji.name != config.currencyEmojiName) return;
-    if (!messageReaction.message.guildId) return;
 
     //If the reactor and the reacted to are the same person then dont award anything.
     if (user.id == messageReaction.message.author.id) return;
