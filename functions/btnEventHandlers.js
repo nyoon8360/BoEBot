@@ -52,7 +52,7 @@ function mainMenu_showStats(workingData, interaction) {
     interaction.reply({
         content: `
 ${bold('============\nYOUR STATS\n============')}
-Edbuck Balance: ${requester.balance}
+Edbuck Balance: ${requester.balance.toLocaleString("en-US")}
 Last Edbuck Awarded: ${lastAwarded}
 Edbuck Reactions Awarded: ${requester.fStatReactionsAwarded}
 Edbuck Reactions Received: ${requester.fStatReactionsReceived}
@@ -93,7 +93,7 @@ function mainMenu_findTreasure(workingData, interaction) {
     console.log(userStatsAndEffects.stats.treasureLuck);
     if (userStatsAndEffects.stats.treasureLuck) {
         treasure *= 2;
-        doubledMsg = `\nThis amount was doubled for a total of ${treasure} edbucks!\n`;
+        doubledMsg = `\nThis amount was doubled for a total of ${treasure} edbucks!`;
     }
 
     user.balance += treasure;
@@ -147,6 +147,7 @@ function mainMenu_shop(interaction) {
 }
 
 function mainMenu_help(interaction) {
+    //TODO: Overhaul the help menu
     interaction.reply({
         content:`
 ${bold('=====\nHELP\n=====')}
@@ -161,6 +162,8 @@ ${underscore('Main Sources Of Edbucks')}
     - Re-enables randomly between 1-2 hours after being clicked.
 - Typing "happy birthday" (or anything very similar) in any chat while it's someone's birthday.
     - Awards 3 edbucks to the birthday wisher and 5 edbucks to the user whose birthday it is.
+- Investing into stocks and selling them for a profit.
+    - You have a base Stock Profit Bonus of 20% so any profit from stocks will be increased by 20%.
 - Winning minigames (WIP)
 
 ${underscore('Ways To Use Your Edbucks')}
@@ -231,6 +234,10 @@ async function mainMenu_msgLeaderboard(client, workingData, interaction) {
 
 function mainMenu_changelog(interaction) {
     interaction.reply(uiBuilders.changelogUI(0));
+}
+
+function mainMenu_stockExchange(workingData, interaction, realtimeStockData) {
+    interaction.reply(uiBuilders.stockExchangeUI(workingData, interaction, realtimeStockData, 0));
 }
 
 function settings_editSettingValue(workingData, interaction, eventTokens, birthdayDirectory) {
@@ -595,9 +602,159 @@ function equipsInventory_toggleEquip(workingData, interaction, eventTokens) {
     });
 }
 
+function stockExchange_selectStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens) {
+    uiBuilders.stockExchangeStockInfoUI(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens).then(ui => {
+        interaction.update(ui);
+    })
+}
+
+function stockExchange_refreshStockInfo(workingData, interaction, realtimeStockData) {
+    interaction.update(uiBuilders.stockExchangeUI(workingData, interaction, realtimeStockData, 0));
+}
+
+function stockExchange_openInvestments(workingData, interaction, realtimeStockData, eventTokens, pagenum) {
+    interaction.update(uiBuilders.stockExchangeSellStocksUI(workingData, interaction, realtimeStockData, eventTokens, pagenum));
+}
+
+function stockExchange_investInStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens) {
+    let stockTicker = eventTokens.shift();
+    let nextToken = eventTokens.shift();
+
+    if (!nextToken) {
+        let modal = new ModalBuilder()
+            .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "INVEST-" + stockTicker + "-SUBMIT")
+            .setTitle("Investment Form For: " + stockTicker)
+            .addComponents(
+                new ActionRowBuilder().addComponents(
+                    new TextInputBuilder()
+                        .setCustomId("investmentAmount")
+                        .setStyle(TextInputStyle.Short)
+                        .setLabel("Investment Amount (10-999)")
+                        .setRequired(true)
+                        .setMinLength(2)
+                        .setMaxLength(10)
+                        
+                        
+            )
+        )
+
+        interaction.showModal(modal);
+    } else {
+        let enteredInvestment = interaction.fields.getTextInputValue('investmentAmount');
+        let parsedInvestment = parseInt(enteredInvestment);
+
+        let userData = workingData[interaction.guildId].users.find(user => {
+            return user.id == interaction.user.id;
+        });
+
+        //check if enteredInvestment is not a number, just whitespace, not an integer, above 999, or below 10
+        if (isNaN(enteredInvestment) || isNaN(parsedInvestment) || parsedInvestment != parseFloat(enteredInvestment) || parsedInvestment > 999 || parsedInvestment < 10) {
+            let backButtonRow = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "NOTIFBACK-" + stockTicker)
+                        .setStyle(ButtonStyle.Danger)
+                        .setLabel("Back")
+                )
+
+            interaction.update({
+                content: "Invalid Amount Entered!",
+                components: [backButtonRow],
+                files: [],
+                ephemeral: true
+            });
+            return;
+        //check if investment amount entered is above user's balance
+        } else if (parsedInvestment > userData.balance) {
+            let backButtonRow = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "NOTIFBACK-" + stockTicker)
+                        .setStyle(ButtonStyle.Danger)
+                        .setLabel("Back")
+                )
+
+            interaction.update({
+                content: "Insufficient Balance!",
+                components: [backButtonRow],
+                files: [],
+                ephemeral: true
+            });
+            return;
+        }
+
+        //instantiate stock ticker entry in user's stock investments if it doesnt exist
+        if (!(stockTicker in userData.stockInvestments)) {
+            userData.stockInvestments[stockTicker] = [];
+        }
+
+        //push investment object into user's data
+        userData.stockInvestments[stockTicker].push(
+            {
+                investmentTimestamp: Math.floor(Date.now()/1000),
+                investmentAmount: parsedInvestment,
+                investmentPrice: realtimeStockData[stockTicker].close
+            }
+        )
+
+        //update funstats
+        userData.fStatValueOfTotalInvestmentsMade += parsedInvestment;
+
+        //subtract investment amount from user's balance
+        userData.balance -= parsedInvestment;
+        
+        let backButtonRow = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "NOTIFBACK-" + stockTicker)
+                        .setStyle(ButtonStyle.Danger)
+                        .setLabel("Back")
+                )
+
+        interaction.update({
+            content: "Investment Successful!",
+            components: [backButtonRow],
+            files: [],
+            ephemeral: true
+        });
+    }
+}
+
+function stockExchange_executeStockSell(workingData, interaction, realtimeStockData, eventTokens) {
+    //get stock ticker and investment index from event tokens
+    let stockTicker = eventTokens.shift();
+    let investmentIndex = parseInt(eventTokens.shift());
+
+    //get accessing user's data and stats
+    let accessingUser = workingData[interaction.guildId].users.find(user => {
+        return user.id == interaction.user.id;
+    });
+    let accessingUserStats = utils.checkStatsAndEffects(workingData, interaction, accessingUser.id);
+
+    //get stock info and investment info
+    let stockInfo = realtimeStockData[stockTicker];
+    let investmentObj = accessingUser.stockInvestments[stockTicker][investmentIndex];
+
+    //calculate final investment value
+    let curInvestmentValue = investmentObj.investmentAmount * (stockInfo.close/investmentObj.investmentPrice);
+    let finalInvestmentValue = Math.round(curInvestmentValue + (investmentObj.investmentAmount > curInvestmentValue ? 0 : (curInvestmentValue - investmentObj.investmentAmount) * (1 + (accessingUserStats.stats.stockProfitBonus/100))))
+
+    //update funstats
+    accessingUser.fStatTotalInvestmentProfits += (investmentObj.investmentAmount > curInvestmentValue ? 0 : (curInvestmentValue - investmentObj.investmentAmount) * (1 + (accessingUserStats.stats.stockProfitBonus/100)));
+
+    //remove investment from user's data
+    accessingUser.stockInvestments[stockTicker].splice(investmentIndex, 1);
+
+    //add final investment value to user's balance
+    accessingUser.balance += finalInvestmentValue;
+
+    interaction.update(uiBuilders.stockExchangeSellStocksUI(workingData, interaction, realtimeStockData, [stockTicker], 0, `You've sold $${stockTicker} stock and gained ${finalInvestmentValue} EB!`))
+}
+
 module.exports = {
-    mainMenu_changelog, mainMenu_findTreasure, mainMenu_help, mainMenu_msgLeaderboard, mainMenu_openInv, mainMenu_shop, mainMenu_showStats, mainMenu_userLeaderboard, mainMenu_settings,
+    mainMenu_changelog, mainMenu_findTreasure, mainMenu_help, mainMenu_msgLeaderboard, mainMenu_openInv, mainMenu_shop, mainMenu_showStats, mainMenu_userLeaderboard, mainMenu_settings, mainMenu_stockExchange,
     settings_editSettingValue,
     usablesInventory_selectSlot, usablesShop_purchase, usablesShop_selectShelf,
-    equipsShop_selectShelf, equipsShop_purchase, equipsInventory_selectSlot, equipsInventory_toggleEquip
+    equipsShop_selectShelf, equipsShop_purchase, equipsInventory_selectSlot, equipsInventory_toggleEquip,
+    stockExchange_selectStock, stockExchange_refreshStockInfo, stockExchange_investInStock, stockExchange_openInvestments, stockExchange_executeStockSell
 }

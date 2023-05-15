@@ -1,5 +1,6 @@
+"use strict";
 require('dotenv').config();
-const { Client, IntentsBitField, ButtonStyle, ActionRowBuilder, ButtonBuilder, Options} = require('discord.js');
+const { Client, IntentsBitField, ButtonStyle, ActionRowBuilder, ButtonBuilder, Options, Partials} = require('discord.js');
 const fs = require('fs');
 const usables = require('./items/usables.json');
 const equipment = require('./items/equipment.json');
@@ -13,14 +14,7 @@ const btnEventHandlers = require('./functions/btnEventHandlers.js');
 /*
 dotenv for loading environment variables from .env file
 fs for reading/writing/editing json files
-*/
-
-/*
-bdaysWished: {
-    0987153124211-2023(string composed of userID + "-" + year) : [
-        (array of user ids of users who have wished this bday already)
-    ]
-}
+axios for sending easy http request
 */
 
 // NOTE: Make sure to update intents if new events not in current intents are needed to be listened to
@@ -43,7 +37,10 @@ const client = new Client({
 			interval: 3600, // Sweep message cache every hour
 			lifetime: config.msgExpiration + 120,	// Remove messages older than msg expiration + 3 minutes.
 		}
-    }
+    },
+    partials: [
+        Partials.Reaction, Partials.Message, Partials.User
+    ]
 });
 
 var workingData = {}; //In-memory data
@@ -56,6 +53,46 @@ var shopPages_equipmentDirectory = [];
 
 //variable for directory of user birthdays
 var birthdayDirectory = {};
+
+var realtimeStockData = {lastUpdated: 0};
+var tenDayStockData = {lastUpdated: 0};
+var lastStockAPICall = 0;
+
+/*
+var realtimeStockData
+Object holding current realtime data of different tracked stocks and a unix timestamp of the last time this data was updated.
+format:
+realtimeStockData = {
+    lastUpdated: (unix timestamp),
+    AAPL: {
+        symbol: 'AAPL',
+        name: 'Apple Inc',
+        exchange: 'NASDAQ',
+        mic_code: 'XNGS',
+        currency: 'USD',
+        datetime: '2023-04-27',
+        timestamp: 1682625599,
+        open: '165.19000',
+        high: '168.56000',
+        low: '165.19000'
+    },
+    AMZN: {
+        (same as above with amazon data retrieved from API)
+    }
+}
+
+var tenDayStockData
+Object holding ten day stock data of different tracked stocks for graph drawing purposes.
+format:
+tenDayStockData = {
+    lastUpdated: (unix timestamp),
+    AAPL: {
+        values: [(array of data points retrieved from API)],
+        graphBuffer: (png buffer of drawn graph for easy re-use),
+        graphLastUpdated: (unix timestamp of last time graph was updated and redrawn)
+    }
+}
+*/
 
 //===================================================
 //===================================================
@@ -261,6 +298,66 @@ client.on('ready', () => {
 
     let curDate = new Date(Date.now());
     console.log(`(${client.user.tag}) is ready! ${curDate.toLocaleString()}`);
+
+    /*
+
+     |
+[any ticker]
+     V
+    
+    The Edbuck Exchange
+    -------------------
+    Equity: Apple Inc
+    Ticker: $AAPL
+    Current Price: $168.42999
+    Exchange: NASDAQ
+    Day Percent Change: 2.85173%
+    Open Price: $165.19000
+    Trade Volume: 51,528,660
+    Last Updated: |April 25th 3:44 PM|
+
+    Total Original Investments Value: 47 EB
+    Total Current Investments Value: 65.83 EB
+    [Refresh] [Sell] [Invest]
+
+    <IMAGE ATTACHMENT DRAWN FROM DAY INTERVAL GRAPH
+     OF STOCK PERFORMANCE OVER PAST 10 DATA POINTS >
+
+     |
+   [Sell]
+     V
+
+    The Edbuck Exchange
+    -------------------
+    Equity: Apple Inc
+    Ticker: $AAPL
+    Current Price: $168.42999
+    Last Updated: |April 25th 3:44 PM|
+
+    Total Original Investments Value: 47 EB
+    Total Current Investments Value: 65.83 EB
+
+    Stock Profit Bonus: 20%
+
+    [Investment 1]
+    Original Investment: 20EB
+    Date/Time Entered: April 24th 6:32 PM
+    Price Entered At: $162.21164
+    % Change: ((curPrice/entPrice) - 1) * 100 = 12.28%
+    Current Investment Value: 23 (oInvestment * (curPrice/entPrice)) IF (curPrice/entPrice) > 1 THEN multiply PROFITS by profit multiplier
+
+    [Inv 1] [Inv 2] [Inv 3] [Inv 4]
+    [Back] [Previous] [Pagenum] [Next]
+
+    o1 = investment1
+    o2 = investment2
+    sv1 = investment1 stock value
+    sv2 = investment2 stock value
+    nv = final stock value
+
+    (o1 * (nv/sv1)) + (o2 * (nv/sv2)) = total new
+    o1 + o2 = total original investment
+    */
 });
 
 //on new guild user join, add entry to database if not already existing
@@ -339,16 +436,6 @@ client.on('messageCreate', (message) => {
                     let settingsArr = utils.getNewUserJSON("", "").settings;
                     let updatedEntry = utils.getNewUserJSON("","");
                     updatedEntry = Object.assign(updatedEntry, obj);
-                    /*
-                    if (updatedEntry.equipmentInventory.length <= 0) {
-                        updatedEntry = Object.assign(updatedEntry, {equipmentInventory: {
-                            head: [],
-                            body: [],
-                            trinket: [],
-                            shoes: []
-                        }});
-                    }
-                    */
 
                     if (updatedEntry.settings.length < settingsArr.length) {
                         for (index = updatedEntry.settings.length; index < settingsArr.length; index ++) {
@@ -361,12 +448,19 @@ client.on('messageCreate', (message) => {
                 workingData[message.guildId].users = updatedUsersList;
                 console.log(`(${curDate.toLocaleString()}) Manual User Properties Update Complete! Changes in database will take effect on next save.`);
                 break;
+
+            //a command used solely for random testing purposes
+            case "testcommand":
+                
+                message.react("😀");
+
+                break;
         }
     } else {
         //check whether a message is wishing happy birthday
         let lcMessage = message.content.toLowerCase();
-        let happyStrings = ["happy", "hppy", "appy"];
-        let birthdayStrings = ["birthday", "bday", "birfday", "birth day"];
+        let happyStrings = ["happy", "hppy", "appy", "hbd"];
+        let birthdayStrings = ["birthday", "bday", "birfday", "birth day", "hbd"];
         //check if message is wishing happy birthday
         if (new RegExp(happyStrings.join("|")).test(lcMessage) && new RegExp(birthdayStrings.join("|")).test(lcMessage)) {
             //check if it's close to anyones bday
@@ -375,7 +469,7 @@ client.on('messageCreate', (message) => {
             Object.keys(birthdayDirectory[message.guildId]).forEach(key => {
                 //prevent users from wishing themselves happy bday
                 if (key == message.author.id) return;
-                if (birthdayDirectory[message.guildId][key].month == curDate.getMonth() + 1 && curDate.getDate() - 1 <= birthdayDirectory[message.guildId][key].day <= curDate.getDate() + 1) {
+                if (birthdayDirectory[message.guildId][key].month == curDate.getMonth() + 1 && curDate.getDate() - 1 <= birthdayDirectory[message.guildId][key].day && birthdayDirectory[message.guildId][key].day <= curDate.getDate() + 1) {
                     if (!workingData[message.guildId].bdaysWished[`${key}-${curDate.getFullYear()}`]) {
                         //if bdaysWished property of this combo of bday person id + year doesnt exist then create the property and award edbucks accordingly
                         workingData[message.guildId].bdaysWished[`${key}-${curDate.getFullYear()}`] = [message.author.id];
@@ -448,6 +542,7 @@ client.on('guildMemberUpdate', (oldMember, newMember) => {
 })
 
 client.on('messageDelete', (message) => {
+    if (message.partial) return;
     if (!message.guildId) return;
 
     let messageAuthorData = workingData[message.guildId].users.find(obj => {
@@ -463,6 +558,7 @@ client.on('messageDelete', (message) => {
 })
 
 client.on('messageUpdate', (oldMessage, newMessage) => {
+    if (oldMessage.partial || newMessage.partial) return;
     if (!newMessage.guildId) return;
     if (newMessage.author.bot) return;
 
@@ -503,8 +599,30 @@ client.on('voiceStateUpdate', (oldState, newState) => {
     }
 });
 
-client.on('messageReactionAdd', (messageReaction, user) => {
+client.on('messageReactionAdd', async (messageReaction, user) => {
     //base system for awarding edbucks to users whose msgs get edbuck reactions
+    let messageScore = 0;
+
+    //handle partials
+    if (messageReaction.partial) {
+        try {
+            await messageReaction.fetch();
+        } catch (err) {
+            console.log(err);
+            return;
+        }
+
+        await messageReaction.message.channel.messages.fetch(messageReaction.message.id).then(msg => {
+            messageScore = msg.reactions.cache.find(reaction => {
+                return reaction.emoji.name == config.currencyEmojiName;
+            }).count;
+        });
+    } else {
+        messageScore = messageReaction.message.reactions.cache.find(reaction => {
+            return reaction.emoji.name == config.currencyEmojiName;
+        }).count;
+    }
+
     if (messageReaction.emoji.name != config.currencyEmojiName) return;
     if (!messageReaction.message.guildId) return;
 
@@ -518,6 +636,62 @@ client.on('messageReactionAdd', (messageReaction, user) => {
 
     let currTime = Math.floor(Date.now() / 1000);
 
+    //check and update msg leaderboard
+    //if the message's edbuck reaction count is greater than or equal to the current leaderboard floor then update leaderboard
+    if (messageScore >= workingData[messageReaction.message.guildId].msgLeaderboardFloor) {
+        let currLeaderboard = workingData[messageReaction.message.guildId].msgLeaderboard;
+
+        let messageSnippet = (messageReaction.message.embeds.length || messageReaction.message.attachments.size || messageReaction.message.content.length <= 0) ? "MEDIA POST" : messageReaction.message.content.length > 20 ? messageReaction.message.content.substring(0, 17) + "...": messageReaction.message.content.substring(0, 20);
+
+        //Check if current message is already on leaderboard and if so then remove it from the leaderboard before processing where to update its position
+        let dupeIndex = currLeaderboard.findIndex((entry) => {
+            return entry.id == messageReaction.message.id;
+        });
+
+        if (dupeIndex >= 0) {
+            currLeaderboard.splice(dupeIndex, 1);
+        }
+
+        if (currLeaderboard.length == 0) {
+            //if leaderboard is unpopulated, automatically push message to leaderboard
+            let leaderboardEntry = {
+                id: messageReaction.message.id,
+                score: messageScore,
+                snippet: messageSnippet,
+                author: messageReaction.message.author.tag,
+                channelid: messageReaction.message.channelId
+            };
+            currLeaderboard.push(leaderboardEntry);
+        } else {
+            //if leaderboard is populated, iterate through leaderboard to check if current message has
+            //higher or equal score to any of the entries and replace if so
+            let replaceIndex = config.msgLeaderboardLimit;
+            for (let i in currLeaderboard) {
+                if (messageScore >= currLeaderboard[i].score) {
+                    replaceIndex = i;
+                    console.log("Replace Index: " + i);
+                    break;
+                }
+            }
+            if (replaceIndex < config.msgLeaderboardLimit) {
+                let leaderboardEntry = {
+                    id: messageReaction.message.id,
+                    score: messageScore,
+                    snippet: messageSnippet,
+                    author: messageReaction.message.author.tag,
+                    channelid: messageReaction.message.channelId
+                };
+                currLeaderboard.splice(replaceIndex, 0, leaderboardEntry);
+            }
+
+            //pop any excess entries above the leaderboard limit
+            while (currLeaderboard.length > config.msgLeaderboardLimit) currLeaderboard.pop();
+
+            //update leaderboard floor
+            workingData[messageReaction.message.guildId].msgLeaderboardFloor = currLeaderboard[currLeaderboard.length - 1].score;
+        }
+    }
+
     if (currTime - storedUserData.lastAwarded >= config.reactCooldown) {
 
         //do a time check for the reacted to message
@@ -527,6 +701,7 @@ client.on('messageReactionAdd', (messageReaction, user) => {
                 return obj.id == messageReaction.message.author.id;
             });
 
+            //get recipient stats and effects
             let recipientStatsAndEffects = utils.checkStatsAndEffects(workingData, {guildId: messageReaction.message.guildId}, messageReaction.message.author.id);
 
             //award recipient edbucks
@@ -538,66 +713,6 @@ client.on('messageReactionAdd', (messageReaction, user) => {
             //update fun stats
             storedUserData.fStatReactionsAwarded += 1;
             recipient.fStatReactionsReceived += 1;
-
-            //check and update msg leaderboard
-            let messageScore = messageReaction.message.reactions.cache.find(obj => {
-                return obj.emoji.name == config.currencyEmojiName;
-            }).count;
-
-            //if the message's edbuck reaction count is greater than or equal to the current leaderboard floor then update leaderboard
-            if (messageScore >= workingData[messageReaction.message.guildId].msgLeaderboardFloor) {
-                let currLeaderboard = workingData[messageReaction.message.guildId].msgLeaderboard;
-
-                let messageSnippet = (messageReaction.message.embeds.length || messageReaction.message.attachments.size || messageReaction.message.content.length <= 0) ? "MEDIA POST" : messageReaction.message.content.length > 20 ? messageReaction.message.content.substring(0, 17) + "...": messageReaction.message.content.substring(0, 20);
-
-                //Check if current message is already on leaderboard and if so then remove it from the leaderboard before processing where to update its position
-                let dupeIndex = currLeaderboard.findIndex((entry) => {
-                    return entry.id == messageReaction.message.id;
-                });
-
-                if (dupeIndex >= 0) {
-                    currLeaderboard.splice(dupeIndex, 1);
-                }
-
-                if (currLeaderboard.length == 0) {
-                    //if leaderboard is unpopulated, automatically push message to leaderboard
-                    let leaderboardEntry = {
-                        id: messageReaction.message.id,
-                        score: messageScore,
-                        snippet: messageSnippet,
-                        author: messageReaction.message.author.tag,
-                        channelid: messageReaction.message.channelId
-                    };
-                    currLeaderboard.push(leaderboardEntry);
-                } else {
-                    //if leaderboard is populated, iterate through leaderboard to check if current message has
-                    //higher or equal score to any of the entries and replace if so
-                    let replaceIndex = config.msgLeaderboardLimit;
-
-                    for (i in currLeaderboard) {
-                        if (messageScore >= currLeaderboard[i].score) {
-                            replaceIndex = i;
-                            break;
-                        }
-                    }
-                    if (replaceIndex < config.msgLeaderboardLimit) {
-                        let leaderboardEntry = {
-                            id: messageReaction.message.id,
-                            score: messageScore,
-                            snippet: messageSnippet,
-                            author: messageReaction.message.author.tag,
-                            channelid: messageReaction.message.channelId
-                        };
-                        currLeaderboard.splice(replaceIndex, 0, leaderboardEntry);
-                    }
-
-                    //pop any excess entries above the leaderboard limit
-                    while (currLeaderboard.length > config.msgLeaderboardLimit) currLeaderboard.pop();
-
-                    //update leaderboard floor
-                    workingData[messageReaction.message.guildId].msgLeaderboardFloor = currLeaderboard[currLeaderboard.length - 1].score;
-                }
-            }
         } else {
             //TODO: Find a way to send a non-spammy message saying the reacted to message is expired
         }
@@ -651,6 +766,15 @@ client.on('interactionCreate', async (interaction) => {
                     btnEventHandlers.mainMenu_shop(interaction);
                     break;
         
+                case "stockexchange":
+                    await utils.getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall).then((values) => {
+                        realtimeStockData = values[0];
+                        tenDayStockData = values[1];
+                        lastStockAPICall = values[2];
+                    });
+                    btnEventHandlers.mainMenu_stockExchange(workingData, interaction, realtimeStockData);
+                    break;
+
                 case "help":
                     //Show help text for the bot
                     btnEventHandlers.mainMenu_help(interaction);
@@ -859,8 +983,79 @@ client.on('interactionCreate', async (interaction) => {
 
             break;
 
-        case intEventTokens.settingsEditValuePrefix.slice(0, -1):
-            //TODO: implement changing your settings
+        case intEventTokens.stockExchangeNavPrefix.slice(0, -1):
+            //NOTE: No need for switch statement here since only refresh button needs to be implemented since we cant have more than 1 page currently due to API limits
+            await utils.getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall).then((values) => {
+                realtimeStockData = values[0];
+                tenDayStockData = values[1];
+                lastStockAPICall = values[2];
+            });
+            btnEventHandlers.stockExchange_refreshStockInfo(workingData, interaction, realtimeStockData);
+            break;
+
+        case intEventTokens.stockExchangeSelectStockPrefix.slice(0, -1):
+            await utils.getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall).then((values) => {
+                realtimeStockData = values[0];
+                tenDayStockData = values[1];
+                lastStockAPICall = values[2];
+            });
+            btnEventHandlers.stockExchange_selectStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens);
+            break;
+
+        case intEventTokens.stockExchangeInfoPagePrefix.slice(0, -1):
+            await utils.getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall).then((values) => {
+                realtimeStockData = values[0];
+                tenDayStockData = values[1];
+                lastStockAPICall = values[2];
+            });
+            switch (eventTokens.shift()) {
+                case "BACK":
+                    btnEventHandlers.stockExchange_refreshStockInfo(workingData, interaction, realtimeStockData);
+                    break;
+
+                case "REFRESH":
+                    btnEventHandlers.stockExchange_selectStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens);
+                    break;
+
+                case "SELL":
+                    btnEventHandlers.stockExchange_openInvestments(workingData, interaction, realtimeStockData, eventTokens, 0);
+                    break;
+
+                case "INVEST":
+                    btnEventHandlers.stockExchange_investInStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens);
+                    break;
+                
+                case "NOTIFBACK":
+                    btnEventHandlers.stockExchange_selectStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens);
+                    break;
+            }
+            break;
+
+        case intEventTokens.stockExchangeSellPagePrefix.slice(0, -1):
+            await utils.getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall).then((values) => {
+                realtimeStockData = values[0];
+                tenDayStockData = values[1];
+                lastStockAPICall = values[2];
+            });
+            switch (eventTokens.shift()) {
+                case "BACK":
+                    btnEventHandlers.stockExchange_selectStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens);
+                    break;
+
+                case "PREV":
+                    let prevPagenum = parseInt(eventTokens.shift()) - 1;
+                    btnEventHandlers.stockExchange_openInvestments(workingData, interaction, realtimeStockData, eventTokens, prevPagenum);
+                    break;
+
+                case "NEXT":
+                    let nextPagenum = parseInt(eventTokens.shift()) + 1;
+                    btnEventHandlers.stockExchange_openInvestments(workingData, interaction, realtimeStockData, eventTokens, nextPagenum);
+                    break;
+
+                case "SELL":
+                    btnEventHandlers.stockExchange_executeStockSell(workingData, interaction, realtimeStockData, eventTokens);
+                    break;
+            }
             break;
     }
 });

@@ -22,5 +22,9 @@
     "usablesDiscount": {
         "displayName": "Usables Shop Discount",
         "description": "Each point of value provides a 1% discount when buying items from the usables shop."
+    },
+    "stockProfitBonus": {
+        "displayName": "Stock Profit Bonus",
+        "description": "Each point of value provides a 1% increase to any profits gained when selling stocks."
     }
 }

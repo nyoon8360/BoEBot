@@ -1,3 +1,4 @@
+"use strict";
 const { ButtonStyle, time, ActionRowBuilder, ButtonBuilder, underscore, EmbedBuilder, TextInputBuilder, TextInputStyle, userMention, ModalBuilder, UserSelectMenuBuilder, ChannelSelectMenuBuilder, ChannelType } = require('discord.js');
 const intEventTokens = require('../constants/intEventTokens.js');
 const config = require('../constants/configConsts.js');
@@ -24,7 +25,7 @@ const defaultOptions = {
     vcUserUseOnly: false
 }
 
-function templateItemFunction(client, workingData, interaction, eventTokens, options) {
+function templateItemFunction(client, workingData, interaction, eventTokens, itemName, options) {
     if (options) {
         let defaultOptionsCopy = {...defaultOptions};
         options = Object.assign(defaultOptionsCopy, options);
@@ -49,7 +50,7 @@ function templateItemFunction(client, workingData, interaction, eventTokens, opt
 
     //check if caster still has item
     let usedItemInvEntryIndex = casterData.itemInventory.findIndex(obj => {
-        return obj.name == "item_kick";
+        return obj.name == itemName;
     });
 
     if (usedItemInvEntryIndex < 0) {
@@ -611,6 +612,9 @@ itemFunctionMap.set('item_polymorph', (client, workingData, interaction, eventTo
                     .setCustomId("newNickname")
                     .setStyle(TextInputStyle.Short)
                     .setLabel("New Nickname")
+                    .setMinLength(1)
+                    .setMaxLength(32)
+                    .setRequired(true)
             )
         )
 

@@ -1,6 +1,6 @@
 {
     "common": {
-        "currencyEmojiName": "edbuck",
+        "currencyEmojiName": "😀",
         "saveInterval": 1200,
         "reactCooldown":1200,
         "msgExpiration":7200,
@@ -30,5 +30,27 @@
         "itemReflectDuration": 15,
         "itemTimeoutDuration": 10,
         "itemEMPDuration": 20
+    },
+    "stocks": {
+        "realtimeStockDataLifetime": 480,
+        "investmentsDisplayedPerPage": 3,
+        "trackedStocks": [
+            {
+                "ticker": "AMZN",
+                "name": "Amazon.com Inc"
+            },
+            {
+                "ticker": "AAPL",
+                "name": "Apple Inc"
+            },
+            {
+                "ticker": "NVDA",
+                "name": "NVIDIA Corp"
+            },
+            {
+                "ticker": "JNJ",
+                "name": "Johnson & Johnson"
+            }
+        ]
     }
 }

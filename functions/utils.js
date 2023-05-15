@@ -1,4 +1,7 @@
+require('dotenv').config();
 const fs = require('fs');
+const config = require('../constants/configConsts.js');
+const axios = require('axios');
 //===================================================
 //===================================================
 //
@@ -45,10 +48,13 @@ function getNewUserJSON(userTag, userId) {
                 changeable: true
             }
         ],
+        stockInvestments:{},
         fStatReactionsAwarded: 0,
         fStatReactionsReceived: 0,
         fStatItemsUsed: 0,
-        fStatHighestBal: 0
+        fStatHighestBal: 0,
+        fStatTotalInvestmentProfits: 0,
+        fStatValueOfTotalInvestmentsMade: 0
     }
 
     return userObj;
@@ -73,13 +79,14 @@ function checkStatsAndEffects(workingData, interaction, targetId, getRawChances)
     let passedEffectsAndStats = {
         effects: [],
         stats: {
-            //NOTE: Add all existing stats here with default value of 0
+            //NOTE: Add all existing stats here with their base value
             reflectChance: 0,
             treasureLuck: 0,
             vocalLuck: 0,
             reactionBonus: 0,
             usableCrit: 0,
-            usablesDiscount: 0
+            usablesDiscount: 0,
+            stockProfitBonus: 20
         }
     };
 
@@ -185,4 +192,67 @@ function getUpdatedBirthdayDirectory(workingData, guildId) {
     return bdayDirectory;
 }
 
-module.exports = { getNewUserJSON, saveData, checkStatsAndEffects, getStatusEffectObject, getUpdatedBirthdayDirectory };
+async function getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall) {
+    //check if it's been less than 2 minutes since the last API call
+    if (Math.floor(Date.now()/1000) - lastStockAPICall < 120) {
+        return [realtimeStockData, tenDayStockData, lastStockAPICall];
+    };
+
+    let utcToEstOffset = (4 * 60 * 60 * 1000); //offset to subtract from UTC to get to EST in milliseconds
+    let curESTDateObj = new Date(Date.now() - utcToEstOffset); //Date object with current date/time adjusted for UTC to EST conversion
+    let dayStockDataDateObj = new Date((tenDayStockData.lastUpdated * 1000) - utcToEstOffset); //Date object with tenDayStockData's last updated timestamp adjusted for UTC to EST conversion
+
+    let promiseArray = [];
+    let tickerString = config.trackedStocks.reduce((accumulator, curVal) => {
+        accumulator.push(curVal.ticker);
+        return accumulator;
+    }, []).join(',');
+
+    if (curESTDateObj.getFullYear() != dayStockDataDateObj.getFullYear() || curESTDateObj.getMonth() != dayStockDataDateObj.getMonth() || curESTDateObj.getDate() != dayStockDataDateObj.getDate()) {
+        promiseArray.push(axios(`https://api.twelvedata.com/time_series?symbol=${tickerString}&interval=1day&outputsize=10&apikey=${process.env.TWELVE_DATA_API_TOKEN}`).then(response => {
+            if (response.status == 200) {
+                tenDayStockData.lastUpdated = Math.floor(Date.now()/1000);
+                realtimeStockData.lastUpdated = Math.floor(Date.now()/1000);
+
+                Object.keys(response.data).forEach(key => {
+                    tenDayStockData[key] = {values: response.data[key].values, graphBuffer: null};
+                    realtimeStockData[key] = {
+                        open: response.data[key].values[0].open,
+                        close: response.data[key].values[0].close,
+                        volume: response.data[key].values[0].volume,
+                        exchange: null,
+                        is_market_open: null
+                    };
+                });
+            } else {
+                console.log("Error accessing Twelve Data API for Historical Data.");
+            }
+        }));
+    } else if (Math.floor(Date.now()/1000) - realtimeStockData.lastUpdated >= config.realtimeStockDataLifetime) {
+        //check whether the realtimeStockData has never been updated yet OR current EST time is between 8:00AM - 6:30PM
+        if (
+            realtimeStockData.lastUpdated == 0 || 
+            (curESTDateObj.getHours() >= 8 && (curESTDateObj.getHours() < 18 || 
+                (curESTDateObj.getHours() == 18 && curESTDateObj.getMinutes() <= 30))
+            )
+        ) {
+            promiseArray.push(axios(`https://api.twelvedata.com/quote?symbol=${tickerString}&apikey=${process.env.TWELVE_DATA_API_TOKEN}`).then(response => {
+                if (response.status == 200) {
+                    realtimeStockData.lastUpdated = Math.floor(Date.now()/1000);
+
+                    Object.keys(response.data).forEach(key => {
+                        realtimeStockData[key] = response.data[key];
+                    });
+                } else {
+                    console.log("Error accessing Twelve Data API for Realtime Data.");
+                }
+            }));
+        }
+    }
+
+    await Promise.all(promiseArray);
+
+    return [realtimeStockData, tenDayStockData, Math.floor(Date.now()/1000)];
+}
+
+module.exports = { getNewUserJSON, saveData, checkStatsAndEffects, getStatusEffectObject, getUpdatedBirthdayDirectory, getUpdatedStockData };
