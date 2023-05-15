@@ -48,8 +48,24 @@
                 "name": "NVIDIA Corp"
             },
             {
-                "ticker": "JNJ",
-                "name": "Johnson & Johnson"
+                "ticker": "NFLX",
+                "name": "Netflix Inc"
+            },
+            {
+                "ticker": "WMT",
+                "name": "Walmart Inc"
+            },
+            {
+                "ticker": "TSLA",
+                "name": "Tesla Inc"
+            },
+            {
+                "ticker": "MSFT",
+                "name": "Microsoft Corp"
+            },
+            {
+                "ticker": "GOOGL",
+                "name": "Alphabet Inc Class A"
             }
         ]
     }
