@@ -65,6 +65,16 @@
             "effectingStat": "usablesDiscount",
             "effectAmount": 20,
             "price": 60
+        },
+        {
+            "name": "equip_blackLeatherOxfords",
+            "displayName": "Black Leather Oxfords",
+            "description": "A true hallmark of a successful stock broker. Custom made to step on the poor.",
+            "effect": "Get a 20% increase to any profits made when selling stocks. Does not apply if there were no profits (You sold at a loss).",
+            "slot": "shoes",
+            "effectingStat": "stockProfitBonus",
+            "effectAmount": 20,
+            "price": 45
         }
     ]
 }

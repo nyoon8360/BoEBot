@@ -1,5 +1,17 @@
 [
     {
+        "version": "1.1.3 The Stonks Update",
+        "changes": [
+            "-Added the Stock Exchange to the main menu.",
+            "-Added Black Leather Oxfords to the equipment shop.",
+            "-Changed message leaderboard to also count invalid edbucks awards for score.",
+            "-Added comma formatting in stats page for balances greater than 999 (specifically for you Paul).",
+            "-Bugfix: Removed an extra empty line shown when getting doubled edbucks from the Pickup Edbucks button.",
+            "-Bugfix: Fixed birthdays being able to be wished as long as the month of the message is the same as the month of the birthday.",
+            "-Bugfix: Added a 1 - 32 character restriction when entering a nickname for Semi-permanent Nametag item."
+        ]
+    },
+    {
         "version": "1.1.2 Im Dumb/Price Cut Update",
         "changes": [
             "-Changed user leaderboard to use mentions rather than displaying user tags in plain text.",
