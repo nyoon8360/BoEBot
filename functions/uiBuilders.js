@@ -450,12 +450,18 @@ function stockExchangeUI(workingData, interaction, realtimeStockData, pagenum) {
         return obj.id == interaction.user.id;
     });
 
+    let investmentsByStockString = '';
     //calculate total value of all of the user's investments
     let totalInvestmentsValue = 0;
     Object.keys(accessingUser.stockInvestments).forEach(key => {
+        let investmentValueByStock = 0;
         accessingUser.stockInvestments[key].forEach(investment => {
             totalInvestmentsValue += investment.investmentAmount;
+            investmentValueByStock += investment.investmentAmount;
         })
+        if (totalInvestmentsValue > 0) {
+            investmentsByStockString += `- $${key}: ${investmentValueByStock}\n`;
+        }
     });
 
     let contentString = bold("========================\nTHE EDBUCK EXCHANGE\n========================");
@@ -464,7 +470,9 @@ Last Updated: ${time(realtimeStockData.lastUpdated, "f")}
 Total Investments Made: ${accessingUser.fStatValueOfTotalInvestmentsMade}
 Total Profit Made: ${accessingUser.fStatTotalInvestmentProfits}
 Current Total Investments: ${totalInvestmentsValue}
-------------------------------`;
+------------------------------
+Current Investments By Stock:
+${investmentsByStockString}------------------------------`;
 
     //create equity buttons rows
     //NOTE: this is hard coded in as 2 rows of 4 equities each since API limits dictate 8 max equities tracked
@@ -602,8 +610,6 @@ Current Price: $${stockInfo.close}
 Open Price: $${stockInfo.open}
 Day Percent Change: %${Math.round( ( ((stockInfo.close / stockInfo.open) - 1) + Number.EPSILON) * 10000) / 100}
 Trade Volume: ${parseInt(stockInfo.volume).toLocaleString("en-US")}
-Exchange: ${stockInfo.exchange == null ? "Unknown" : stockInfo.exchange}
-Market Status: ${stockInfo.is_market_open == null ? "Unknown" : stockInfo.is_market_open ? "OPEN" : "CLOSE"}
 Last Updated: ${time(realtimeStockData.lastUpdated, "f")}
 
 Investments Total Original Value: ${totalOriginalInvestmentsValue}
@@ -673,8 +679,6 @@ Current Price: $${stockInfo.close}
 Open Price: $${stockInfo.open}
 Day Percent Change: %${Math.round((((stockInfo.close / stockInfo.open) - 1) + Number.EPSILON) * 10000) / 100}
 Trade Volume: ${parseInt(stockInfo.volume).toLocaleString("en-US")}
-Exchange: ${stockInfo.exchange == null ? "Unknown" : stockInfo.exchange}
-Market Status: ${stockInfo.is_market_open == null ? "Unknown" : stockInfo.is_market_open ? "OPEN" : "CLOSE"}
 Last Updated: ${time(realtimeStockData.lastUpdated, "f")}
 
 Investments Total Original Value: ${totalOriginalInvestmentsValue}
