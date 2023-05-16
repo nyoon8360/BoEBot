@@ -230,12 +230,10 @@ async function getUpdatedStockData(realtimeStockData, tenDayStockData, lastStock
         }));
     } else if (Math.floor(Date.now()/1000) - realtimeStockData.lastUpdated >= config.realtimeStockDataLifetime) {
         //check whether the realtimeStockData has never been updated yet OR current EST time is between 8:00AM - 6:30PM
-        if (
-            realtimeStockData.lastUpdated == 0 || 
-            (curESTDateObj.getHours() >= 8 && (curESTDateObj.getHours() < 18 || 
-                (curESTDateObj.getHours() == 18 && curESTDateObj.getMinutes() <= 30))
-            )
-        ) {
+        //calc 24 hour format for time
+        let curEST24Hour = (curESTDateObj.getUTCHours() * 100) + curESTDateObj.getUTCMinutes();
+
+        if (realtimeStockData.lastUpdated == 0 || (curEST24Hour > 800 && curEST24Hour < 1830)) {
             promiseArray.push(axios(`https://api.twelvedata.com/quote?symbol=${tickerString}&apikey=${process.env.TWELVE_DATA_API_TOKEN}`).then(response => {
                 if (response.status == 200) {
                     realtimeStockData.lastUpdated = Math.floor(Date.now()/1000);
