@@ -129,7 +129,6 @@ client.on('ready', () => {
                 newData = {
                     activeMenuId: "",
                     activeMenuChannelId: "",
-                    msgLeaderboardFloor: 0,
                     botNotifsChannelId: "",
                     itemBanishChannelId: "",
                     users:[],
@@ -642,13 +641,13 @@ client.on('messageReactionAdd', async (messageReaction, user) => {
 
     //check and update msg leaderboard
     //if the message's edbuck reaction count is greater than or equal to the current leaderboard floor then update leaderboard
-    if (messageScore >= workingData[messageReaction.message.guildId].msgLeaderboardFloor) {
-        let currLeaderboard = workingData[messageReaction.message.guildId].msgLeaderboard;
+    let currLeaderboard = workingData[messageReaction.message.guildId].msgLeaderboard;
+    if (messageScore >= currLeaderboard[currLeaderboard.length - 1].score) {
 
-        let messageSnippet = (messageReaction.message.embeds.length || messageReaction.message.attachments.size || messageReaction.message.content.length <= 0) ? "MEDIA POST" : messageReaction.message.content.length > 20 ? messageReaction.message.content.substring(0, 17) + "...": messageReaction.message.content.substring(0, 20);
+        let messageSnippet = (messageReaction.message.embeds.length || messageReaction.message.attachments.size || messageReaction.message.content.length <= 0) ? "MEDIA POST" : messageReaction.message.content.length > 50 ? messageReaction.message.content.substring(0, 47) + "...": messageReaction.message.content.substring(0, 50);
 
         //Check if current message is already on leaderboard and if so then remove it from the leaderboard before processing where to update its position
-        let dupeIndex = currLeaderboard.findIndex((entry) => {
+        let dupeIndex = currLeaderboard.findIndex(entry => {
             return entry.id == messageReaction.message.id;
         });
 
@@ -673,7 +672,6 @@ client.on('messageReactionAdd', async (messageReaction, user) => {
             for (let i in currLeaderboard) {
                 if (messageScore >= currLeaderboard[i].score) {
                     replaceIndex = i;
-                    console.log("Replace Index: " + i);
                     break;
                 }
             }
@@ -690,9 +688,6 @@ client.on('messageReactionAdd', async (messageReaction, user) => {
 
             //pop any excess entries above the leaderboard limit
             while (currLeaderboard.length > config.msgLeaderboardLimit) currLeaderboard.pop();
-
-            //update leaderboard floor
-            workingData[messageReaction.message.guildId].msgLeaderboardFloor = currLeaderboard[currLeaderboard.length - 1].score;
         }
     }
 
@@ -734,7 +729,7 @@ client.on('interactionCreate', async (interaction) => {
 
     let eventTokens = interaction.customId.split("-");
 
-    //handlers for main menu interaction events
+    //handlers for button interaction events
     switch (eventTokens.shift()) {
         //Main menu events
         case intEventTokens.mainMenuPrefix.slice(0, -1):
@@ -791,7 +786,7 @@ client.on('interactionCreate', async (interaction) => {
                 
                 case "msgleaderboard":
                     //Display leaderboard for top earning messages
-                    btnEventHandlers.mainMenu_msgLeaderboard(client, workingData, interaction);
+                    btnEventHandlers.mainMenu_msgLeaderboard(client, workingData, interaction, 0);
                     break;
 
                 case "settings":
@@ -800,6 +795,18 @@ client.on('interactionCreate', async (interaction) => {
 
                 case "changelog":
                     btnEventHandlers.mainMenu_changelog(interaction);
+                    break;
+            }
+            break;
+
+        case intEventTokens.msgLeaderboardNav.slice(0, -1):
+            switch(eventTokens.shift()) {
+                case "PREV":
+                    btnEventHandlers.mainMenu_msgLeaderboard(client, workingData, interaction, parseInt(eventTokens.shift()) - 1);
+                    break;
+
+                case "NEXT":
+                    btnEventHandlers.mainMenu_msgLeaderboard(client, workingData, interaction, parseInt(eventTokens.shift()) + 1);
                     break;
             }
             break;

@@ -8,6 +8,9 @@ module.exports = Object.freeze({
     mainMenuPrefix: "MAINMENU-",
     shopCategoryPrefix: "SELECTSHOPCATEGORY-",
 
+    //Message Leaderboard tokens
+    msgLeaderboardNav: "MSGLEADERBOARDNAV-",
+
     //Settings tokens
     settingsEditValuePrefix: "SETTINGSEDITVALUE-",
     settingsNavPrefix: "SETTINGSNAVPAGES-",

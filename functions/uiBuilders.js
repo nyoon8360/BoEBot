@@ -108,6 +108,65 @@ function menuUI(tButtonDisabled) {
     };
 }
 
+async function msgLeaderboardUI(client, workingData, interaction, pagenum) {
+    //populate leaderboardEntries with embed fields holding info on the leaderboard messages
+    let leaderboardEntries = [];
+
+    for (let i = pagenum * 5; i < (pagenum + 1) * 5; i++) {
+        try {
+            await client.channels.cache.get(workingData[interaction.guildId].msgLeaderboard[i].channelid).messages.fetch(workingData[interaction.guildId].msgLeaderboard[i].id).then(message => {
+                leaderboardEntries.push(
+                    {
+                        name: `[${parseInt(i - (pagenum * 5)) + 1}] ` + underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
+                        value: "[" + workingData[interaction.guildId].msgLeaderboard[i].snippet + "]" + "(" + message.url + ")"
+                    }
+                );
+            });
+        } catch(e) {
+            leaderboardEntries.push(
+                {
+                    name: `[${parseInt(i - (pagenum * 5)) + 1}] ` + underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
+                    value: "(Original Message Deleted)"
+                }
+            );
+        }
+    }
+
+    //create embed to send with ephemeral message
+    let leaderboardEmbed = new EmbedBuilder()
+    .setColor(0x0099FF)
+    .setTitle(bold(underscore('MESSAGE LEADERBOARD')))
+    .setDescription('The top earning messages sent in the server!')
+    .addFields(leaderboardEntries);
+
+    //create navigation row
+    let navRow = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setLabel("Prev")
+                .setStyle(ButtonStyle.Primary)
+                .setCustomId(intEventTokens.msgLeaderboardNav + "PREV-" + pagenum)
+                .setDisabled(!(pagenum > 0)),
+            new ButtonBuilder()
+                .setLabel("Page " + (pagenum + 1))
+                .setStyle(ButtonStyle.Primary)
+                .setCustomId("MSGLEADERBOARDPAGENUM")
+                .setDisabled(true),
+            new ButtonBuilder()
+                .setLabel("Next")
+                .setStyle(ButtonStyle.Primary)
+                .setCustomId(intEventTokens.msgLeaderboardNav + "NEXT-" + pagenum)
+                .setDisabled(pagenum >= Math.ceil(workingData[interaction.guildId].msgLeaderboard.length / 5) - 1)
+        )
+
+    //send leaderboard message
+    return {
+        embeds: [leaderboardEmbed],
+        ephemeral: true,
+        components: [navRow]
+    };
+}
+
 function settingsUI(workingData, interaction, pagenum, changedSettingName) {
     //get user settings
     let userSettings = workingData[interaction.guildId].users.find(obj => {
@@ -828,6 +887,6 @@ function notifCantUseOnBot() {
 }
 
 module.exports = {
-    menuUI, settingsUI, usablesInvUI, equipsInvUI, equipsShopUI, usablesShopUI, changelogUI, userLeaderboardUI, stockExchangeUI, stockExchangeSellStocksUI,
+    menuUI, msgLeaderboardUI, settingsUI, usablesInvUI, equipsInvUI, equipsShopUI, usablesShopUI, changelogUI, userLeaderboardUI, stockExchangeUI, stockExchangeSellStocksUI,
     stockExchangeStockInfoUI, notifCantSelfUse, notifDontHaveItem, notifTargetNotInVC, notifCantUseOnBot
 }

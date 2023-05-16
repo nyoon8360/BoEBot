@@ -193,43 +193,11 @@ function mainMenu_userLeaderboard(workingData, interaction) {
     interaction.reply(uiBuilders.userLeaderboardUI(workingData, interaction, 0));
 }
 
-async function mainMenu_msgLeaderboard(client, workingData, interaction) {
-    //populate leaderboardEntries with embed fields holding info on the leaderboard messages
-    let leaderboardEntries = [];
-
-    for (let i in workingData[interaction.guildId].msgLeaderboard) {
-        //this is such a bad way to handle deleted messages xd but fuck it
-        try {
-            await client.channels.cache.get(workingData[interaction.guildId].msgLeaderboard[i].channelid).messages.fetch(workingData[interaction.guildId].msgLeaderboard[i].id).then(message => {
-                leaderboardEntries.push(
-                    {
-                        name: `[${parseInt(i) + 1}] ` + underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
-                        value: "[" + workingData[interaction.guildId].msgLeaderboard[i].snippet + "]" + "(" + message.url + ")"
-                    }
-                );
-            });
-        } catch(e) {
-            leaderboardEntries.push(
-                {
-                    name: `[${parseInt(i) + 1}] ` + underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
-                    value: "(Original Message Deleted)"
-                }
-            );
-        }
-    }
-    
-    //create embed to send with ephemeral message
-    let leaderboardEmbed = new EmbedBuilder()
-    .setColor(0x0099FF)
-    .setTitle(bold(underscore('MESSAGE LEADERBOARD')))
-    .setDescription('The top earning messages sent in the server!')
-    .addFields(leaderboardEntries);
+async function mainMenu_msgLeaderboard(client, workingData, interaction, pagenum) {
+    let leaderboardUI = await uiBuilders.msgLeaderboardUI(client, workingData, interaction, pagenum);
 
     //send leaderboard message
-    interaction.reply({
-        embeds: [leaderboardEmbed],
-        ephemeral: true
-    });
+    interaction.reply(leaderboardUI);
 }
 
 function mainMenu_changelog(interaction) {
