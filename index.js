@@ -458,9 +458,6 @@ client.on('messageCreate', (message) => {
 
             //a command used solely for random testing purposes
             case "testcommand":
-                
-                message.react("😀");
-
                 break;
         }
     } else {

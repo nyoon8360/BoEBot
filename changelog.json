@@ -8,7 +8,9 @@
             "-Added comma formatting in stats page for balances greater than 999 (specifically for you Paul).",
             "-Bugfix: Removed an extra empty line shown when getting doubled edbucks from the Pickup Edbucks button.",
             "-Bugfix: Fixed birthdays being able to be wished as long as the month of the message is the same as the month of the birthday.",
-            "-Bugfix: Added a 1 - 32 character restriction when entering a nickname for Semi-permanent Nametag item."
+            "-Bugfix: Added a 1 - 32 character restriction when entering a nickname for Semi-permanent Nametag item.",
+            "-HOTFIX: Fixed incorrect timezone causing stocks to not update properly.",
+            "-HOTFIX: Fixed bug causing crashes on reacting to messages without currency reactions."
         ]
     },
     {
