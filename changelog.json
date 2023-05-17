@@ -9,7 +9,7 @@
             "-Increased length of message snippets in message leaderboard from 20 characters to 50 characters.",
             "-Added current value of all your investments to main stock exchange UI.",
             "-HOTFIX: Fixed Total Profits Made to properly record your total profits made after selling stocks.",
-            "-HOTFIX: Added a final stock update per day outside of trading hours if data wasn't updated recently."
+            "-HOTFIX: Added a final stock update per day outside of trading hours if data wasn't updated near close of trading hours."
         ]
     },
     {
