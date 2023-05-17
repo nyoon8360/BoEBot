@@ -1,5 +1,17 @@
 [
     {
+        "version": "1.2.1 Quality of Life and More Update",
+        "changes": [
+            "-Overhauled Help menu with sections and pages you can navigate.",
+            "-Added your current total investments by stock to the main menu of the Stock Exchange.",
+            "-Overhauled message leaderboard and added pages.",
+            "-Message leaderboard size increased from 5 to 50.",
+            "-Increased length of message snippets in message leaderboard from 20 characters to 50 characters.",
+            "-Added current value of all your investments to main stock exchange UI.",
+            "-BUGFIX: Fixed Total Profits Made to properly record your total profits made after selling stocks."
+        ]
+    },
+    {
         "version": "1.2.0 The Stonks Update",
         "changes": [
             "-Added the Stock Exchange to the main menu.",
