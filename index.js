@@ -94,11 +94,6 @@ tenDayStockData = {
 }
 */
 
-/*
-TODO:
--Overhaul help menu
-*/
-
 //===================================================
 //===================================================
 //
@@ -139,14 +134,12 @@ client.on('ready', () => {
                 workingData[guildId] = newData;
             } else {
                 //read data from json database file and assign it to workingData var synchronously
-
                 workingData[guildId] = JSON.parse(fs.readFileSync("./databases/database" + guildId + ".json"));
             }
         } catch(error) {
             console.log(error);
         }
 
-        
         //add entries for any users in guilds that are not in database
         client.guilds.resolve(guildId).members.fetch().then(memberManager => {
             let existingArray = [];

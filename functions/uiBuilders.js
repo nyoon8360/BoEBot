@@ -1,10 +1,10 @@
 const { ButtonStyle, ActionRowBuilder, ButtonBuilder, EmbedBuilder, bold, time, underscore, codeBlock, inlineCode, userMention} = require('discord.js');
-const changelog = require('../changelog.json');
+const changelog = require('../pages/changelog.json');
 const intEventTokens = require('../constants/intEventTokens.js');
 const config = require('../constants/configConsts.js');
 const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
 const utils = require('./utils.js');
-const guidePages = require('../guidePages.json');
+const guidePages = require('../pages/guidePages.json');
 
 //===================================================
 //===================================================
