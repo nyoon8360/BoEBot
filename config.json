@@ -13,7 +13,7 @@
         "treasureUpperRange": 4,
         "treasureCooldownLowerRange": 3600, 
         "treasureCooldownUpperRange": 7200,
-        "msgLeaderboardLimit": 5,
+        "msgLeaderboardLimit": 50,
         "userLeaderboardEntriesPerPage": 5,
         "checkActiveVCInterval": 1500,
         "activeVCMemberThreshold": 3,
