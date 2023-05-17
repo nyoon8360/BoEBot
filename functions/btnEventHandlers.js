@@ -147,42 +147,11 @@ function mainMenu_shop(interaction) {
 }
 
 function mainMenu_help(interaction) {
-    //TODO: Overhaul the help menu
-    interaction.reply({
-        content:`
-${bold('=====\nHELP\n=====')}
+    interaction.reply(uiBuilders.helpUI("MAIN"));
+}
 
-${underscore('Main Sources Of Edbucks')}
-- Having people react to your messages with the :edbuck: emote awards 2 edbucks.
-    - Messages can only gain edbucks within the first hour of posting.
-    - You can only award edbucks once every 20 minutes at most.
-- Being unmuted in a voice call with 3 or more unmuted users in it.
-    - This is checked every 25 minutes and awards 1 edbuck.
-- Being the first person to click on the "Pick Up Edbucks" button when it's randomly enabled.
-    - Re-enables randomly between 1-2 hours after being clicked.
-- Typing "happy birthday" (or anything very similar) in any chat while it's someone's birthday.
-    - Awards 3 edbucks to the birthday wisher and 5 edbucks to the user whose birthday it is.
-- Investing into stocks and selling them for a profit.
-    - You have a base Stock Profit Bonus of 20% so any profit from stocks will be increased by 20%.
-- Winning minigames (WIP)
-
-${underscore('Ways To Use Your Edbucks')}
-- Spend them on items in the store.
-- Trade them with other players through the "Trade" button.
-- Wager them against other players through the "Wager Edbucks" button.
-
-${underscore('How To Use Purchased Items')}
-1. Access your inventory through the "Open Inventory" button.
-2. Click on the item you want to use.
-3. Select the user you want to use the item on from the drop down menu.
-
-${underscore('What Is Equipment?')}
-- Equipment are items you can equip that provide you unique effects.
-- You have a Head, Body, Trinket, and Shoes slot which can each hold one piece of equipment.
-- Equipment items are unique meaning you can only have one copy of each piece of equipment in your inventory.
-        `,
-        ephemeral: true
-    });
+function help_openPage(interaction, section, pagenum) {
+    interaction.update(uiBuilders.helpUI(section, pagenum));
 }
 
 function mainMenu_settings(workingData, interaction) {
@@ -708,7 +677,7 @@ function stockExchange_executeStockSell(workingData, interaction, realtimeStockD
     let finalInvestmentValue = Math.round(curInvestmentValue + (investmentObj.investmentAmount > curInvestmentValue ? 0 : (curInvestmentValue - investmentObj.investmentAmount) * (1 + (accessingUserStats.stats.stockProfitBonus/100))))
 
     //update funstats
-    accessingUser.fStatTotalInvestmentProfits += (investmentObj.investmentAmount > curInvestmentValue ? 0 : (curInvestmentValue - investmentObj.investmentAmount) * (1 + (accessingUserStats.stats.stockProfitBonus/100)));
+    accessingUser.fStatTotalInvestmentProfits += finalInvestmentValue - investmentObj.investmentAmount;
 
     //remove investment from user's data
     accessingUser.stockInvestments[stockTicker].splice(investmentIndex, 1);
@@ -722,6 +691,7 @@ function stockExchange_executeStockSell(workingData, interaction, realtimeStockD
 module.exports = {
     mainMenu_changelog, mainMenu_findTreasure, mainMenu_help, mainMenu_msgLeaderboard, mainMenu_openInv, mainMenu_shop, mainMenu_showStats, mainMenu_userLeaderboard, mainMenu_settings, mainMenu_stockExchange,
     settings_editSettingValue,
+    help_openPage,
     usablesInventory_selectSlot, usablesShop_purchase, usablesShop_selectShelf,
     equipsShop_selectShelf, equipsShop_purchase, equipsInventory_selectSlot, equipsInventory_toggleEquip,
     stockExchange_selectStock, stockExchange_refreshStockInfo, stockExchange_investInStock, stockExchange_openInvestments, stockExchange_executeStockSell

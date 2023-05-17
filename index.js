@@ -96,9 +96,7 @@ tenDayStockData = {
 
 /*
 TODO:
--Expand message leaderboard to multipage with 50 entries
 -Overhaul help menu
--Add info showing what stocks you are invested into on main stock exchange menu
 */
 
 //===================================================
@@ -796,6 +794,16 @@ client.on('interactionCreate', async (interaction) => {
                 case "changelog":
                     btnEventHandlers.mainMenu_changelog(interaction);
                     break;
+            }
+            break;
+
+        case intEventTokens.helpNavPrefix.slice(0, -1):
+            let section = eventTokens.shift();
+            if (section == "BACK") {
+                btnEventHandlers.help_openPage(interaction, "MAIN");
+            } else {
+                let pagenum = parseInt(eventTokens.shift());
+                btnEventHandlers.help_openPage(interaction, section, pagenum);
             }
             break;
 

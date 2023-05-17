@@ -7,6 +7,7 @@ module.exports = Object.freeze({
     //Common tokens
     mainMenuPrefix: "MAINMENU-",
     shopCategoryPrefix: "SELECTSHOPCATEGORY-",
+    helpNavPrefix: "HELPMENUNAV-",
 
     //Message Leaderboard tokens
     msgLeaderboardNav: "MSGLEADERBOARDNAV-",

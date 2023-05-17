@@ -1,0 +1,135 @@
+{
+    "howToEarn": [
+        {
+            "header": "Main Sources of Edbucks",
+            "content": [
+                "- Having people react to your messages with the :edbuck: emote awards 2 edbucks.",
+                "   - Messages can only gain edbucks within the first two hours of posting.",
+                "   - You can only award edbucks once every 20 minutes at most.",
+                "",
+                "- Being unmuted in a voice call with 3 or more unmuted users in it.",
+                    "- This is checked every 25 minutes and awards 1 edbuck.",
+                "",
+                "- Being the first person to click on the [Pick Up Edbucks] button when it's randomly enabled.",
+                    "- Re-enables randomly between 1-2 hours after being clicked.",
+                    "- Randomly awards between 2-4 Edbucks.",
+                "",
+                "- Typing happy birthday (or anything very similar) in any chat while it's someone's birthday.",
+                    "- Awards 3 edbucks to the birthday wisher and 5 edbucks to the user whose birthday it is.",
+                    "- Make sure to add your birthday to the bot through the [Settings] button to enable this!",
+                "",
+                "- Investing into stocks and selling them for a profit.",
+                    "- You have a base Stock Profit Bonus of 20% so any profit from stocks will be increased by 20%.",
+                "",
+                "- Winning minigames (WIP)"
+            ]
+        }
+    ],
+    "usablesAndEquipment": [
+        {
+            "header": "Usables and Equipment",
+            "content": [
+                "What are Usables?",
+                "- Usables are items that are typically one-time use and have an associated effect when using them.",
+                "- Most usables require you to select a target when using them and can do things such as kicking people from voice call.",
+                "- Some usables also have a bonus effect when you land a Critical Hit.",
+                "- Your base Critical Hit Chance is 0% but can be increased with equipment.",
+                "- To access and use your Usables, click on the [Open Inventory] button, click on the item you want to use, and then click [Use].",
+                "",
+                "What is Equipment?",
+                "- Equipment are items that you can equip to yourself and will typically provide Stat boosts.",
+                "- You have 4 equipment slots (Head, Body, Trinket, Shoes) that can each hold 1 equipment item at a time.",
+                "- You can also only hold 1 copy of any piece of equipment so you will be unable to buy multiple pieces of the exact same equipment.",
+                "- To equip a piece of equipment, go to your inventory through the [Open Inventory] button, click on the [Equips] button at the bottom, click on the equipment, and then click [Equip].",
+                "",
+                "How to obtain Usables and Equipment:",
+                "- Both Usables and Equipment can be bought with edbucks through the [Shop].",
+                "- Both Usables and Equipment can be earned through [Minigames] (WIP).",
+                "- Equipment can be made through [Crafting] (WIP)."
+            ]
+        }
+    ],
+    "stats": [
+        {
+            "header": "Stats",
+            "content": [
+                "What are Stats and what do they do?",
+                "- Stats are numerical values that can give certain bonuses and increase certain chances.",
+                "- Stats are primarily gained by equiping items that give stat boosts.",
+                "- There are currently two types of stats that are implemented: Bonus and Chance stats.",
+                "- Bonus stats give a boost to certain effects/events/gains.",
+                "- Chance stats increase the chance for certain effects/events to trigger such as Critical Hits when using Usables.",
+                "",
+                "Currently Implemented Stats:",
+                "- Reaction Bonus",
+                "   - Type: Bonus",
+                "   - Each point of value provides 1 extra edbuck when receiving a valid edbuck reaction.",
+                "- Usables Shop Discount",
+                "   - Type: Bonus",
+                "   - Each point of value provides a 1% discount when buying items from the usables shop.",
+                "- Stock Profit Bonus",
+                "   - Type: Bonus",
+                "   - Each point of value provides a 1% increase to any profits gained when selling stocks.",
+                "- Reflect Chance",
+                "   - Type: Chance",
+                "   - Each point of value provides a 1% chance to reflect any item used on you back to the user.",
+                "- Pickup Luck",
+                "   - Type: Chance",
+                "   - Each point of value provides a 1% chance to double edbucks gained on clicking the Pickup Edbucks button.",
+                "- Vocal Luck",
+                "   - Type: Chance",
+                "   - Each point of value provides a 1% chance to gain 1 extra edbuck when awarded for being in an active VC.",
+                "- Usables Crit Chance",
+                "   - Type: Chance",
+                "   - Each point of value provides a 1% chance to land a critical use when using items that have a critical effect."
+            ]
+        }
+    ],
+    "statusEffects": [
+        {
+            "header": "Status Effects",
+            "content": [
+                "What are Status Effects?",
+                "- Status effects are temporary effects that are typically applied to you when targetted by items.",
+                "- These effects and their remaining duration can be seen in the [Show Stats] menu.",
+                "",
+                "Currently Implemented Status Effects:",
+                "- Reflect",
+                "   - Causes the next item targetted at you by another user to be reflected back to that user.",
+                "- Polymorphed",
+                "   - Prevents you from changing your nickname.",
+                "- Muted",
+                "   - Prevents you from unmuting yourself in voice call."
+            ]
+        }
+    ],
+    "edbuckExchange": [
+        {
+            "header": "The Edbuck Exchange",
+            "content": [
+                "What is the Edbuck Exchange?",
+                "- The Edbuck Exchange allows you to invest your edbucks into stocks and sell them later on for a possible profit.",
+                "- You can have multiple investments in a single stock and be invested in many different stocks.",
+                "- All data for the Edbuck Exchange is taken in real time from a stock tracking API.",
+                "- This data is updated every 8 minutes during the New York Exchange trading hours of 8:00AM EST - 4:30 PM EST.",
+                "",
+                "How do I make a profit?",
+                "- The Edbuck Exchange mimics real life stock trading so if you are able to sell your stocks when they're valued higher than when you bought them you make a profit.",
+                "- You have a base Stock Profit Bonus of 20% so any profit from stocks will be increased by 20%. This can be increased through equipment.",
+                "",
+                "How do I sell my investments?",
+                "- Click on the stock you want to sell from the main stock exchange menu.",
+                "- Click on the [Sell] button.",
+                "- Click on the corresponding [Sell Investment] button.",
+                "- Keep in mind that if you have more than 4 investments in a stock, you may have to go through the pages of the sell investments menu.",
+                "",
+                "What do the stock button colors mean?",
+                "- The color of the individual stock buttons reflects their daily performance meaning if the stock went up today it will be green and if it went down today it will be red.",
+                "",
+                "What does the graph mean?",
+                "- The graph displayed in the individual stock's information page shows the stock's performance over the past 10 TRADING days.",
+                "- If the stock's value went up on average over the past 10 trading days then the line will be green and if it went down then it will be red."
+            ]
+        }
+    ]
+}

@@ -4,6 +4,7 @@ const intEventTokens = require('../constants/intEventTokens.js');
 const config = require('../constants/configConsts.js');
 const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
 const utils = require('./utils.js');
+const guidePages = require('../guidePages.json');
 
 //===================================================
 //===================================================
@@ -69,7 +70,7 @@ function menuUI(tButtonDisabled) {
             .setEmoji('🛒'),
         new ButtonBuilder()
             .setCustomId(intEventTokens.mainMenuPrefix + 'stockexchange-')
-            .setLabel('Stock Exchange')
+            .setLabel('Edbuck Exchange')
             .setStyle(ButtonStyle.Danger)
             .setEmoji('🏢')
     );
@@ -106,6 +107,82 @@ function menuUI(tButtonDisabled) {
         content: bold('============\nMAIN MENU\n============'),
         components: [row1, row2, row3, row4]
     };
+}
+
+function helpUI(section, pagenum) {
+    let navRow;
+
+    if (section == "MAIN") {
+        let row1 = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setLabel("Earning Edbucks")
+                        .setStyle(ButtonStyle.Success)
+                        .setCustomId(intEventTokens.helpNavPrefix + "howToEarn-" + 0),
+                    new ButtonBuilder()
+                        .setLabel("Stats")
+                        .setStyle(ButtonStyle.Success)
+                        .setCustomId(intEventTokens.helpNavPrefix + "stats-" + 0),
+                    new ButtonBuilder()
+                        .setLabel("Usables/Equips")
+                        .setStyle(ButtonStyle.Success)
+                        .setCustomId(intEventTokens.helpNavPrefix + "usablesAndEquipment-" + 0),
+                    new ButtonBuilder()
+                        .setLabel("Status Effects")
+                        .setStyle(ButtonStyle.Success)
+                        .setCustomId(intEventTokens.helpNavPrefix + "statusEffects-" + 0),
+                    new ButtonBuilder()
+                        .setLabel("Edbuck Exchange")
+                        .setStyle(ButtonStyle.Success)
+                        .setCustomId(intEventTokens.helpNavPrefix + "edbuckExchange-" + 0)
+                )
+
+            return {
+                content:`
+${bold('=====\nHELP\n=====')}
+The Bank of Edbucks Bot facilitates a currency system for this discord server called Edbucks.
+
+Every interaction is done through the main menu buttons and there are no commands needed to use the bot!
+
+Make sure to add your birthday to the bot through the [Settings] button if you want to enable birthday gifts.
+
+Click on any of the buttons below to learn about different aspects of the bot!
+`,
+                ephemeral: true,
+                components: [row1]
+            }
+    } else {
+        let navRow = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setLabel("Back")
+                    .setStyle(ButtonStyle.Danger)
+                    .setCustomId(intEventTokens.helpNavPrefix + "BACK"),
+                new ButtonBuilder()
+                    .setLabel("Prev")
+                    .setStyle(ButtonStyle.Primary)
+                    .setCustomId(intEventTokens.helpNavPrefix + section + "-" + (pagenum - 1))
+                    .setDisabled(pagenum == 0),
+                new ButtonBuilder()
+                    .setLabel("Page " + (pagenum + 1))
+                    .setStyle(ButtonStyle.Primary)
+                    .setCustomId("PAGENUMNAV")
+                    .setDisabled(true),
+                new ButtonBuilder()
+                    .setLabel("Next")
+                    .setStyle(ButtonStyle.Primary)
+                    .setCustomId(intEventTokens.helpNavPrefix + section + "-" + (pagenum + 1))
+                    .setDisabled(pagenum >= (guidePages[section].length - 1))
+            )
+
+        let fullPage = underscore(guidePages[section][pagenum].header) + "\n" + guidePages[section][pagenum].content.join('\n');
+
+        return {
+            content: fullPage,
+            ephemeral: true,
+            components: [navRow]
+        }
+    }
 }
 
 async function msgLeaderboardUI(client, workingData, interaction, pagenum) {
@@ -512,23 +589,29 @@ function stockExchangeUI(workingData, interaction, realtimeStockData, pagenum) {
     let investmentsByStockString = '';
     //calculate total value of all of the user's investments
     let totalInvestmentsValue = 0;
+    let totalInvestmentsCurValue = 0;
     Object.keys(accessingUser.stockInvestments).forEach(key => {
         let investmentValueByStock = 0;
         accessingUser.stockInvestments[key].forEach(investment => {
             totalInvestmentsValue += investment.investmentAmount;
             investmentValueByStock += investment.investmentAmount;
+
+            totalInvestmentsCurValue += investment.investmentAmount * (realtimeStockData[key].close/investment.investmentPrice)
         })
         if (totalInvestmentsValue > 0) {
             investmentsByStockString += `- $${key}: ${investmentValueByStock}\n`;
         }
     });
 
+    totalInvestmentsCurValue = Math.round(totalInvestmentsCurValue * 1000) / 1000;
+
     let contentString = bold("========================\nTHE EDBUCK EXCHANGE\n========================");
     contentString += `
 Last Updated: ${time(realtimeStockData.lastUpdated, "f")}
 Total Investments Made: ${accessingUser.fStatValueOfTotalInvestmentsMade}
 Total Profit Made: ${accessingUser.fStatTotalInvestmentProfits}
-Current Total Investments: ${totalInvestmentsValue}
+Total Investments Original Value: ${totalInvestmentsValue}
+Total Investments Current Value: ${totalInvestmentsCurValue}
 ------------------------------
 Current Investments By Stock:
 ${investmentsByStockString}------------------------------`;
@@ -671,8 +754,8 @@ Day Percent Change: %${Math.round( ( ((stockInfo.close / stockInfo.open) - 1) + 
 Trade Volume: ${parseInt(stockInfo.volume).toLocaleString("en-US")}
 Last Updated: ${time(realtimeStockData.lastUpdated, "f")}
 
-Investments Total Original Value: ${totalOriginalInvestmentsValue}
-Investments Total Current Value: ${totalCurrentInvestmentsValue}
+Total Investments Original Value: ${totalOriginalInvestmentsValue}
+Total Investments Current Value: ${totalCurrentInvestmentsValue}
 `;
 
     //instantiate navigation button row
@@ -740,8 +823,8 @@ Day Percent Change: %${Math.round((((stockInfo.close / stockInfo.open) - 1) + Nu
 Trade Volume: ${parseInt(stockInfo.volume).toLocaleString("en-US")}
 Last Updated: ${time(realtimeStockData.lastUpdated, "f")}
 
-Investments Total Original Value: ${totalOriginalInvestmentsValue}
-Investments Total Current Value: ${totalCurrentInvestmentsValue}
+Total Investments Original Value: ${totalOriginalInvestmentsValue}
+Total Investments Current Value: ${totalCurrentInvestmentsValue}
 
 Your Investment Profit Bonus: ${accessingUserStats.stats.stockProfitBonus}%
 `;
@@ -887,6 +970,6 @@ function notifCantUseOnBot() {
 }
 
 module.exports = {
-    menuUI, msgLeaderboardUI, settingsUI, usablesInvUI, equipsInvUI, equipsShopUI, usablesShopUI, changelogUI, userLeaderboardUI, stockExchangeUI, stockExchangeSellStocksUI,
+    menuUI, helpUI, msgLeaderboardUI, settingsUI, usablesInvUI, equipsInvUI, equipsShopUI, usablesShopUI, changelogUI, userLeaderboardUI, stockExchangeUI, stockExchangeSellStocksUI,
     stockExchangeStockInfoUI, notifCantSelfUse, notifDontHaveItem, notifTargetNotInVC, notifCantUseOnBot
 }

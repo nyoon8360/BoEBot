@@ -208,7 +208,7 @@ async function getUpdatedStockData(realtimeStockData, tenDayStockData, lastStock
         return accumulator;
     }, []).join(',');
 
-    if (curESTDateObj.getFullYear() != dayStockDataDateObj.getFullYear() || curESTDateObj.getMonth() != dayStockDataDateObj.getMonth() || curESTDateObj.getDate() != dayStockDataDateObj.getDate()) {
+    if (curESTDateObj.getUTCFullYear() != dayStockDataDateObj.getUTCFullYear() || curESTDateObj.getUTCMonth() != dayStockDataDateObj.getUTCMonth() || curESTDateObj.getUTCDate() != dayStockDataDateObj.getUTCDate()) {
         promiseArray.push(axios(`https://api.twelvedata.com/time_series?symbol=${tickerString}&interval=1day&outputsize=10&apikey=${process.env.TWELVE_DATA_API_TOKEN}`).then(response => {
             if (response.status == 200) {
                 tenDayStockData.lastUpdated = Math.floor(Date.now()/1000);
