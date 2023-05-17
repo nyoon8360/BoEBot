@@ -1,4 +1,4 @@
-const { ButtonStyle, ActionRowBuilder, ButtonBuilder, bold, time, underscore, codeBlock, inlineCode, userMention} = require('discord.js');
+const { ButtonStyle, ActionRowBuilder, ButtonBuilder, EmbedBuilder, bold, time, underscore, codeBlock, inlineCode, userMention} = require('discord.js');
 const changelog = require('../changelog.json');
 const intEventTokens = require('../constants/intEventTokens.js');
 const config = require('../constants/configConsts.js');
