@@ -295,66 +295,6 @@ client.on('ready', () => {
 
     let curDate = new Date(Date.now());
     console.log(`(${client.user.tag}) is ready! ${curDate.toLocaleString()}`);
-
-    /*
-
-     |
-[any ticker]
-     V
-    
-    The Edbuck Exchange
-    -------------------
-    Equity: Apple Inc
-    Ticker: $AAPL
-    Current Price: $168.42999
-    Exchange: NASDAQ
-    Day Percent Change: 2.85173%
-    Open Price: $165.19000
-    Trade Volume: 51,528,660
-    Last Updated: |April 25th 3:44 PM|
-
-    Total Original Investments Value: 47 EB
-    Total Current Investments Value: 65.83 EB
-    [Refresh] [Sell] [Invest]
-
-    <IMAGE ATTACHMENT DRAWN FROM DAY INTERVAL GRAPH
-     OF STOCK PERFORMANCE OVER PAST 10 DATA POINTS >
-
-     |
-   [Sell]
-     V
-
-    The Edbuck Exchange
-    -------------------
-    Equity: Apple Inc
-    Ticker: $AAPL
-    Current Price: $168.42999
-    Last Updated: |April 25th 3:44 PM|
-
-    Total Original Investments Value: 47 EB
-    Total Current Investments Value: 65.83 EB
-
-    Stock Profit Bonus: 20%
-
-    [Investment 1]
-    Original Investment: 20EB
-    Date/Time Entered: April 24th 6:32 PM
-    Price Entered At: $162.21164
-    % Change: ((curPrice/entPrice) - 1) * 100 = 12.28%
-    Current Investment Value: 23 (oInvestment * (curPrice/entPrice)) IF (curPrice/entPrice) > 1 THEN multiply PROFITS by profit multiplier
-
-    [Inv 1] [Inv 2] [Inv 3] [Inv 4]
-    [Back] [Previous] [Pagenum] [Next]
-
-    o1 = investment1
-    o2 = investment2
-    sv1 = investment1 stock value
-    sv2 = investment2 stock value
-    nv = final stock value
-
-    (o1 * (nv/sv1)) + (o2 * (nv/sv2)) = total new
-    o1 + o2 = total original investment
-    */
 });
 
 //on new guild user join, add entry to database if not already existing
@@ -448,6 +388,20 @@ client.on('messageCreate', (message) => {
 
             //a command used solely for random testing purposes
             case "testcommand":
+
+                let interactionDirectory = {
+                    123: {
+                        path: ["somewhere", "someplace"],
+                        parameter: 5
+                    }
+                }
+
+                let interactionData = interactionDirectory[123];
+                delete interactionDirectory[123];
+
+                console.log(interactionDirectory);
+                console.log(interactionData);
+
                 break;
         }
     } else {
