@@ -1,6 +1,5 @@
 "use strict";
 const { ButtonStyle, time, ActionRowBuilder, ButtonBuilder, underscore, EmbedBuilder, TextInputBuilder, TextInputStyle, userMention, ModalBuilder, UserSelectMenuBuilder, ChannelSelectMenuBuilder, ChannelType } = require('discord.js');
-const intEventTokens = require('../constants/intEventTokens.js');
 const config = require('../constants/configConsts.js');
 const utils = require('./utils.js');
 const uiBuilders = require('./uiBuilders.js');
@@ -94,7 +93,7 @@ itemFunctionMap.set('item_kick', (client, workingData, interaction, eventTokens)
         let row = new ActionRowBuilder()
             .addComponents(
                 new UserSelectMenuBuilder()
-                    .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "USE-" + "item_kick-" + "targetted")
+                    .setCustomId(["usablesInvItemInfo", "use", "item_kick", "targetted"].join('-'))
                     .setMinValues(1)
                     .setMaxValues(1)
                     .setPlaceholder("Choose a target.")
@@ -208,7 +207,7 @@ itemFunctionMap.set('item_kick', (client, workingData, interaction, eventTokens)
                 new ButtonBuilder()
                     .setLabel("Back")
                     .setStyle(ButtonStyle.Danger)
-                    .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
+                    .setCustomId(["usablesInvItemInfo", "back"].join('-'))
             );
         
         interaction.update({
@@ -225,7 +224,7 @@ itemFunctionMap.set('item_mute', (client, workingData, interaction, eventTokens)
         let row = new ActionRowBuilder()
             .addComponents(
                 new UserSelectMenuBuilder()
-                    .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "USE-" + "item_mute-" + "targetted")
+                    .setCustomId(["usablesInvItemInfo", "use", "item_mute", "targetted"].join('-'))
                     .setMinValues(1)
                     .setMaxValues(1)
                     .setPlaceholder("Choose a target.")
@@ -371,7 +370,7 @@ itemFunctionMap.set('item_mute', (client, workingData, interaction, eventTokens)
                 new ButtonBuilder()
                     .setLabel("Back")
                     .setStyle(ButtonStyle.Danger)
-                    .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
+                    .setCustomId(["usablesInvItemInfo", "back"].join('-'))
             );
         
         interaction.update({
@@ -388,7 +387,7 @@ itemFunctionMap.set('item_steal', (client, workingData, interaction, eventTokens
         let row = new ActionRowBuilder()
             .addComponents(
                 new UserSelectMenuBuilder()
-                    .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "USE-" + "item_steal-" + "targetted")
+                    .setCustomId(["usablesInvItemInfo", "use", "item_steal", "targetted"].join('-'))
                     .setMinValues(1)
                     .setMaxValues(1)
                     .setPlaceholder("Choose a target.")
@@ -571,7 +570,7 @@ itemFunctionMap.set('item_steal', (client, workingData, interaction, eventTokens
                 new ButtonBuilder()
                     .setLabel("Back")
                     .setStyle(ButtonStyle.Danger)
-                    .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
+                    .setCustomId(["usablesInvItemInfo", "back"].join('-'))
             );
         
         interaction.update({
@@ -589,7 +588,7 @@ itemFunctionMap.set('item_polymorph', (client, workingData, interaction, eventTo
         let row = new ActionRowBuilder()
             .addComponents(
                 new UserSelectMenuBuilder()
-                    .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "USE-" + "item_polymorph-" + "targetted")
+                    .setCustomId(["usablesInvItemInfo", "use", "item_polymorph", "targetted"].join('-'))
                     .setMinValues(1)
                     .setMaxValues(1)
                     .setPlaceholder("Choose a target.")
@@ -604,7 +603,7 @@ itemFunctionMap.set('item_polymorph', (client, workingData, interaction, eventTo
     } else if (nextToken == "targetted") {
         //input polymorph name
         let modal = new ModalBuilder()
-            .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "USE-" + "item_polymorph-" + interaction.values[0])
+            .setCustomId(["usablesInvItemInfo", "use", "item_polymorph", interaction.values[0]].join('-'))
             .setTitle("Semi-permanent Nametag")
             .addComponents(
             new ActionRowBuilder().addComponents(
@@ -728,7 +727,7 @@ itemFunctionMap.set('item_polymorph', (client, workingData, interaction, eventTo
                 new ButtonBuilder()
                     .setLabel("Back")
                     .setStyle(ButtonStyle.Danger)
-                    .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
+                    .setCustomId(["usablesInvItemInfo", "back"].join('-'))
             );
         
         interaction.update({
@@ -778,7 +777,7 @@ itemFunctionMap.set('item_reflect', (client, workingData, interaction, eventToke
             new ButtonBuilder()
                 .setLabel("Back")
                 .setStyle(ButtonStyle.Danger)
-                .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
+                .setCustomId(["usablesInvItemInfo", "back"].join('-'))
         );
     
     interaction.update({
@@ -794,7 +793,7 @@ itemFunctionMap.set('item_expose', (client, workingData, interaction, eventToken
         let row = new ActionRowBuilder()
             .addComponents(
                 new UserSelectMenuBuilder()
-                    .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "USE-" + "item_expose-" + "targetted")
+                    .setCustomId(["usablesInvItemInfo", "use", "item_expose", "targetted"].join('-'))
                     .setMinValues(1)
                     .setMaxValues(1)
                     .setPlaceholder("Choose a target.")
@@ -922,7 +921,7 @@ itemFunctionMap.set('item_expose', (client, workingData, interaction, eventToken
                 new ButtonBuilder()
                     .setLabel("Back")
                     .setStyle(ButtonStyle.Danger)
-                    .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
+                    .setCustomId(["usablesInvItemInfo", "back"].join('-'))
             );
         
         interaction.update({
@@ -939,7 +938,7 @@ itemFunctionMap.set('item_edwindinner', (client, workingData, interaction, event
         let row = new ActionRowBuilder()
             .addComponents(
                 new UserSelectMenuBuilder()
-                    .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "USE-" + "item_edwindinner-" + "targetted")
+                    .setCustomId(["usablesInvItemInfo", "use", "item_edwindinner", "targetted"].join('-'))
                     .setMinValues(1)
                     .setMaxValues(1)
                     .setPlaceholder("Choose a target.")
@@ -1041,7 +1040,7 @@ itemFunctionMap.set('item_edwindinner', (client, workingData, interaction, event
                 new ButtonBuilder()
                     .setLabel("Back")
                     .setStyle(ButtonStyle.Danger)
-                    .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
+                    .setCustomId(["usablesInvItemInfo", "back"].join('-'))
             );
         
         interaction.update({
@@ -1058,7 +1057,7 @@ itemFunctionMap.set('item_emp', (client, workingData, interaction, eventTokens) 
         let row = new ActionRowBuilder()
             .addComponents(
                 new ChannelSelectMenuBuilder()
-                    .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "USE-" + "item_emp-" + "targetted")
+                    .setCustomId(["usablesInvItemInfo", "use", "item_emp", "targetted"].join('-'))
                     .setMinValues(1)
                     .setMaxValues(1)
                     .setPlaceholder("Choose a target.")
@@ -1129,7 +1128,7 @@ itemFunctionMap.set('item_emp', (client, workingData, interaction, eventTokens) 
                 new ButtonBuilder()
                     .setLabel("Back")
                     .setStyle(ButtonStyle.Danger)
-                    .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
+                    .setCustomId(["usablesInvItemInfo", "back"].join('-'))
             );
         
         interaction.update({

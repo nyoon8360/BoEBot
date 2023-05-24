@@ -1,5 +1,4 @@
 const { ButtonStyle, time, ActionRowBuilder, ButtonBuilder, inlineCode, bold, underscore, EmbedBuilder, codeBlock, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
-const fs = require('fs');
 const usables = require('../items/usables.json');
 const equipment = require('../items/equipment.json');
 const intEventTokens = require('../constants/intEventTokens.js');
@@ -7,6 +6,7 @@ const config = require('../constants/configConsts.js');
 const uiBuilders = require('./uiBuilders.js');
 const utils = require('./utils.js');
 const statInfo = require('../constants/statInfo.json');
+const { usableItemsFunctionalities } = require('./itemFunctions.js');
 
 //===================================================
 //===================================================
@@ -16,6 +16,15 @@ const statInfo = require('../constants/statInfo.json');
 //===================================================
 //===================================================
 
+/*
+Event handler function declarations that are fired when interactions are made with different UIs in the bot.
+
+Most handlers will update UIs after parsing the necessary information from eventTokens.
+
+All function signatures are in the format of: nameOfUIInteractedWith_name/typeOfComponentInteractedWith
+*/
+
+//REPLY with user's stats UI
 function mainMenu_showStats(workingData, interaction) {
     let requester = workingData[interaction.guildId].users.find(obj => {
         return obj.id == interaction.user.id;
@@ -64,21 +73,12 @@ ${afflictedBy}
     });
 }
 
+//REPLY with user's inventory UI
 function mainMenu_openInv(workingData, interaction) {
-    /*
-    [Equips]
-    |
-    V
-    head, body, accessory, shoes
-    [bold("E* item1")] [Item2] [Item3]
-    [Item1] [Item2] [Item3]
-    [Item1] [Item2] [Item3]
-    [Item1] [Item2] [Item3]
-    [Prev] [Equips] [Next]
-    */
-    interaction.reply(uiBuilders.usablesInvUI(workingData, interaction, 0));
+    interaction.reply(uiBuilders.usablesInv(workingData, interaction, 0));
 }
 
+//award user with found currency and REPLY with notification indicating how much currency they found
 function mainMenu_findTreasure(workingData, interaction) {
     //on click, award treasure, deactivate this button for a random amount of hours, and then reactivate
     let user = workingData[interaction.guildId].users.find(obj => {
@@ -109,182 +109,244 @@ Check back again later to see if they've come back!
 
     interaction.channel.messages.fetch(workingData[interaction.guildId].activeMenuId).then(result => {
         //disable pick up edbucks button
-        result.edit(uiBuilders.menuUI(true));
+        result.edit(uiBuilders.mainMenu(true));
         
         let curDate = new Date(Date.now());
         console.log(`(${curDate.toLocaleString()}) Edbucks Button Looted By: ${interaction.user.tag}`);
         //set async function to wait until cooldown is over then re-enable button
         (async (menu) => {
             let timeoutDuration = Math.floor(Math.random() * (config.treasureCDUR - config.treasureCDLR)) + config.treasureCDLR;
-            await setTimeout(() => menu.edit(uiBuilders.menuUI()), timeoutDuration * 1000);
+            await setTimeout(() => menu.edit(uiBuilders.mainMenu()), timeoutDuration * 1000);
         })(result);
     });
 }
 
+//REPLY with shop categories menu
 function mainMenu_shop(interaction) {
-    let row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.shopCategoryPrefix + "usables")
-                .setLabel("Usables")
-                .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.shopCategoryPrefix + "equipment")
-                .setLabel("Equipment")
-                .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.shopCategoryPrefix + "others")
-                .setLabel("Others")
-                .setStyle(ButtonStyle.Danger)
-                .setDisabled(true)
-        )
-
-    interaction.reply({
-        content: bold("==================\nSHOP CATEGORIES\n=================="),
-        ephemeral: true,
-        components: [row]
-    });
+    interaction.reply(uiBuilders.shopCategories());
 }
 
+//REPLY with help menu
 function mainMenu_help(interaction) {
-    interaction.reply(uiBuilders.helpUI("MAIN"));
+    interaction.reply(uiBuilders.mainHelp("main"));
 }
 
-function help_openPage(interaction, section, pagenum) {
-    interaction.update(uiBuilders.helpUI(section, pagenum));
-}
-
+//REPLY with settings menu
 function mainMenu_settings(workingData, interaction) {
-    interaction.reply(uiBuilders.settingsUI(workingData, interaction, 0));
+    interaction.reply(uiBuilders.settings(workingData, interaction, 0));
 }
 
+//REPLY with user leaderboard UI
 function mainMenu_userLeaderboard(workingData, interaction) {
-    interaction.reply(uiBuilders.userLeaderboardUI(workingData, interaction, 0));
+    interaction.reply(uiBuilders.userLeaderboard(workingData, interaction, 0));
 }
 
-async function mainMenu_msgLeaderboard(client, workingData, interaction, pagenum) {
-    let leaderboardUI = await uiBuilders.msgLeaderboardUI(client, workingData, interaction, pagenum);
+//REPLY with message leaderboard UI
+async function mainMenu_msgLeaderboard(client, workingData, interaction) {
+    let leaderboardUI = await uiBuilders.msgLeaderboard(client, workingData, interaction, 0);
 
-    //send leaderboard message
     interaction.reply(leaderboardUI);
 }
 
+//REPLY with changelog UI
 function mainMenu_changelog(interaction) {
-    interaction.reply(uiBuilders.changelogUI(0));
+    interaction.reply(uiBuilders.changelog(0));
 }
 
+//REPLY with stock exchange UI
 function mainMenu_stockExchange(workingData, interaction, realtimeStockData) {
-    interaction.reply(uiBuilders.stockExchangeUI(workingData, interaction, realtimeStockData, 0));
+    interaction.reply(uiBuilders.stockExchange(workingData, interaction, realtimeStockData, 0));
 }
 
-function settings_editSettingValue(workingData, interaction, eventTokens, birthdayDirectory) {
-    if (eventTokens.length == 2) {
-        //if no edit value is passed meaning we need to open the UI for the user to edit the value
-        //get user's setting object
-        let pageNum = eventTokens.shift();
-        let settingName = eventTokens.shift();
+//UPDATE to main page of help UI
+function mainHelp_back(interaction) {
+    interaction.update(uiBuilders.mainHelp("main"));
+}
 
-        let settingObj = workingData[interaction.guildId].users.find(obj => {
-            return obj.id == interaction.user.id;
-        }).settings.find(obj => {
-            return obj.name == settingName;
-        });
+//UPDATE to previous page of current help UI section
+function mainHelp_prev(interaction, eventTokens) {
+    let section = eventTokens.shift();
+    let pagenum = parseInt(eventTokens.shift());
 
-        switch (settingObj.valueType) {
-            case "boolean":
-                //no need to call UI builder. Simply swap the value.
-                settingObj.value = !settingObj.value;
-                interaction.update(uiBuilders.settingsUI(workingData, interaction, pageNum, settingName));
-                break;
-            
-            case "mm/dd":
-                let modal = new ModalBuilder()
-                    .setCustomId(intEventTokens.settingsEditValuePrefix + `${pageNum}-${settingName}-"valueEntered"`)
-                    .setTitle("Edit Setting")
-                    .addComponents(
-                    new ActionRowBuilder().addComponents(
-                        new TextInputBuilder()
-                            .setCustomId("newSettingValue")
-                            .setStyle(TextInputStyle.Short)
-                            .setLabel("Enter Date in MM/DD format (Month/Day).")
-                        )
-                    )
+    interaction.update(uiBuilders.mainHelp(section, pagenum - 1));
+}
 
-                interaction.showModal(modal);
-                break;
-        }
-    } else {
-        //if an edit value is passed meaning we need to edit the user's setting value then pass a successful edit UI
-        //get setting obj
-        let pageNum = eventTokens.shift();
-        let settingName = eventTokens.shift();
+//UPDATE to next page of current help UI section
+function mainHelp_next(interaction, eventTokens) {
+    let section = eventTokens.shift();
+    let pagenum = parseInt(eventTokens.shift());
 
-        let settingObj = workingData[interaction.guildId].users.find(obj => {
-            return obj.id == interaction.user.id;
-        }).settings.find(obj => {
-            return obj.name == settingName;
-        });
+    interaction.update(uiBuilders.mainHelp(section, pagenum + 1));
+}
+
+//UPDATE to selected section of help UI
+function mainHelp_sectionButton(interaction, eventTokens) {
+    interaction.update(uiBuilders.mainHelp(eventTokens.shift(), 0));
+}
+
+//UPDATE to previous page of message leaderboard
+async function msgLeaderboard_prev(client, workingData, interaction, eventTokens) {
+    let pagenum = parseInt(eventTokens.shift());
+    let leaderboardUI = await uiBuilders.msgLeaderboard(client, workingData, interaction, pagenum - 1);
+
+    interaction.update(leaderboardUI);
+}
+
+//UPDATE to next page of message leaderboard
+async function msgLeaderboard_next(client, workingData, interaction, eventTokens) {
+    let pagenum = parseInt(eventTokens.shift());
+    let leaderboardUI = await uiBuilders.msgLeaderboard(client, workingData, interaction, pagenum + 1);
+
+    //send leaderboard message
+    interaction.update(leaderboardUI);
+}
+
+function userLeaderboard_prev(workingData, interaction, eventTokens) {
+    let pagenum = parseInt(eventTokens.shift());
+
+    interaction.update(uiBuilders.userLeaderboard(workingData, interaction, pagenum - 1));
+}
+
+function userLeaderboard_next(workingData, interaction, eventTokens) {
+    let pagenum = parseInt(eventTokens.shift());
+
+    interaction.update(uiBuilders.userLeaderboard(workingData, interaction, pagenum + 1));
+}
+
+function changelog_prev(interaction, eventTokens) {
+    let pagenum = parseInt(eventTokens.shift());
+
+    interaction.update(uiBuilders.changelog(pagenum - 1));
+}
+
+function changelog_next(interaction, eventTokens) {
+    let pagenum = parseInt(eventTokens.shift());
+
+    interaction.update(uiBuilders.changelog(pagenum + 1));
+}
+
+//UPDATE to previous page of settings menu
+function settings_prev(workingData, interaction, eventTokens) {
+    let pagenum = parseInt(eventTokens.shift());
+    interaction.update(uiBuilders.settings(workingData, interaction, pagenum - 1));
+}
+
+//UPDATE to next page of settings menu
+function settings_next(workingData, interaction, eventTokens) {
+    let pagenum = parseInt(eventTokens.shift());
+    interaction.update(uiBuilders.settings(workingData, interaction, pagenum + 1));
+}
+
+//change selected value of user's settings OR send modal to prompt user input for new setting value
+function settings_editSettingValue(workingData, interaction, eventTokens) {
+    //get user's setting object
+    let settingName = eventTokens.shift();
+    let pageNum = eventTokens.shift();
+
+    let settingObj = workingData[interaction.guildId].users.find(obj => {
+        return obj.id == interaction.user.id;
+    }).settings.find(obj => {
+        return obj.name == settingName;
+    });
+
+    switch (settingObj.valueType) {
+        case "boolean":
+            //no need to call new UI builder. Simply swap the value.
+            settingObj.value = !settingObj.value;
+            interaction.update(uiBuilders.settings(workingData, interaction, pageNum, settingName));
+            break;
         
-        //validate the new value
-        switch(settingObj.valueType) {
-            case "mm/dd":
-                let newSettingValue = interaction.fields.getTextInputValue('newSettingValue');
-                let regex = new RegExp("^(0?[1-9]|1[0-2])/(0?[1-9]|[12][0-9]|3[01])$");
-                if(regex.test(newSettingValue)) {
-                    //valid entry
-                    settingObj.value = newSettingValue;
-                    settingObj.changeable = false;
-                    interaction.update(uiBuilders.settingsUI(workingData, interaction, pageNum, settingName));
-                    birthdayDirectory[interaction.guildId] = utils.getUpdatedBirthdayDirectory(workingData, interaction.guildId);
-                } else {
-                    //invalid entry
-                    interaction.update(uiBuilders.settingsUI(workingData, interaction, pageNum, "INVALIDENTRY"));
-                }
-                break;
-        }
+        case "mm/dd":
+            let modal = new ModalBuilder()
+                .setCustomId(["settings", "submitModal", settingName, pageNum].join('-'))
+                .setTitle("Edit Setting")
+                .addComponents(
+                new ActionRowBuilder().addComponents(
+                    new TextInputBuilder()
+                        .setCustomId("newSettingValue")
+                        .setStyle(TextInputStyle.Short)
+                        .setLabel("Enter Date in MM/DD format (Month/Day).")
+                    )
+                )
+
+            interaction.showModal(modal);
+            break;
     }
 }
 
-function usablesShop_selectShelf(workingData, interaction, eventTokens) {
-    let itemName = eventTokens.shift();
-    //get item display name
-    let itemInfo = usables.find(entry => {
-        return entry.name == itemName;
+//handle received modal interaction for setting value change and either change user's setting value OR UPDATE menu to display error message
+function settings_submitModal(workingData, interaction, eventTokens, birthdayDirectory) {
+    let settingName = eventTokens.shift();
+    let pagenum = eventTokens.shift();
+
+    let settingObj = workingData[interaction.guildId].users.find(obj => {
+        return obj.id == interaction.user.id;
+    }).settings.find(obj => {
+        return obj.name == settingName;
     });
-
-    //get user stats/effects
-    let shopperStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, interaction.user.id);
-
-    let row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.usablesShopPurchaseMenuPrefix + "BACK-")
-                .setLabel("Back")
-                .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.usablesShopPurchaseMenuPrefix + "BUY-" + itemInfo.name + "-1")
-                .setLabel("Purchase")
-                .setStyle(ButtonStyle.Success),
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.usablesShopPurchaseMenuPrefix + "BUY-" + itemInfo.name + "-5")
-                .setLabel("Purchase x5")
-                .setStyle(ButtonStyle.Success),
-        );
-
-    let msgContent = bold("===============\nUSABLES SHOP\n===============") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock(`Description: ${itemInfo.description}\nEffect: ${itemInfo.effect}${itemInfo.critEffect ? `\nCrit Effect: ${itemInfo.critEffect}` : ""}\nPrice: ${itemInfo.price} EB`);
-    msgContent += `\nDiscount: (${shopperStatsAndEffects.stats.usablesDiscount}%) ${itemInfo.price} -> ${shopperStatsAndEffects.stats.usablesDiscount ? Math.round(itemInfo.price * ((100 - shopperStatsAndEffects.stats.usablesDiscount) * .01)) :itemInfo.price}`;
-
-    interaction.update({
-        content: msgContent,
-        components: [row],
-        ephemeral: true
-    });
+    
+    //validate the new value
+    switch(settingObj.valueType) {
+        case "mm/dd":
+            let newSettingValue = interaction.fields.getTextInputValue('newSettingValue');
+            let regex = new RegExp("^(0?[1-9]|1[0-2])/(0?[1-9]|[12][0-9]|3[01])$");
+            if(regex.test(newSettingValue)) {
+                //valid entry
+                settingObj.value = newSettingValue;
+                settingObj.changeable = false;
+                interaction.update(uiBuilders.settings(workingData, interaction, pagenum, settingName));
+                birthdayDirectory[interaction.guildId] = utils.getUpdatedBirthdayDirectory(workingData, interaction.guildId);
+            } else {
+                //invalid entry
+                interaction.update(uiBuilders.settings(workingData, interaction, pagenum, "INVALIDENTRY"));
+            }
+            break;
+    }
 }
 
-function usablesShop_purchase(workingData, interaction, eventTokens) {
+//UPDATE to usables shop page 0
+function shopCategories_usables(interaction, shopPages_usables) {
+    interaction.update(uiBuilders.usablesShop(shopPages_usables, 0))
+}
 
+//UPDATE to equipment shop page 0
+function shopCategories_equipment(interaction, shopPages_equipment, shopPages_equipmentDirectory) {
+    interaction.update(uiBuilders.equipsShop(shopPages_equipment, shopPages_equipmentDirectory, 0))
+}
+
+//UPDATE to others shop page 0
+function shopCategories_others() {
+    //NOTE: not yet implemented
+}
+
+//UPDATE to previous page of usables shop
+function usablesShop_prev(interaction, eventTokens, shopPages_usables) {
+    let pagenum = parseInt(eventTokens.shift());
+
+    interaction.update(uiBuilders.usablesShop(shopPages_usables, pagenum - 1))
+}
+
+//UPDATE to next page of usables shop
+function usablesShop_next(interaction, eventTokens, shopPages_usables) {
+    let pagenum = parseInt(eventTokens.shift());
+
+    interaction.update(uiBuilders.usablesShop(shopPages_usables, pagenum + 1));
+}
+
+//UPDATE to item information page of selected item in usables shop
+function usablesShop_shelf(workingData, interaction, eventTokens) {
+    interaction.update(uiBuilders.usablesShopItemInfo(workingData, interaction, eventTokens));
+}
+
+//UPDATE to usables shop page 0
+function usablesShopItemInfo_back(interaction, shopPages_usables) {
+    interaction.update(uiBuilders.usablesShop(shopPages_usables, 0));
+}
+
+//handle purchasing items from usables shop and either send a success or failure message
+function usablesShopItemInfo_purchase(workingData, interaction, eventTokens) {
+    //get item name and info
     let itemName = eventTokens.shift();
-    //fetch item and customer info
     let itemInfo = usables.find(obj => {
         return obj.name == itemName;
     });
@@ -330,7 +392,7 @@ function usablesShop_purchase(workingData, interaction, eventTokens) {
     let row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intEventTokens.usablesShopPurchaseMenuPrefix + "BACK-")
+                .setCustomId(["usablesShopItemInfo", "back"].join('-'))
                 .setStyle(ButtonStyle.Danger)
                 .setLabel("Back")
         )
@@ -342,36 +404,27 @@ function usablesShop_purchase(workingData, interaction, eventTokens) {
     });
 }
 
-function equipsShop_selectShelf(interaction, eventTokens) {
-    //get item's slot and name from event tokens
-    let itemSlot = eventTokens.shift();
-    let itemName = eventTokens.shift();
+function equipsShop_prev(interaction, eventTokens, shopPages_equipment, shopPages_equipmentDirectory) {
+    let pagenum = parseInt(eventTokens.shift());
 
-    //get item display name
-    let itemInfo = equipment[itemSlot].find(entry => {
-        return entry.name == itemName;
-    });
-
-    let row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.equipShopPurchaseMenuPrefix + "BACK-")
-                .setLabel("Back")
-                .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.equipShopPurchaseMenuPrefix + "BUY-" + itemInfo.slot + "-" + itemInfo.name)
-                .setLabel("Purchase")
-                .setStyle(ButtonStyle.Success)
-        );
-
-    interaction.update({
-        content: bold("==================\nEQUIPMENT SHOP\n==================") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock(`Description: ${itemInfo.description}\nEffect: ${itemInfo.effect}\nSlot: ${itemInfo.slot.charAt(0).toUpperCase() + itemInfo.slot.slice(1)}\nPrice: ${itemInfo.price} EB`),
-        components: [row],
-        ephemeral: true
-    });
+    interaction.update(uiBuilders.equipsShop(shopPages_equipment, shopPages_equipmentDirectory, pagenum - 1));
 }
 
-function equipsShop_purchase(workingData, interaction, eventTokens) {
+function equipsShop_next(interaction, eventTokens, shopPages_equipment, shopPages_equipmentDirectory) {
+    let pagenum = parseInt(eventTokens.shift());
+
+    interaction.update(uiBuilders.equipsShop(shopPages_equipment, shopPages_equipmentDirectory, pagenum + 1));
+}
+
+function equipsShop_shelf(interaction, eventTokens) {
+    interaction.update(uiBuilders.equipsShopItemInfo(eventTokens));
+}
+
+function equipsShopItemInfo_back(interaction, shopPages_equipment, shopPages_equipmentDirectory) {
+    interaction.update(uiBuilders.equipsShop(shopPages_equipment, shopPages_equipmentDirectory, 0));
+}
+
+function equipsShopItemInfo_purchase(workingData, interaction, eventTokens) {
     //get item name and slot from eventTokens
     let itemSlot = eventTokens.shift();
     let itemName = eventTokens.shift();
@@ -418,7 +471,7 @@ function equipsShop_purchase(workingData, interaction, eventTokens) {
     let row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intEventTokens.equipShopPurchaseMenuPrefix + "BACK-")
+                .setCustomId(["equipsShopItemInfo", "back"].join('-'))
                 .setStyle(ButtonStyle.Danger)
                 .setLabel("Back")
         )
@@ -430,72 +483,67 @@ function equipsShop_purchase(workingData, interaction, eventTokens) {
     });
 }
 
-function usablesInventory_selectSlot(workingData, interaction, eventTokens) {
-    let itemName = eventTokens.shift();
-    //get user data
-    let accessingUser = workingData[interaction.guildId].users.find(obj => {
-        return obj.id == interaction.user.id;
-    });
+function usablesInv_prev(workingData, interaction, eventTokens) {
+    let pagenum = parseInt(eventTokens.shift());
 
-    //get item display name
-    let itemInfo = accessingUser.itemInventory.find(entry => {
-        return entry.name == itemName;
-    });
-
-    let row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK-")
-                .setLabel("Back")
-                .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "USE-" + itemInfo.name)
-                .setLabel("Use")
-                .setStyle(ButtonStyle.Success)
-        );
-
-    interaction.update({
-        content: bold("===================\nUSABLES INVENTORY\n===================") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock(`Description: ${itemInfo.description}\nEffect: ${itemInfo.effect}${itemInfo.critEffect ? `\nCrit Effect: ${itemInfo.critEffect}` : ""}\nCount: ${itemInfo.count}`),
-        components: [row],
-        ephemeral: true
-    });
+    interaction.update(uiBuilders.usablesInv(workingData, interaction, pagenum - 1));
 }
 
-function equipsInventory_selectSlot(workingData, interaction, eventTokens) {
-    let itemSlot = eventTokens.shift();
-    let itemName = eventTokens.shift();
-    //get user data
-    let accessingUser = workingData[interaction.guildId].users.find(obj => {
-        return obj.id == interaction.user.id;
-    });
+function usablesInv_next(workingData, interaction, eventTokens) {
+    let pagenum = parseInt(eventTokens.shift());
 
-    //get item display name
-    let itemInfo = accessingUser.equipmentInventory[itemSlot].find(entry => {
-        return entry.name == itemName;
-    });
-
-    let row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.playerEquipsInvInfoPrefix + "BACK-")
-                .setLabel("Back")
-                .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.playerEquipsInvInfoPrefix + "EQUIP-" + `${itemInfo.slot}-${itemInfo.name}`)
-                .setLabel(itemInfo.equipped ? "Unequip" : "Equip")
-                .setStyle(itemInfo.equipped ? ButtonStyle.Secondary :ButtonStyle.Success)
-        );
-
-    interaction.update({
-        content: bold("================\nEquips Inventory\n================") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock("Description: " + itemInfo.description + "\nEffect: " + itemInfo.effect + "\nSlot: " + `${itemInfo.slot.charAt(0).toUpperCase() + itemInfo.slot.slice(1)}`),
-        components: [row],
-        ephemeral: true
-    });
+    interaction.update(uiBuilders.usablesInv(workingData, interaction, pagenum + 1));
 }
 
-function equipsInventory_toggleEquip(workingData, interaction, eventTokens) {
+function usablesInv_equips(workingData, interaction) {
+    interaction.update(uiBuilders.equipsInv(workingData, interaction, 0));
+}
+
+function usablesInv_invSpace(workingData, interaction, eventTokens) {
+    let itemName = eventTokens.shift();
+
+    interaction.update(uiBuilders.usablesInvItemInfo(workingData, interaction, itemName));
+}
+
+function usablesInvItemInfo_back(workingData, interaction) {
+    interaction.update(uiBuilders.usablesInv(workingData, interaction, 0))
+}
+
+function usablesInvItemInfo_use(client, workingData, interaction, eventTokens) {
+    usableItemsFunctionalities(client, workingData, interaction, eventTokens);
+}
+
+function equipsInv_prev(workingData, interaction, eventTokens) {
+    let pagenum = parseInt(eventTokens.shift());
+
+    interaction.update(uiBuilders.equipsInv(workingData, interaction, pagenum - 1));
+}
+
+function equipsInv_next(workingData, interaction, eventTokens) {
+    let pagenum = parseInt(eventTokens.shift());
+
+    interaction.update(uiBuilders.equipsInv(workingData, interaction, pagenum + 1));
+}
+
+function equipsInv_usables(workingData, interaction) {
+    interaction.update(uiBuilders.usablesInv(workingData, interaction, 0));
+}
+
+function equipsInv_invSpace(workingData, interaction, eventTokens) {
     let itemSlot = eventTokens.shift();
     let itemName = eventTokens.shift();
+
+    interaction.update(uiBuilders.equipsInvItemInfo(workingData, interaction, itemSlot, itemName));
+}
+
+function equipsInvItemInfo_back(workingData, interaction) {
+    interaction.update(uiBuilders.equipsInv(workingData, interaction, 0));
+}
+
+function equipsInvItemInfo_equip(workingData, interaction, eventTokens) {
+    let itemSlot = eventTokens.shift();
+    let itemName = eventTokens.shift();
+
     //get user data
     let accessingUser = workingData[interaction.guildId].users.find(obj => {
         return obj.id == interaction.user.id;
@@ -520,24 +568,10 @@ function equipsInventory_toggleEquip(workingData, interaction, eventTokens) {
         itemInfo.equipped = true;
     }
 
-    let row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.playerEquipsInvInfoPrefix + "BACK-")
-                .setLabel("Back")
-                .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.playerEquipsInvInfoPrefix + "EQUIP-" + `${itemInfo.slot}-${itemInfo.name}`)
-                .setLabel(itemInfo.equipped ? "Unequip" : "Equip")
-                .setStyle(itemInfo.equipped ? ButtonStyle.Secondary :ButtonStyle.Success)
-        );
-
-    interaction.update({
-        content: bold("================\nEquips Inventory\n================") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock("Description: " + itemInfo.description + "\nEffect: " + itemInfo.effect + "\nSlot: " + `${itemInfo.slot.charAt(0).toUpperCase() + itemInfo.slot.slice(1)}`),
-        components: [row],
-        ephemeral: true
-    });
+    interaction.update(uiBuilders.equipsInvItemInfo(workingData, interaction, itemSlot, itemName));
 }
+
+//=====================================================================================================================================
 
 function stockExchange_selectStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens) {
     uiBuilders.stockExchangeStockInfoUI(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens).then(ui => {
@@ -546,7 +580,7 @@ function stockExchange_selectStock(workingData, interaction, realtimeStockData, 
 }
 
 function stockExchange_refreshStockInfo(workingData, interaction, realtimeStockData) {
-    interaction.update(uiBuilders.stockExchangeUI(workingData, interaction, realtimeStockData, 0));
+    interaction.update(uiBuilders.stockExchange(workingData, interaction, realtimeStockData, 0));
 }
 
 function stockExchange_openInvestments(workingData, interaction, realtimeStockData, eventTokens, pagenum) {
@@ -690,9 +724,20 @@ function stockExchange_executeStockSell(workingData, interaction, realtimeStockD
 
 module.exports = {
     mainMenu_changelog, mainMenu_findTreasure, mainMenu_help, mainMenu_msgLeaderboard, mainMenu_openInv, mainMenu_shop, mainMenu_showStats, mainMenu_userLeaderboard, mainMenu_settings, mainMenu_stockExchange,
-    settings_editSettingValue,
-    help_openPage,
-    usablesInventory_selectSlot, usablesShop_purchase, usablesShop_selectShelf,
-    equipsShop_selectShelf, equipsShop_purchase, equipsInventory_selectSlot, equipsInventory_toggleEquip,
+    settings_editSettingValue, settings_prev, settings_next, settings_submitModal,
+    changelog_prev, changelog_next,
+    msgLeaderboard_next, msgLeaderboard_prev,
+    userLeaderboard_prev, userLeaderboard_next,
+    mainHelp_back, mainHelp_prev, mainHelp_next, mainHelp_sectionButton,
+    shopCategories_usables, shopCategories_equipment, shopCategories_others,
+    usablesShop_prev, usablesShop_next, usablesShop_shelf,
+    usablesShopItemInfo_back, usablesShopItemInfo_purchase,
+    equipsShop_shelf, equipsShop_prev, equipsShop_next,
+    equipsShopItemInfo_back, equipsShopItemInfo_purchase,
+    usablesInv_prev, usablesInv_next, usablesInv_invSpace, usablesInv_equips,
+    usablesInvItemInfo_back, usablesInvItemInfo_use,
+    equipsInv_prev, equipsInv_next, equipsInv_usables, equipsInv_invSpace,
+    equipsInvItemInfo_back, equipsInvItemInfo_equip,
+
     stockExchange_selectStock, stockExchange_refreshStockInfo, stockExchange_investInStock, stockExchange_openInvestments, stockExchange_executeStockSell
 }

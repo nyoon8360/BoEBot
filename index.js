@@ -166,7 +166,7 @@ client.on('ready', () => {
         //update menu in case pick up edbucks button is stuck
         try {
             client.guilds.cache.get(guildId).channels.cache.get(workingData[guildId].activeMenuChannelId).messages.fetch(workingData[guildId].activeMenuId).then(result => {
-                result.edit(uiBuilder.menuUI());
+                result.edit(uiBuilder.mainMenu());
             });
         } catch (exception) {
             console.log("Automatic menu update failed.");
@@ -189,7 +189,7 @@ client.on('ready', () => {
                 if (usables[(pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex] != undefined) {
                     row.addComponents(
                         new ButtonBuilder()
-                            .setCustomId(intEventTokens.usablesShopSelectShelfPrefix + usables[(pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex].name)
+                            .setCustomId(["usablesShop", "shelf", usables[(pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex].name].join('-'))
                             .setLabel(usables[(pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex].displayName + `|$${usables[(pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex].price}`)
                             .setStyle(ButtonStyle.Success)
                     )
@@ -197,7 +197,7 @@ client.on('ready', () => {
                     row.addComponents(
                         new ButtonBuilder()
                             .setLabel("Empty Shelf")
-                            .setCustomId(intEventTokens.usablesShopSelectShelfPrefix + "EMPTYSHELF-" + ((pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex))
+                            .setCustomId("EMPTYSHELF-" + ((pageIndex * (4 * config.usablesShopItemsPerRow)) + (rowIndex * config.usablesShopItemsPerRow) + shelfIndex))
                             .setStyle(ButtonStyle.Secondary)
                             .setDisabled(true)
                     )
@@ -234,15 +234,15 @@ client.on('ready', () => {
                     let itemInfo = equipment[dirEntry[0]][ ((4 * config.equipsShopItemsPerRow) * dirEntry[1]) + (rowIndex * config.equipsShopItemsPerRow) + slotIndex];
                     row.addComponents(
                         new ButtonBuilder()
-                            .setCustomId(intEventTokens.equipShopSelectShelfPrefix + `${itemInfo.slot}-${itemInfo.name}`)
+                            .setCustomId(["equipsShop", "shelf", itemInfo.slot, itemInfo.name].join('-'))
                             .setLabel(`${itemInfo.displayName}|${itemInfo.price}`)
                             .setStyle(ButtonStyle.Success)
                     )
                 } else {
                     row.addComponents(
                         new ButtonBuilder()
-                            .setLabel("Empty Space")
-                            .setCustomId(intEventTokens.equipShopSelectShelfPrefix + "EMPTYSPACE-" + dirEntry.toString() + ((4 * config.equipsShopItemsPerRow) + (rowIndex * config.equipsShopItemsPerRow) + slotIndex))
+                            .setLabel("Empty Shelf")
+                            .setCustomId("EMPTYSHELF-" + dirEntry.toString() + ((4 * config.equipsShopItemsPerRow) + (rowIndex * config.equipsShopItemsPerRow) + slotIndex))
                             .setStyle(ButtonStyle.Secondary)
                             .setDisabled(true)
                     )
@@ -317,7 +317,7 @@ client.on('messageCreate', (message) => {
         let curDate = new Date(Date.now());
         switch(message.content.substring(1)) {
             case "spawnmenu":
-                message.channel.send(uiBuilder.menuUI()).then(msg => {
+                message.channel.send(uiBuilder.mainMenu()).then(msg => {
                     workingData[message.guildId].activeMenuId = msg.id;
                     workingData[message.guildId].activeMenuChannelId = msg.channelId;
                 });
@@ -362,7 +362,7 @@ client.on('messageCreate', (message) => {
 
             case "updatemenu":
                 message.guild.channels.cache.get(workingData[message.guildId].activeMenuChannelId).messages.fetch(workingData[message.guildId].activeMenuId).then(result => {
-                    result.edit(uiBuilder.menuUI());
+                    result.edit(uiBuilder.mainMenu());
                 });
                 console.log(`(${curDate.toLocaleString()}) Manual Menu Update Complete`);
                 break;
@@ -388,20 +388,6 @@ client.on('messageCreate', (message) => {
 
             //a command used solely for random testing purposes
             case "testcommand":
-
-                let interactionDirectory = {
-                    123: {
-                        path: ["somewhere", "someplace"],
-                        parameter: 5
-                    }
-                }
-
-                let interactionData = interactionDirectory[123];
-                delete interactionDirectory[123];
-
-                console.log(interactionDirectory);
-                console.log(interactionData);
-
                 break;
         }
     } else {
@@ -668,286 +654,323 @@ client.on('messageReactionAdd', async (messageReaction, user) => {
 //===================================================
 //             BUTTON EVENT LISTENERS
 //===================================================
+
+/*
+The main interaction event listener parses the received interaction's customId and splits it into an array of string tokens
+    called eventTokens.
+
+The eventTokens array is in the format: ["UIInteractedWith", "name/typeOfComponentInteractedWith", ..."anyOtherData"]
+
+The first two tokens are consumed by the interactionCreate listener and the interactionListenersMap so the only tokens passed
+    to the btnEventHandlers functions are the optional additional data tokens if any were passed by the interaction.
+*/
+
+//Interaction event listeners map
+var interactionListenersMap = new Map();
+
+interactionListenersMap.set("mainMenu", async (interaction, eventTokens) => {
+    switch(eventTokens.shift()) {
+        case "showStats":
+            btnEventHandlers.mainMenu_showStats(workingData, interaction);
+            break;
+    
+        case "openInv":
+            btnEventHandlers.mainMenu_openInv(workingData, interaction);
+            break;
+        
+        case "trade":
+            break;
+
+        case "findTreasure":
+            btnEventHandlers.mainMenu_findTreasure(workingData, interaction);
+            break;
+        
+        case "minigames":
+            break;
+
+        case "challenge":
+            break;
+
+        case "wager":
+            break;
+
+        case "shop":
+            btnEventHandlers.mainMenu_shop(interaction);
+            break;
+
+        case "stockExchange":
+            await utils.getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall).then((values) => {
+                realtimeStockData = values[0];
+                tenDayStockData = values[1];
+                lastStockAPICall = values[2];
+            });
+            btnEventHandlers.mainMenu_stockExchange(workingData, interaction, realtimeStockData);
+            break;
+
+        case "help":
+            //Show help text for the bot
+            btnEventHandlers.mainMenu_help(interaction);
+            break;
+        
+        case "userLeaderboard":
+            //Display leaderboard for top balance users
+            btnEventHandlers.mainMenu_userLeaderboard(workingData, interaction);
+            break;
+        
+        case "msgLeaderboard":
+            //Display leaderboard for top earning messages
+            btnEventHandlers.mainMenu_msgLeaderboard(client, workingData, interaction);
+            break;
+
+        case "settings":
+            btnEventHandlers.mainMenu_settings(workingData, interaction);
+            break;
+
+        case "changelog":
+            btnEventHandlers.mainMenu_changelog(interaction);
+            break;
+    }
+});
+
+interactionListenersMap.set("mainHelp", (interaction, eventTokens) => {
+    switch (eventTokens.shift()) {
+        case "back":
+            btnEventHandlers.mainHelp_back(interaction);
+            break;
+
+        case "prev":
+            btnEventHandlers.mainHelp_prev(interaction, eventTokens);
+            break;
+
+        case "next":
+            btnEventHandlers.mainHelp_next(interaction, eventTokens);
+            break;
+        
+        case "sectionButton":
+            btnEventHandlers.mainHelp_sectionButton(interaction, eventTokens);
+            break;
+    }
+});
+
+interactionListenersMap.set("msgLeaderboard", (interaction, eventTokens) => {
+    switch (eventTokens.shift()) {
+        case "prev":
+            btnEventHandlers.msgLeaderboard_prev(client, workingData, interaction, eventTokens);
+            break;
+
+        case "next":
+            btnEventHandlers.msgLeaderboard_next(client, workingData, interaction, eventTokens);
+            break;
+    }
+});
+
+interactionListenersMap.set("userLeaderboard", (interaction, eventTokens) => {
+    switch (eventTokens.shift()) {
+        case "prev":
+            btnEventHandlers.userLeaderboard_prev(workingData, interaction, eventTokens);
+            break;
+
+        case "next":
+            btnEventHandlers.userLeaderboard_next(workingData, interaction, eventTokens);
+            break;
+    }
+});
+
+interactionListenersMap.set("changelog", (interaction, eventTokens) => {
+    switch (eventTokens.shift()) {
+        case "prev":
+            btnEventHandlers.changelog_prev(interaction, eventTokens);
+            break;
+
+        case "next":
+            btnEventHandlers.changelog_next(interaction, eventTokens);
+            break;
+    }
+});
+
+interactionListenersMap.set("settings", (interaction, eventTokens) => {
+    switch (eventTokens.shift()) {
+        case "prev":
+            btnEventHandlers.settings_prev(workingData, interaction, eventTokens);
+            break;
+
+        case "next":
+            btnEventHandlers.settings_next(workingData, interaction, eventTokens);
+            break;
+
+        case "editSettingValue":
+            btnEventHandlers.settings_editSettingValue(workingData, interaction, eventTokens);
+            break;
+
+        case "submitModal":
+            btnEventHandlers.settings_submitModal(workingData, interaction, eventTokens, birthdayDirectory);
+            break;
+    }
+});
+
+interactionListenersMap.set("shopCategories", (interaction, eventTokens) => {
+    switch (eventTokens.shift()) {
+        case "usables":
+            btnEventHandlers.shopCategories_usables(interaction, shopPages_usables);
+            break;
+
+        case "equipment":
+            btnEventHandlers.shopCategories_equipment(interaction, shopPages_equipment, shopPages_equipmentDirectory);
+            break;
+
+        case "others":
+            btnEventHandlers.shopCategories_others();//NOTE: not implemented yet
+            break;
+    }
+});
+
+interactionListenersMap.set("usablesShop", (interaction, eventTokens) => {
+    switch (eventTokens.shift()) {
+        case "prev":
+            btnEventHandlers.usablesShop_prev(interaction, eventTokens, shopPages_usables);
+            break;
+
+        case "next":
+            btnEventHandlers.usablesShop_next(interaction, eventTokens, shopPages_usables);
+            break;
+
+        case "shelf":
+            btnEventHandlers.usablesShop_shelf(workingData, interaction, eventTokens);
+            break;
+    }
+});
+
+interactionListenersMap.set("usablesShopItemInfo", (interaction, eventTokens) => {
+    switch (eventTokens.shift()) {
+        case "back":
+            btnEventHandlers.usablesShopItemInfo_back(interaction, shopPages_usables);
+            break;
+
+        case "purchase":
+            btnEventHandlers.usablesShopItemInfo_purchase(workingData, interaction, eventTokens);
+            break;
+    }
+});
+
+interactionListenersMap.set("equipsShop", (interaction, eventTokens) => {
+    switch (eventTokens.shift()) {
+        case "prev":
+            btnEventHandlers.equipsShop_prev(interaction, eventTokens, shopPages_equipment, shopPages_equipmentDirectory);
+            break;
+
+        case "next":
+            btnEventHandlers.equipsShop_next(interaction, eventTokens, shopPages_equipment, shopPages_equipmentDirectory);
+            break;
+        
+        case "shelf":
+            btnEventHandlers.equipsShop_shelf(interaction, eventTokens);
+            break;
+    }
+});
+
+interactionListenersMap.set("equipsShopItemInfo", (interaction, eventTokens) => {
+    switch (eventTokens.shift()) {
+        case "back":
+            btnEventHandlers.equipsShopItemInfo_back(interaction, shopPages_equipment, shopPages_equipmentDirectory);
+            break;
+
+        case "purchase":
+            btnEventHandlers.equipsShopItemInfo_purchase(workingData, interaction, eventTokens);
+            break;
+    }
+});
+
+interactionListenersMap.set("usablesInv", (interaction, eventTokens) => {
+    switch (eventTokens.shift()) {
+        case "prev":
+            btnEventHandlers.usablesInv_prev(workingData, interaction, eventTokens);
+            break;
+
+        case "next":
+            btnEventHandlers.usablesInv_next(workingData, interaction, eventTokens);
+            break;
+
+        case "equips":
+            btnEventHandlers.usablesInv_equips(workingData, interaction);
+            break;
+
+        case "invSpace":
+            btnEventHandlers.usablesInv_invSpace(workingData, interaction, eventTokens);
+            break;
+    }
+});
+
+interactionListenersMap.set("usablesInvItemInfo", (interaction, eventTokens) => {
+    switch (eventTokens.shift()) {
+        case "back":
+            btnEventHandlers.usablesInvItemInfo_back(workingData, interaction);
+            break;
+
+        case "use":
+            btnEventHandlers.usablesInvItemInfo_use(client, workingData, interaction, eventTokens);
+            break;
+    }
+});
+
+interactionListenersMap.set("equipsInv", (interaction, eventTokens) => {
+    switch (eventTokens.shift()) {
+        case "prev":
+            btnEventHandlers.equipsInv_prev(workingData, interaction, eventTokens);
+            break;
+
+        case "next":
+            btnEventHandlers.equipsInv_next(workingData, interaction, eventTokens);
+            break;
+
+        case "usables":
+            btnEventHandlers.equipsInv_usables(workingData, interaction);
+            break;
+
+        case "invSpace":
+            btnEventHandlers.equipsInv_invSpace(workingData, interaction, eventTokens);
+            break;
+    }
+});
+
+interactionListenersMap.set("equipsInvItemInfo", (interaction, eventTokens) => {
+    switch (eventTokens.shift()) {
+        case "back":
+            btnEventHandlers.equipsInvItemInfo_back(workingData, interaction);
+            break;
+
+        case "equip":
+            btnEventHandlers.equipsInvItemInfo_equip(workingData, interaction, eventTokens);
+            break;
+    }
+});
+
+interactionListenersMap.set("stockExchange", (interaction, eventTokens) => {
+    switch (eventTokens.shift()) {
+        case "prev":
+            break;
+
+        case "next":
+            break;
+
+        case "refresh":
+            break;
+
+        case "selectStock":
+            break;
+    }
+});
+
 client.on('interactionCreate', async (interaction) => {
     //if interaction is not a button or doesnt have a guildId then return
     if (!interaction.guildId) return;
 
     let eventTokens = interaction.customId.split("-");
 
+    interactionListenersMap.get(eventTokens.shift())(interaction, eventTokens);
+
+    /*
     //handlers for button interaction events
     switch (eventTokens.shift()) {
-        //Main menu events
-        case intEventTokens.mainMenuPrefix.slice(0, -1):
-            switch(eventTokens.shift()) {
-                case "showstats":
-                //show user stats
-                btnEventHandlers.mainMenu_showStats(workingData, interaction);
-                break;
-            
-                case "openinv":
-                    btnEventHandlers.mainMenu_openInv(workingData, interaction);
-                    break;
-        
-                case "trade":
-                    break;
-        
-                case "findtreasure":
-                    //Pick up edbucks button
-                    btnEventHandlers.mainMenu_findTreasure(workingData, interaction);
-                    break;
-                
-                case "minigames":
-                    break;
-        
-                case "challenge":
-                    break;
-        
-                case "wager":
-                    break;
-        
-                case "shop":
-                    //Open shop categories
-                    btnEventHandlers.mainMenu_shop(interaction);
-                    break;
-        
-                case "stockexchange":
-                    await utils.getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall).then((values) => {
-                        realtimeStockData = values[0];
-                        tenDayStockData = values[1];
-                        lastStockAPICall = values[2];
-                    });
-                    btnEventHandlers.mainMenu_stockExchange(workingData, interaction, realtimeStockData);
-                    break;
-
-                case "help":
-                    //Show help text for the bot
-                    btnEventHandlers.mainMenu_help(interaction);
-                    break;
-                
-                case "userleaderboard":
-                    //Display leaderboard for top balance users
-                    btnEventHandlers.mainMenu_userLeaderboard(workingData, interaction);
-                    break;
-                
-                case "msgleaderboard":
-                    //Display leaderboard for top earning messages
-                    btnEventHandlers.mainMenu_msgLeaderboard(client, workingData, interaction, 0);
-                    break;
-
-                case "settings":
-                    btnEventHandlers.mainMenu_settings(workingData, interaction);
-                    break;
-
-                case "changelog":
-                    btnEventHandlers.mainMenu_changelog(interaction);
-                    break;
-            }
-            break;
-
-        case intEventTokens.helpNavPrefix.slice(0, -1):
-            let section = eventTokens.shift();
-            if (section == "BACK") {
-                btnEventHandlers.help_openPage(interaction, "MAIN");
-            } else {
-                let pagenum = parseInt(eventTokens.shift());
-                btnEventHandlers.help_openPage(interaction, section, pagenum);
-            }
-            break;
-
-        case intEventTokens.msgLeaderboardNav.slice(0, -1):
-            switch(eventTokens.shift()) {
-                case "PREV":
-                    btnEventHandlers.mainMenu_msgLeaderboard(client, workingData, interaction, parseInt(eventTokens.shift()) - 1);
-                    break;
-
-                case "NEXT":
-                    btnEventHandlers.mainMenu_msgLeaderboard(client, workingData, interaction, parseInt(eventTokens.shift()) + 1);
-                    break;
-            }
-            break;
-
-        case intEventTokens.settingsEditValuePrefix.slice(0, -1):
-            btnEventHandlers.settings_editSettingValue(workingData, interaction, eventTokens, birthdayDirectory);
-            break;
-
-        case intEventTokens.userLeaderboardNavPrefix.slice(0, -1):
-            switch (eventTokens.shift()) {
-                case "PREV":
-                    interaction.update(uiBuilder.userLeaderboardUI(workingData, interaction, parseInt(eventTokens.shift()) - 1));
-                    break;
-
-                case "NEXT":
-                    interaction.update(uiBuilder.userLeaderboardUI(workingData, interaction, parseInt(eventTokens.shift()) + 1));
-                    break;
-            }
-            break;
-
-        //Inventory slot select events
-        case intEventTokens.playerUsablesInvSelectSlotPrefix.slice(0, -1):
-            btnEventHandlers.usablesInventory_selectSlot(workingData, interaction, eventTokens);
-            break;
-
-        case intEventTokens.playerUsablesInvInfoPrefix.slice(0, -1):
-            switch(eventTokens.shift()) {
-                case "BACK":
-                    interaction.update(uiBuilder.usablesInvUI(workingData, interaction, 0));
-                    break;
-                
-                case "USE":
-                    usableItemsFunctionalities(client, workingData, interaction, eventTokens);
-                    break;
-            }
-            break;
-
-        //usables inventory navigation button events
-        case intEventTokens.playerUsablesInvNavPrefix.slice(0, -1):
-            switch (eventTokens.shift()) {
-                case "PREV":
-                interaction.update(uiBuilder.usablesInvUI(workingData, interaction, parseInt(eventTokens.shift()) - 1));
-                break;
-
-                case "EQUIPS":
-                    interaction.update(uiBuilder.equipsInvUI(workingData, interaction, 0));
-                    break;
-
-                case "NEXT":
-                    interaction.update(uiBuilder.usablesInvUI(workingData, interaction, parseInt(eventTokens.shift()) + 1));
-                    break;
-            }
-            break;
-
-        //equips inventory navigation button events
-        case intEventTokens.playerEquipsInvNavPrefix.slice(0, -1):
-            switch (eventTokens.shift()) {
-                case "PREV":
-                interaction.update(uiBuilder.equipsInvUI(workingData, interaction, parseInt(eventTokens.shift()) - 1));
-                break;
-
-                case "USABLES":
-                    interaction.update(uiBuilder.usablesInvUI(workingData, interaction, 0));
-                    break;
-
-                case "NEXT":
-                    interaction.update(uiBuilder.equipsInvUI(workingData, interaction, parseInt(eventTokens.shift()) + 1));
-                    break;
-            }
-            break;
-
-        //Shop category menu events
-        case intEventTokens.shopCategoryPrefix.slice(0, -1):
-            switch (eventTokens.shift()) {
-                case "usables":
-                    //open page 1 of the usables shop
-                    interaction.update(uiBuilder.usablesShopUI(shopPages_usables, 0));
-                    break;
-                
-                case "equipment":
-                    interaction.update(uiBuilder.equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, 0));
-                    break;
-    
-                case "others":
-                    //TODO: figure out what other usables to implement then implement store
-                    break;
-            }
-            break;
-        
-        //Usables shop shelf select events
-        case intEventTokens.usablesShopSelectShelfPrefix.slice(0, -1):
-            //Open window displaying selected item's purchase page
-            btnEventHandlers.usablesShop_selectShelf(workingData, interaction, eventTokens);
-            break;
-
-        //Usables shop nav buttons events
-        case intEventTokens.usablesShopNavPagesPrefix.slice(0, -1):
-            //Navigate pages of usables shop
-
-            switch(eventTokens.shift()) {
-                case "PREV":
-                    interaction.update(uiBuilder.usablesShopUI(shopPages_usables, parseInt(eventTokens.shift()) - 1));
-                    break;
-
-                case "NEXT":
-                    interaction.update(uiBuilder.usablesShopUI(shopPages_usables, parseInt(eventTokens.shift()) + 1));
-                    break;
-            }
-            break;
-
-        //Usables shop purchase menu events
-        case intEventTokens.usablesShopPurchaseMenuPrefix.slice(0, -1):
-            if (eventTokens.shift() == "BACK") {
-                //Open page 1 of the usables shop if the BACK button is pressed in an item's purchase window
-                interaction.update(uiBuilder.usablesShopUI(shopPages_usables, 0));
-            } else {
-                btnEventHandlers.usablesShop_purchase(workingData, interaction, eventTokens);
-            }
-            break;
-
-        case intEventTokens.changelogNavPrefix.slice(0, -1):
-            switch(eventTokens.shift()){
-                case "PREV":
-                    interaction.update(uiBuilder.changelogUI(parseInt(eventTokens.shift()) - 1));
-                    break;
-
-                case "NEXT":
-                    interaction.update(uiBuilder.changelogUI(parseInt(eventTokens.shift()) + 1));
-                    break;
-            }
-            break;
-
-        case intEventTokens.equipShopNavPagesPrefix.slice(0, -1):
-            switch (eventTokens.shift()) {
-                case "PREV":
-                    interaction.update(uiBuilder.equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, parseInt(eventTokens.shift()) - 1));
-                    break;
-
-                case "NEXT":
-                    interaction.update(uiBuilder.equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, parseInt(eventTokens.shift()) + 1));
-                    break;
-            }
-            break;
-
-        //Equipment shop select shelf events 
-        case intEventTokens.equipShopSelectShelfPrefix.slice(0, -1):
-            btnEventHandlers.equipsShop_selectShelf(interaction, eventTokens);
-            break;
-
-        case intEventTokens.equipShopPurchaseMenuPrefix.slice(0, -1):
-            if (eventTokens.shift() == "BACK") {
-                //Open page 1 of the usables shop if the BACK button is pressed in an item's purchase window
-                interaction.update(uiBuilder.equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, 0));
-            } else {
-                btnEventHandlers.equipsShop_purchase(workingData, interaction, eventTokens);
-            }
-            break;
-
-        case intEventTokens.playerEquipsInvSelectSlotPrefix.slice(0, -1):
-            btnEventHandlers.equipsInventory_selectSlot(workingData, interaction, eventTokens);
-            break;
-
-        case intEventTokens.playerEquipsInvInfoPrefix.slice(0, -1) :
-            switch(eventTokens.shift()) {
-                case "BACK":
-                    interaction.update(uiBuilder.equipsInvUI(workingData, interaction, 0));
-                    break;
-
-                case "EQUIP":
-                    btnEventHandlers.equipsInventory_toggleEquip(workingData, interaction, eventTokens);
-                    break;
-            }
-            break;
-
-        case intEventTokens.settingsNavPrefix.slice(0, -1):
-            switch(eventTokens.shift()) {
-                case "NEXT":
-                    interaction.update(uiBuilder.settingsUI(workingData, interaction, parseInt(eventTokens.shift()) + 1));
-                    break;
-
-                case "PREV":
-                    interaction.update(uiBuilder.settingsUI(workingData, interaction, parseInt(eventTokens.shift()) - 1));
-                    break;
-            }
-
-            break;
 
         case intEventTokens.stockExchangeNavPrefix.slice(0, -1):
             //NOTE: No need for switch statement here since only refresh button needs to be implemented since we cant have more than 1 page currently due to API limits
@@ -1024,6 +1047,7 @@ client.on('interactionCreate', async (interaction) => {
             }
             break;
     }
+    */
 });
 
 //===================================================
