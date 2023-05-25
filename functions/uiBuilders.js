@@ -1,10 +1,11 @@
 const { ButtonStyle, ActionRowBuilder, ButtonBuilder, EmbedBuilder, bold, time, underscore, codeBlock, inlineCode, userMention} = require('discord.js');
-const changelog = require('../changelog.json');
-const intEventTokens = require('../constants/intEventTokens.js');
+const changelogPages = require('../pages/changelog.json');
 const config = require('../constants/configConsts.js');
 const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
 const utils = require('./utils.js');
-const guidePages = require('../guidePages.json');
+const guidePages = require('../pages/guidePages.json');
+const usables = require('../items/usables.json');
+const equipment = require('../items/equipment.json');
 
 //===================================================
 //===================================================
@@ -14,27 +15,37 @@ const guidePages = require('../guidePages.json');
 //===================================================
 //===================================================
 
+/*
+Functions returning UIs in the form of discord.js InteractionReplyOptions
+
+Nearly all UIs displayed by the bot are defined here with the exception of some minor notification UIs or UIs without interactable elements.
+
+The function names act as the name of the UI for all purposes relating to eventTokens.
+
+All interactable components have a customId in the format: "nameOfUI-componentName/Type" + (optional)"-anyOtherInfo"
+*/
+
 //UI builder for main menu of discord bot
-function menuUI(tButtonDisabled) {
+function mainMenu(tButtonDisabled) {
     let row1 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'showstats-')
+            .setCustomId(["mainMenu", "showStats"].join('-'))
             .setLabel('Show Stats')
             .setStyle(ButtonStyle.Primary)
             .setEmoji('📜'),
         new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'openinv-')
+            .setCustomId(["mainMenu", "openInv"].join('-'))
             .setLabel('Open Inventory')
             .setStyle(ButtonStyle.Primary)
             .setEmoji('📦'),
         new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'trade-')
+            .setCustomId(["mainMenu", "trade"].join('-'))
             .setLabel('Trade')
             .setStyle(ButtonStyle.Primary)
             .setEmoji('🤝')
             .setDisabled(true),
         new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'findtreasure-')
+            .setCustomId(["mainMenu", "findTreasure"].join('-'))
             .setLabel('Pick Up Edbucks')
             .setStyle(ButtonStyle.Primary)
             .setEmoji('💸')
@@ -43,19 +54,19 @@ function menuUI(tButtonDisabled) {
 
     let row2 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'minigames-')
+            .setCustomId(["mainMenu", "minigames"].join('-'))
             .setLabel('Minigames')
             .setStyle(ButtonStyle.Success)
             .setEmoji('🎮')
             .setDisabled(true),
         new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'challenge-')
+            .setCustomId(["mainMenu", "challenge"].join('-'))
             .setLabel('Challenge')
             .setStyle(ButtonStyle.Success)
             .setEmoji('🙌')
             .setDisabled(true),
         new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'wager-')
+            .setCustomId(["mainMenu", "wager"].join('-'))
             .setLabel('Wager Edbucks')
             .setStyle(ButtonStyle.Success)
             .setEmoji('🎲')
@@ -64,12 +75,12 @@ function menuUI(tButtonDisabled) {
 
     let row3 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'shop-')
+            .setCustomId(["mainMenu", "shop"].join('-'))
             .setLabel('Shop')
             .setStyle(ButtonStyle.Danger)
             .setEmoji('🛒'),
         new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'stockexchange-')
+            .setCustomId(["mainMenu", "stockExchange"].join('-'))
             .setLabel('Edbuck Exchange')
             .setStyle(ButtonStyle.Danger)
             .setEmoji('🏢')
@@ -77,27 +88,27 @@ function menuUI(tButtonDisabled) {
 
     let row4 = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'userleaderboard-')
+            .setCustomId(["mainMenu", "userLeaderboard"].join('-'))
             .setLabel('User Leaderboard')
             .setStyle(ButtonStyle.Secondary)
             .setEmoji('🏆'),
         new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'msgleaderboard-')
+            .setCustomId(["mainMenu", "msgLeaderboard"].join('-'))
             .setLabel('Message Leaderboard')
             .setStyle(ButtonStyle.Secondary)
             .setEmoji('🥇'),
         new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'settings-')
+            .setCustomId(["mainMenu", "settings"].join('-'))
             .setLabel('Settings')
             .setStyle(ButtonStyle.Secondary)
             .setEmoji('⚙️'),
         new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'changelog-')
+            .setCustomId(["mainMenu", "changelog"].join('-'))
             .setLabel('Changelog')
             .setStyle(ButtonStyle.Secondary)
             .setEmoji('📰'),
         new ButtonBuilder()
-            .setCustomId(intEventTokens.mainMenuPrefix + 'help-')
+            .setCustomId(["mainMenu", "help"].join('-'))
             .setLabel('Help')
             .setStyle(ButtonStyle.Secondary)
             .setEmoji('❓')
@@ -109,32 +120,37 @@ function menuUI(tButtonDisabled) {
     };
 }
 
-function helpUI(section, pagenum) {
+function mainHelp(section, pagenum) {
     let navRow;
 
-    if (section == "MAIN") {
+    if (section == "main") {
+        /*
+        NOTE: The help menu buttons are special in that the 2nd event token is not a unique identifier of the button pressed but instead
+        is "sectionButton" with the actual unique section being the 3rd eventToken denoting the name of the section as described in guidePages.json.
+        */
+
         let row1 = new ActionRowBuilder()
                 .addComponents(
                     new ButtonBuilder()
                         .setLabel("Earning Edbucks")
                         .setStyle(ButtonStyle.Success)
-                        .setCustomId(intEventTokens.helpNavPrefix + "howToEarn-" + 0),
+                        .setCustomId(["mainHelp", "sectionButton", "howToEarn"].join('-')),
                     new ButtonBuilder()
                         .setLabel("Stats")
                         .setStyle(ButtonStyle.Success)
-                        .setCustomId(intEventTokens.helpNavPrefix + "stats-" + 0),
+                        .setCustomId(["mainHelp", "sectionButton", "stats"].join('-')),
                     new ButtonBuilder()
                         .setLabel("Usables/Equips")
                         .setStyle(ButtonStyle.Success)
-                        .setCustomId(intEventTokens.helpNavPrefix + "usablesAndEquipment-" + 0),
+                        .setCustomId(["mainHelp", "sectionButton", "usablesAndEquipment"].join('-')),
                     new ButtonBuilder()
                         .setLabel("Status Effects")
                         .setStyle(ButtonStyle.Success)
-                        .setCustomId(intEventTokens.helpNavPrefix + "statusEffects-" + 0),
+                        .setCustomId(["mainHelp", "sectionButton", "statusEffects"].join('-')),
                     new ButtonBuilder()
                         .setLabel("Edbuck Exchange")
                         .setStyle(ButtonStyle.Success)
-                        .setCustomId(intEventTokens.helpNavPrefix + "edbuckExchange-" + 0)
+                        .setCustomId(["mainHelp", "sectionButton", "edbuckExchange"].join('-'))
                 )
 
             return {
@@ -157,11 +173,11 @@ Click on any of the buttons below to learn about different aspects of the bot!
                 new ButtonBuilder()
                     .setLabel("Back")
                     .setStyle(ButtonStyle.Danger)
-                    .setCustomId(intEventTokens.helpNavPrefix + "BACK"),
+                    .setCustomId(["mainHelp", "back"].join('-')),
                 new ButtonBuilder()
                     .setLabel("Prev")
                     .setStyle(ButtonStyle.Primary)
-                    .setCustomId(intEventTokens.helpNavPrefix + section + "-" + (pagenum - 1))
+                    .setCustomId(["mainHelp", "prev", section, pagenum].join('-'))
                     .setDisabled(pagenum == 0),
                 new ButtonBuilder()
                     .setLabel("Page " + (pagenum + 1))
@@ -171,7 +187,7 @@ Click on any of the buttons below to learn about different aspects of the bot!
                 new ButtonBuilder()
                     .setLabel("Next")
                     .setStyle(ButtonStyle.Primary)
-                    .setCustomId(intEventTokens.helpNavPrefix + section + "-" + (pagenum + 1))
+                    .setCustomId(["mainHelp", "next", section, pagenum].join('-'))
                     .setDisabled(pagenum >= (guidePages[section].length - 1))
             )
 
@@ -185,7 +201,7 @@ Click on any of the buttons below to learn about different aspects of the bot!
     }
 }
 
-async function msgLeaderboardUI(client, workingData, interaction, pagenum) {
+async function msgLeaderboard(client, workingData, interaction, pagenum) {
     //populate leaderboardEntries with embed fields holding info on the leaderboard messages
     let leaderboardEntries = [];
 
@@ -222,7 +238,7 @@ async function msgLeaderboardUI(client, workingData, interaction, pagenum) {
             new ButtonBuilder()
                 .setLabel("Prev")
                 .setStyle(ButtonStyle.Primary)
-                .setCustomId(intEventTokens.msgLeaderboardNav + "PREV-" + pagenum)
+                .setCustomId(["msgLeaderboard", "prev", pagenum].join('-'))
                 .setDisabled(!(pagenum > 0)),
             new ButtonBuilder()
                 .setLabel("Page " + (pagenum + 1))
@@ -232,7 +248,7 @@ async function msgLeaderboardUI(client, workingData, interaction, pagenum) {
             new ButtonBuilder()
                 .setLabel("Next")
                 .setStyle(ButtonStyle.Primary)
-                .setCustomId(intEventTokens.msgLeaderboardNav + "NEXT-" + pagenum)
+                .setCustomId(["msgLeaderboard", "next", pagenum].join('-'))
                 .setDisabled(pagenum >= Math.ceil(workingData[interaction.guildId].msgLeaderboard.length / 5) - 1)
         )
 
@@ -244,7 +260,78 @@ async function msgLeaderboardUI(client, workingData, interaction, pagenum) {
     };
 }
 
-function settingsUI(workingData, interaction, pagenum, changedSettingName) {
+function changelog(pagenum) {
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(["changelog", "prev", pagenum].join('-'))
+                .setDisabled(pagenum > 0 ? false : true)
+                .setStyle(ButtonStyle.Primary)
+                .setLabel("Prev"),
+            new ButtonBuilder()
+                .setCustomId("CHANGELOGPAGENUM")
+                .setDisabled(true)
+                .setStyle(ButtonStyle.Primary)
+                .setLabel("Page " + (pagenum + 1)),
+            new ButtonBuilder()
+                .setCustomId(["changelog", "next", pagenum].join('-'))
+                .setDisabled(pagenum < (changelogPages.length - 1) ? false : true)
+                .setStyle(ButtonStyle.Primary)
+                .setLabel("Next")
+        )
+
+    let changes = "";
+    let version = underscore("Version: " + changelogPages[pagenum].version) + "\n";
+
+    changelogPages[pagenum].changes.forEach(obj => {
+        changes += obj + "\n";
+    });
+    
+    return {
+        content: version + codeBlock(changes),
+        components: [row],
+        ephemeral: true
+    }
+}
+
+function userLeaderboard(workingData, interaction, pagenum) {
+    let sortedLeaderboard = workingData[interaction.guildId].users.sort((a, b) => (a.balance > b.balance) ? -1 : 1);
+    let leaderboard = "";
+    let userEntriesNum = sortedLeaderboard.length;
+
+    sortedLeaderboard = sortedLeaderboard.slice(pagenum * config.userLeaderboardEntriesPerPage, (pagenum + 1) * config.userLeaderboardEntriesPerPage);
+
+    sortedLeaderboard.forEach((user, index) => {
+        leaderboard += "(" + (index + 1 + (pagenum * config.userLeaderboardEntriesPerPage)) + ") " + (user.id ? userMention(user.id) : user.tag) + ": " + user.balance + " EB \n"
+    })
+
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(["userLeaderboard", "prev", pagenum].join('-'))
+                .setDisabled(pagenum > 0 ? false : true)
+                .setStyle(ButtonStyle.Primary)
+                .setLabel("Prev"),
+            new ButtonBuilder()
+                .setCustomId("USERLEADERBOARDPAGENUM")
+                .setDisabled(true)
+                .setStyle(ButtonStyle.Primary)
+                .setLabel("Page " + (pagenum + 1)),
+            new ButtonBuilder()
+                .setCustomId(["userLeaderboard", "next", pagenum].join('-'))
+                .setDisabled(pagenum < (Math.ceil(userEntriesNum / config.userLeaderboardEntriesPerPage) - 1) ? false : true)
+                .setStyle(ButtonStyle.Primary)
+                .setLabel("Next")
+        );
+    
+    return {
+        content: bold("====================\nUSER LEADERBOARD\n====================") + "\n" + leaderboard,
+        components: [row],
+        ephemeral: true
+    }
+}
+
+function settings(workingData, interaction, pagenum, changedSettingName) {
     //get user settings
     let userSettings = workingData[interaction.guildId].users.find(obj => {
         return obj.id == interaction.user.id;
@@ -261,7 +348,7 @@ function settingsUI(workingData, interaction, pagenum, changedSettingName) {
                 `${userSettings[index].name == changedSettingName ? " Updated!":""}\n\n`;
             row.addComponents(
                 new ButtonBuilder()
-                    .setCustomId(`${intEventTokens.settingsEditValuePrefix}${pagenum}-${userSettings[index].name}`)
+                    .setCustomId(["settings", "editSettingValue", userSettings[index].name, pagenum].join('-'))
                     .setLabel(`Setting ${index - (pagenum*4) + 1}`)
                     .setStyle(ButtonStyle.Success)
                     .setDisabled(!userSettings[index].changeable)
@@ -277,17 +364,17 @@ function settingsUI(workingData, interaction, pagenum, changedSettingName) {
 
     let navRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-            .setCustomId(intEventTokens.settingsNavPrefix + "PREV-" + pagenum)
+            .setCustomId(["settings", "prev", pagenum].join('-'))
             .setLabel("Prev")
             .setStyle(ButtonStyle.Primary)
             .setDisabled(pagenum <= 0),
         new ButtonBuilder()
-            .setCustomId(intEventTokens.settingsNavPrefix + "PAGENUM")
+            .setCustomId("SETTINGSPAGENUM")
             .setLabel("Page " + (pagenum + 1))
             .setStyle(ButtonStyle.Primary)
             .setDisabled(true),
         new ButtonBuilder()
-            .setCustomId(intEventTokens.settingsNavPrefix + "NEXT-" + pagenum)
+            .setCustomId(["settings", "next", pagenum].join('-'))
             .setLabel("Next")
             .setStyle(ButtonStyle.Primary)
             .setDisabled(pagenum >= Math.ceil(userSettings.length / 4) - 1),
@@ -300,24 +387,48 @@ function settingsUI(workingData, interaction, pagenum, changedSettingName) {
     }
 }
 
-//UI builder for usables shop
-function usablesShopUI(shopPages_usables, pagenum) {
+function shopCategories() {
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(["shopCategories", "usables"].join('-'))
+                .setLabel("Usables")
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId(["shopCategories", "equipment"].join('-'))
+                .setLabel("Equipment")
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId(["shopCategories", "others"].join('-'))
+                .setLabel("Others")
+                .setStyle(ButtonStyle.Danger)
+                .setDisabled(true) //NOTE: disabled until implemented
+        )
+
+    return {
+        content: bold("==================\nSHOP CATEGORIES\n=================="),
+        ephemeral: true,
+        components: [row]
+    };
+}
+
+function usablesShop(shopPages_usables, pagenum) {
     if (pagenum > shopPages_usables.length || pagenum < 0) pagenum = 0;
 
     let pageNavRow = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intEventTokens.usablesShopNavPagesPrefix + "PREV-" + pagenum)
+                .setCustomId(["usablesShop", "prev", pagenum].join('-'))
                 .setLabel("Prev")
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(!(pagenum > 0)),
             new ButtonBuilder()
-                .setCustomId(intEventTokens.usablesShopNavPagesPrefix + "pagenum")
+                .setCustomId("USABLESSHOPPAGENUM")
                 .setLabel("Page " + (pagenum + 1))
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(true),
             new ButtonBuilder()
-                .setCustomId(intEventTokens.usablesShopNavPagesPrefix + "NEXT-" + pagenum)
+                .setCustomId(["usablesShop", "next", pagenum].join('-'))
                 .setLabel("Next")
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(!((shopPages_usables.length - 1) > pagenum))
@@ -333,23 +444,59 @@ function usablesShopUI(shopPages_usables, pagenum) {
     }
 }
 
-function equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, pagenum) {
+function usablesShopItemInfo(workingData, interaction, eventTokens) {
+    //get item name and info
+    let itemName = eventTokens.shift();
+    let itemInfo = usables.find(entry => {
+        return entry.name == itemName;
+    });
+
+    //get user stats/effects
+    let shopperStatsAndEffects = utils.checkStatsAndEffects(workingData, interaction, interaction.user.id);
+
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(["usablesShopItemInfo", "back"].join('-'))
+                .setLabel("Back")
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId(["usablesShopItemInfo", "purchase", itemInfo.name, "1"].join('-'))
+                .setLabel("Purchase")
+                .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+                .setCustomId(["usablesShopItemInfo", "purchase", itemInfo.name, "5"].join('-'))
+                .setLabel("Purchase x5")
+                .setStyle(ButtonStyle.Success),
+        );
+
+    let msgContent = bold("===============\nUSABLES SHOP\n===============") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock(`Description: ${itemInfo.description}\nEffect: ${itemInfo.effect}${itemInfo.critEffect ? `\nCrit Effect: ${itemInfo.critEffect}` : ""}\nPrice: ${itemInfo.price} EB`);
+    msgContent += `\nDiscount: (${shopperStatsAndEffects.stats.usablesDiscount}%) ${itemInfo.price} -> ${shopperStatsAndEffects.stats.usablesDiscount ? Math.round(itemInfo.price * ((100 - shopperStatsAndEffects.stats.usablesDiscount) * .01)) :itemInfo.price}`;
+
+    return {
+        content: msgContent,
+        components: [row],
+        ephemeral: true
+    }
+}
+
+function equipsShop(shopPages_equipment, shopPages_equipmentDirectory, pagenum) {
     if (pagenum > shopPages_equipment.length || pagenum < 0) pagenum = 0;
 
     let pageNavRow = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intEventTokens.equipShopNavPagesPrefix + "PREV-" + pagenum)
+                .setCustomId(["equipsShop", "prev", pagenum].join('-'))
                 .setLabel("Prev")
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(!(pagenum > 0)),
             new ButtonBuilder()
-                .setCustomId(intEventTokens.equipShopNavPagesPrefix + "pagenum")
+                .setCustomId("EQUIPSSHOPPAGENUM")
                 .setLabel("Page " + (pagenum + 1))
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(true),
             new ButtonBuilder()
-                .setCustomId(intEventTokens.equipShopNavPagesPrefix + "NEXT-" + pagenum)
+                .setCustomId(["equipsShop", "next", pagenum].join('-'))
                 .setLabel("Next")
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(!((shopPages_equipment.length - 1) > pagenum))
@@ -367,8 +514,36 @@ function equipsShopUI(shopPages_equipment, shopPages_equipmentDirectory, pagenum
     }
 }
 
-//UI builder for usables inventory
-function usablesInvUI(workingData, interaction, pageNum) {
+function equipsShopItemInfo(eventTokens) {
+    //get item's slot and name from event tokens
+    let itemSlot = eventTokens.shift();
+    let itemName = eventTokens.shift();
+
+    //get item display name
+    let itemInfo = equipment[itemSlot].find(entry => {
+        return entry.name == itemName;
+    });
+
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(["equipsShopItemInfo", "back"].join('-'))
+                .setLabel("Back")
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId(["equipsShopItemInfo", "purchase", itemInfo.slot, itemInfo.name].join('-'))
+                .setLabel("Purchase")
+                .setStyle(ButtonStyle.Success)
+        );
+
+    return {
+        content: bold("==================\nEQUIPMENT SHOP\n==================") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock(`Description: ${itemInfo.description}\nEffect: ${itemInfo.effect}\nSlot: ${itemInfo.slot.charAt(0).toUpperCase() + itemInfo.slot.slice(1)}\nPrice: ${itemInfo.price} EB`),
+        components: [row],
+        ephemeral: true
+    };
+}
+
+function usablesInv(workingData, interaction, pagenum) {
     //get accessing user's data
     let accessingUser = workingData[interaction.guildId].users.find(obj => {
         return obj.id == interaction.user.id;
@@ -380,11 +555,11 @@ function usablesInvUI(workingData, interaction, pageNum) {
         let row = new ActionRowBuilder();
         for (let shelfIndex = 0; shelfIndex < config.usablesInventoryItemsPerRow; shelfIndex++) {
             //if an item exists in the user's inventory at the corresponding page and shelf index combination then add it to the UI
-            if (accessingUser.itemInventory[(pageNum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex] != undefined) {
+            if (accessingUser.itemInventory[(pagenum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex] != undefined) {
                 row.addComponents(
                     new ButtonBuilder()
-                        .setCustomId(intEventTokens.playerUsablesInvSelectSlotPrefix + accessingUser.itemInventory[(pageNum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex].name)
-                        .setLabel(accessingUser.itemInventory[(pageNum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex].displayName)
+                        .setCustomId(["usablesInv", "invSpace", accessingUser.itemInventory[(pagenum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex].name].join('-'))
+                        .setLabel(accessingUser.itemInventory[(pagenum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex].displayName)
                         .setStyle(ButtonStyle.Success)
                 )
             //else add an empty space to the UI
@@ -392,7 +567,7 @@ function usablesInvUI(workingData, interaction, pageNum) {
                 row.addComponents(
                     new ButtonBuilder()
                         .setLabel("Empty Space")
-                        .setCustomId(intEventTokens.playerUsablesInvSelectSlotPrefix + "EMPTYSPACE-" + ((pageNum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex))
+                        .setCustomId("EMPTYINVSPACE" + ((pagenum * (4 * config.usablesInventoryItemsPerRow)) + (rowIndex * config.usablesInventoryItemsPerRow) + shelfIndex))
                         .setStyle(ButtonStyle.Secondary)
                         .setDisabled(true)
                 )
@@ -404,31 +579,61 @@ function usablesInvUI(workingData, interaction, pageNum) {
     let navRow = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intEventTokens.playerUsablesInvNavPrefix + "PREV-" + pageNum)
+                .setCustomId(["usablesInv", "prev", pagenum].join('-'))
                 .setLabel("Prev")
                 .setStyle(ButtonStyle.Primary)
-                .setDisabled(pageNum <= 0),
+                .setDisabled(pagenum <= 0),
             new ButtonBuilder()
-                .setCustomId(intEventTokens.playerUsablesInvNavPrefix + "EQUIPS")
+                .setCustomId(["usablesInv", "equips"].join('-'))
                 .setStyle(ButtonStyle.Danger)
                 .setLabel("Equips"),
             new ButtonBuilder()
                 .setLabel("Next")
-                .setCustomId(intEventTokens.playerUsablesInvNavPrefix + "NEXT-" + pageNum)
+                .setCustomId(["usablesInv", "next", pagenum].join('-'))
                 .setStyle(ButtonStyle.Primary)
-                .setDisabled(!(accessingUser.itemInventory.length > ((pageNum + 1) * (4 * config.usablesInventoryItemsPerRow))))
+                .setDisabled(!(accessingUser.itemInventory.length > ((pagenum + 1) * (4 * config.usablesInventoryItemsPerRow))))
         )
 
     page.push(navRow);
 
     return {
-        content: bold("=================\nUsables Inventory\n=================") + underscore("\nPage " + (pageNum + 1)),
+        content: bold("=================\nUsables Inventory\n=================") + underscore("\nPage " + (pagenum + 1)),
         components: page,
         ephemeral: true
     }
 }
 
-function equipsInvUI(workingData, interaction, pageNum) {
+function usablesInvItemInfo(workingData, interaction, itemName) {
+    //get user data
+    let accessingUser = workingData[interaction.guildId].users.find(obj => {
+        return obj.id == interaction.user.id;
+    });
+
+    //get item display name
+    let itemInfo = accessingUser.itemInventory.find(entry => {
+        return entry.name == itemName;
+    });
+
+    let row = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(["usablesInvItemInfo", "back"].join('-'))
+                .setLabel("Back")
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId(["usablesInvItemInfo", "use", itemInfo.name].join('-'))
+                .setLabel("Use")
+                .setStyle(ButtonStyle.Success)
+        );
+
+    return {
+        content: bold("===================\nUSABLES INVENTORY\n===================") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock(`Description: ${itemInfo.description}\nEffect: ${itemInfo.effect}${itemInfo.critEffect ? `\nCrit Effect: ${itemInfo.critEffect}` : ""}\nCount: ${itemInfo.count}`),
+        components: [row],
+        ephemeral: true
+    };
+}
+
+function equipsInv(workingData, interaction, pagenum) {
     //get accessing user's data
     let accessingUser = workingData[interaction.guildId].users.find(obj => {
         return obj.id == interaction.user.id;
@@ -453,7 +658,7 @@ function equipsInvUI(workingData, interaction, pageNum) {
         invDirectory.push(["shoes", index]);
     }
 
-    let dirEntry = invDirectory[pageNum];
+    let dirEntry = invDirectory[pagenum];
 
     let page = [];
     for (let rowIndex = 0; rowIndex < 4; rowIndex ++) {
@@ -463,7 +668,7 @@ function equipsInvUI(workingData, interaction, pageNum) {
                 let itemInfo = accessingUser.equipmentInventory[dirEntry[0]][ ((4 * config.equipsInvItemsPerRow) * dirEntry[1]) + (rowIndex * config.equipsInvItemsPerRow) + slotIndex];
                 row.addComponents(
                     new ButtonBuilder()
-                        .setCustomId(intEventTokens.playerEquipsInvSelectSlotPrefix + itemInfo.slot + "-" + itemInfo.name)
+                        .setCustomId(["equipsInv", "invSpace", itemInfo.slot, itemInfo.name].join("-"))
                         .setLabel(itemInfo.equipped ? `[E] ${itemInfo.displayName}` : itemInfo.displayName)
                         .setStyle(ButtonStyle.Success)
                 )
@@ -471,7 +676,7 @@ function equipsInvUI(workingData, interaction, pageNum) {
                 row.addComponents(
                     new ButtonBuilder()
                         .setLabel("Empty Space")
-                        .setCustomId(intEventTokens.playerEquipsInvSelectSlotPrefix + "EMPTYSPACE-" + ((pageNum * (4 * config.equipsInvItemsPerRow)) + (rowIndex * config.equipsInvItemsPerRow) + slotIndex))
+                        .setCustomId("EMPTYSPACE-" + ((pagenum * (4 * config.equipsInvItemsPerRow)) + (rowIndex * config.equipsInvItemsPerRow) + slotIndex))
                         .setStyle(ButtonStyle.Secondary)
                         .setDisabled(true)
                 )
@@ -483,19 +688,19 @@ function equipsInvUI(workingData, interaction, pageNum) {
     let navRow = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intEventTokens.playerEquipsInvNavPrefix + "PREV-" + pageNum)
+                .setCustomId(["equipsInv", "prev", pagenum].join('-'))
                 .setLabel("Prev")
                 .setStyle(ButtonStyle.Primary)
-                .setDisabled(pageNum <= 0),
+                .setDisabled(pagenum <= 0),
             new ButtonBuilder()
-                .setCustomId(intEventTokens.playerEquipsInvNavPrefix + "USABLES")
+                .setCustomId(["equipsInv", "usables"].join('-'))
                 .setStyle(ButtonStyle.Danger)
                 .setLabel("Usables"),
             new ButtonBuilder()
                 .setLabel("Next")
-                .setCustomId(intEventTokens.playerEquipsInvNavPrefix + "NEXT-" + pageNum)
+                .setCustomId(["equipsInv", "next", pagenum].join('-'))
                 .setStyle(ButtonStyle.Primary)
-                .setDisabled(!(invDirectory.length > (pageNum + 1)))
+                .setDisabled(!(invDirectory.length > (pagenum + 1)))
         )
 
     page.push(navRow);
@@ -507,78 +712,37 @@ function equipsInvUI(workingData, interaction, pageNum) {
     }
 }
 
-function changelogUI(pageNum) {
-    let row = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.changelogNavPrefix + "PREV-" + pageNum)
-                .setDisabled(pageNum > 0 ? false : true)
-                .setStyle(ButtonStyle.Primary)
-                .setLabel("Prev"),
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.changelogNavPrefix + "PAGENUM")
-                .setDisabled(true)
-                .setStyle(ButtonStyle.Primary)
-                .setLabel("Page " + (pageNum + 1)),
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.changelogNavPrefix + "NEXT-" + pageNum)
-                .setDisabled(pageNum < (changelog.length - 1) ? false : true)
-                .setStyle(ButtonStyle.Primary)
-                .setLabel("Next")
-        )
-
-    let changes = "";
-    let version = underscore("Version: " + changelog[pageNum].version) + "\n";
-
-    changelog[pageNum].changes.forEach(obj => {
-        changes += obj + "\n";
+function equipsInvItemInfo(workingData, interaction, itemSlot, itemName) {
+    //get user data
+    let accessingUser = workingData[interaction.guildId].users.find(obj => {
+        return obj.id == interaction.user.id;
     });
-    
-    return {
-        content: version + codeBlock(changes),
-        components: [row],
-        ephemeral: true
-    }
-}
 
-function userLeaderboardUI(workingData, interaction, pageNum) {
-    let sortedLeaderboard = workingData[interaction.guildId].users.sort((a, b) => (a.balance > b.balance) ? -1 : 1);
-    let leaderboard = "";
-    let userEntriesNum = sortedLeaderboard.length;
-
-    sortedLeaderboard = sortedLeaderboard.slice(pageNum * config.userLeaderboardEntriesPerPage, (pageNum + 1) * config.userLeaderboardEntriesPerPage);
-
-    sortedLeaderboard.forEach((user, index) => {
-        leaderboard += "(" + (index + 1 + (pageNum * config.userLeaderboardEntriesPerPage)) + ") " + (user.id ? userMention(user.id) : user.tag) + ": " + user.balance + " EB \n"
-    })
+    //get item display name
+    let itemInfo = accessingUser.equipmentInventory[itemSlot].find(entry => {
+        return entry.name == itemName;
+    });
 
     let row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
-                .setCustomId(intEventTokens.userLeaderboardNavPrefix + "PREV-" + pageNum)
-                .setDisabled(pageNum > 0 ? false : true)
-                .setStyle(ButtonStyle.Primary)
-                .setLabel("Prev"),
+                .setCustomId(["equipsInvItemInfo", "back"].join('-'))
+                .setLabel("Back")
+                .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
-                .setCustomId(intEventTokens.userLeaderboardNavPrefix + "PAGENUM")
-                .setDisabled(true)
-                .setStyle(ButtonStyle.Primary)
-                .setLabel("Page " + (pageNum + 1)),
-            new ButtonBuilder()
-                .setCustomId(intEventTokens.userLeaderboardNavPrefix + "NEXT-" + pageNum)
-                .setDisabled(pageNum < (Math.ceil(userEntriesNum / config.userLeaderboardEntriesPerPage) - 1) ? false : true)
-                .setStyle(ButtonStyle.Primary)
-                .setLabel("Next")
+                .setCustomId(["equipsInvItemInfo", "equip", itemInfo.slot, itemInfo.name].join('-'))
+                .setLabel(itemInfo.equipped ? "Unequip" : "Equip")
+                .setStyle(itemInfo.equipped ? ButtonStyle.Secondary :ButtonStyle.Success)
         );
-    
+
     return {
-        content: bold("====================\nUSER LEADERBOARD\n====================") + "\n" + leaderboard,
+        content: bold("================\nEquips Inventory\n================") + "\n\n" + bold(underscore(itemInfo.displayName)) + "\n" + codeBlock("Description: " + itemInfo.description + "\nEffect: " + itemInfo.effect + "\nSlot: " + `${itemInfo.slot.charAt(0).toUpperCase() + itemInfo.slot.slice(1)}`),
         components: [row],
         ephemeral: true
-    }
+    };
 }
 
-function stockExchangeUI(workingData, interaction, realtimeStockData, pagenum) {
+function stockExchange(workingData, interaction, realtimeStockData, pagenum) {
     //NOTE: pagenum is kinda useless right now since current API limits restrict us to tracking 8 equities
 
     //get data of the user accessing the stock exchange UI
@@ -627,7 +791,7 @@ ${investmentsByStockString}------------------------------`;
                     new ButtonBuilder()
                         .setLabel("$" + config.trackedStocks[(4*r) + i].ticker)
                         .setStyle(equityInfo.close >= equityInfo.open ? ButtonStyle.Success : ButtonStyle.Danger)
-                        .setCustomId(intEventTokens.stockExchangeSelectStockPrefix + config.trackedStocks[(4*r) + i].ticker)
+                        .setCustomId(["stockExchange", "selectStock", config.trackedStocks[(4*r) + i].ticker].join('-'))
                 )
             } else {
                 equityRows[r].addComponents(
@@ -647,22 +811,22 @@ ${investmentsByStockString}------------------------------`;
             new ButtonBuilder()
                 .setLabel("Refresh")
                 .setStyle(ButtonStyle.Primary)
-                .setCustomId(intEventTokens.stockExchangeNavPrefix + "REFRESH")
+                .setCustomId(["stockExchange", "refresh"].join('-'))
                 .setEmoji("🔄"),
             new ButtonBuilder()
                 .setLabel("Prev")
                 .setStyle(ButtonStyle.Primary)
-                .setCustomId(intEventTokens.stockExchangeNavPrefix + "PREV")
+                .setCustomId(["stockExchange", "prev"].join('-'))
                 .setDisabled(!(pagenum > 0)),
             new ButtonBuilder()
                 .setLabel("Page " + (pagenum + 1))
                 .setStyle(ButtonStyle.Primary)
-                .setCustomId(intEventTokens.stockExchangeNavPrefix + "PAGENUM")
+                .setCustomId("STOCKEXCHANGEPAGENUM")
                 .setDisabled(true),
             new ButtonBuilder()
                 .setLabel("Next")
                 .setStyle(ButtonStyle.Primary)
-                .setCustomId(intEventTokens.stockExchangeNavPrefix + "NEXT")
+                .setCustomId(["stockExchange", "next"].join('-'))
                 .setDisabled(true) /*NOTE: Set manually to disabled since we're limited to 8 equities atm*/
         );
     
@@ -676,12 +840,11 @@ ${investmentsByStockString}------------------------------`;
     }
 }
 
-async function stockExchangeStockInfoUI(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens) {
+async function stockExchangeStockInfo(workingData, interaction, realtimeStockData, tenDayStockData, stockTicker) {
     //get accessing user's data, realtime stock data, and stock ticker
     let accessingUser = workingData[interaction.guildId].users.find(user => {
         return user.id == interaction.user.id;
     });
-    let stockTicker = eventTokens.shift();
     let stockInfo = realtimeStockData[stockTicker];
 
     //calculate total original investments value and total current investments value
@@ -764,20 +927,20 @@ Total Investments Current Value: ${totalCurrentInvestmentsValue}
             new ButtonBuilder()
                 .setLabel("Back")
                 .setStyle(ButtonStyle.Danger)
-                .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "BACK"),
+                .setCustomId(["stockExchangeStockInfo", "back"].join('-')),
             new ButtonBuilder()
                 .setLabel("Refresh")
                 .setStyle(ButtonStyle.Primary)
-                .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "REFRESH-" + stockTicker)
+                .setCustomId(["stockExchangeStockInfo", "refresh", stockTicker].join('-'))
                 .setEmoji("🔄"),
             new ButtonBuilder()
                 .setLabel("Invest")
                 .setStyle(ButtonStyle.Success)
-                .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "INVEST-" + stockTicker),
+                .setCustomId(["stockExchangeStockInfo", "invest", stockTicker, "initial"].join('-')),
             new ButtonBuilder()
                 .setLabel("Sell")
                 .setStyle(ButtonStyle.Secondary)
-                .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "SELL-" + stockTicker),
+                .setCustomId(["stockExchangeStockInfo", "sell", stockTicker].join('-')),
         );
 
     //return message object with content, navigation buttons, and graph png attachment
@@ -789,13 +952,12 @@ Total Investments Current Value: ${totalCurrentInvestmentsValue}
     }
 }
 
-function stockExchangeSellStocksUI(workingData, interaction, realtimeStockData, eventTokens, pagenum, notifMsg = "") {
+function stockExchangeSellStocks(workingData, interaction, realtimeStockData, stockTicker, pagenum, notifMsg = "") {
     //get accessing user's data, accessing user's stats, stock ticker, and stock info
     let accessingUser = workingData[interaction.guildId].users.find(user => {
         return user.id == interaction.user.id;
     });
     let accessingUserStats = utils.checkStatsAndEffects(workingData, interaction, interaction.user.id);
-    let stockTicker = eventTokens.shift();
     let stockInfo = realtimeStockData[stockTicker];
 
     //calculate total original investments value and total current investments value
@@ -851,7 +1013,7 @@ Current Investment Value (With Bonus): ${Math.round(curInvestmentValue + (invest
                     new ButtonBuilder()
                         .setLabel("Sell Investment " + (i - ((pagenum * config.investmentsDisplayedPerPage) - 1)))
                         .setStyle(ButtonStyle.Success)
-                        .setCustomId(intEventTokens.stockExchangeSellPagePrefix + "SELL-" + stockTicker + "-" + (i - ((pagenum * config.investmentsDisplayedPerPage)) + (pagenum * config.investmentsDisplayedPerPage)))
+                        .setCustomId(["stockExchangeSellStocks", "sell", stockTicker, (i - ((pagenum * config.investmentsDisplayedPerPage)) + (pagenum * config.investmentsDisplayedPerPage))].join('-'))
                 )
             }
         }
@@ -869,21 +1031,21 @@ Current Investment Value (With Bonus): ${Math.round(curInvestmentValue + (invest
         .addComponents(
             new ButtonBuilder()
                 .setLabel("Back")
-                .setCustomId(intEventTokens.stockExchangeSellPagePrefix + "BACK-" + stockTicker)
+                .setCustomId(["stockExchangeSellStocks", "back", stockTicker].join('-'))
                 .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
                 .setLabel("Prev")
-                .setCustomId(intEventTokens.stockExchangeSellPagePrefix + "PREV-" + pagenum + "-" + stockTicker)
+                .setCustomId(["stockExchangeSellStocks", "prev", pagenum, stockTicker].join('-'))
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(!(pagenum > 0)),
             new ButtonBuilder()
                 .setLabel("Page " + (pagenum + 1))
-                .setCustomId(intEventTokens.stockExchangeSellPagePrefix + "PAGENUM")
+                .setCustomId("STOCKEXCHANGESELLSTOCKSPAGENUM")
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(true),
             new ButtonBuilder()
                 .setLabel("Next")
-                .setCustomId(intEventTokens.stockExchangeSellPagePrefix + "NEXT-" + pagenum + "-" + stockTicker)
+                .setCustomId(["stockExchangeSellStocks", "next", pagenum, stockTicker].join('-'))
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(sellButtonsActionRow.components.length == 0 || accessingUser.stockInvestments[stockTicker].length <= ((pagenum + 1) * config.investmentsDisplayedPerPage))
         )
@@ -905,13 +1067,15 @@ Current Investment Value (With Bonus): ${Math.round(curInvestmentValue + (invest
     }
 }
 
+//========================================================================================================================================
+
 function notifCantSelfUse() {
     let row = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
                 .setLabel("Back")
                 .setStyle(ButtonStyle.Danger)
-                .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
+                .setCustomId(["usablesInvItemInfo", "back"].join('-'))
         );
     
     return {
@@ -927,7 +1091,7 @@ function notifTargetNotInVC() {
             new ButtonBuilder()
                 .setLabel("Back")
                 .setStyle(ButtonStyle.Danger)
-                .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
+                .setCustomId(["usablesInvItemInfo", "back"].join('-'))
         );
     
     return {
@@ -943,7 +1107,7 @@ function notifDontHaveItem() {
             new ButtonBuilder()
                 .setLabel("Back")
                 .setStyle(ButtonStyle.Danger)
-                .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
+                .setCustomId(["usablesInvItemInfo", "back"].join('-'))
         );
     
     return {
@@ -959,7 +1123,7 @@ function notifCantUseOnBot() {
             new ButtonBuilder()
                 .setLabel("Back")
                 .setStyle(ButtonStyle.Danger)
-                .setCustomId(intEventTokens.playerUsablesInvInfoPrefix + "BACK")
+                .setCustomId(["usablesInvItemInfo", "back"].join('-'))
         );
     
     return {
@@ -970,6 +1134,8 @@ function notifCantUseOnBot() {
 }
 
 module.exports = {
-    menuUI, helpUI, msgLeaderboardUI, settingsUI, usablesInvUI, equipsInvUI, equipsShopUI, usablesShopUI, changelogUI, userLeaderboardUI, stockExchangeUI, stockExchangeSellStocksUI,
-    stockExchangeStockInfoUI, notifCantSelfUse, notifDontHaveItem, notifTargetNotInVC, notifCantUseOnBot
+    mainMenu, mainHelp, msgLeaderboard, settings, usablesInv, equipsInv, shopCategories, equipsShop, usablesShop, changelog,
+    userLeaderboard, stockExchange, stockExchangeSellStocks, usablesShopItemInfo, equipsShopItemInfo, usablesInvItemInfo,
+    equipsInvItemInfo,
+    stockExchangeStockInfo, notifCantSelfUse, notifDontHaveItem, notifTargetNotInVC, notifCantUseOnBot
 }
