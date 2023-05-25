@@ -5,7 +5,6 @@ const fs = require('fs');
 const usables = require('./items/usables.json');
 const equipment = require('./items/equipment.json');
 const config = require('./constants/configConsts.js');
-const { usableItemsFunctionalities } = require('./functions/itemFunctions.js');
 const uiBuilder = require('./functions/uiBuilders.js');
 const utils = require('./functions/utils.js');
 const btnEventHandlers = require('./functions/btnEventHandlers.js');
@@ -567,7 +566,7 @@ client.on('messageReactionAdd', async (messageReaction, user) => {
     }
 
     //If the reactor and the reacted to are the same person then dont award anything.
-    if (user.id == messageReaction.message.author.id) return;
+    //if (user.id == messageReaction.message.author.id) return; TODO: UNCOMMENT ME AFTER TESTING
 
     //do a time check for the reactor
     let storedUserData = workingData[messageReaction.message.guildId].users.find(obj => {
@@ -578,6 +577,8 @@ client.on('messageReactionAdd', async (messageReaction, user) => {
 
     //check and update msg leaderboard
     //if the message's edbuck reaction count is greater than or equal to the current leaderboard floor then update leaderboard
+
+    console.log("Step 1: " + messageReaction) //TODO: DELETE ME TEST CODE
     let currLeaderboard = workingData[messageReaction.message.guildId].msgLeaderboard;
     if (messageScore >= currLeaderboard[currLeaderboard.length - 1].score) {
 
@@ -593,6 +594,7 @@ client.on('messageReactionAdd', async (messageReaction, user) => {
         }
 
         if (currLeaderboard.length == 0) {
+            console.log("Reached 1") //TODO: DELETE ME TEST CODE
             //if leaderboard is unpopulated, automatically push message to leaderboard
             let leaderboardEntry = {
                 id: messageReaction.message.id,
@@ -603,6 +605,7 @@ client.on('messageReactionAdd', async (messageReaction, user) => {
             };
             currLeaderboard.push(leaderboardEntry);
         } else {
+            console.log("Reached 2") //TODO: DELETE ME TEST CODE
             //if leaderboard is populated, iterate through leaderboard to check if current message has
             //higher or equal score to any of the entries and replace if so
             let replaceIndex = config.msgLeaderboardLimit;
