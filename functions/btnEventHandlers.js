@@ -136,8 +136,8 @@ function mainMenu_settings(workingData, interaction) {
 }
 
 //REPLY with user leaderboard UI
-function mainMenu_userLeaderboard(workingData, interaction) {
-    interaction.reply(uiBuilders.userLeaderboard(workingData, interaction, 0));
+function mainMenu_userLeaderboard(workingData, interaction, realtimeStockData) {
+    interaction.reply(uiBuilders.userLeaderboard(workingData, interaction, realtimeStockData, 0));
 }
 
 //REPLY with message leaderboard UI
@@ -200,16 +200,16 @@ async function msgLeaderboard_next(client, workingData, interaction, eventTokens
     interaction.update(leaderboardUI);
 }
 
-function userLeaderboard_prev(workingData, interaction, eventTokens) {
+function userLeaderboard_prev(workingData, interaction, realtimeStockData, eventTokens) {
     let pagenum = parseInt(eventTokens.shift());
 
-    interaction.update(uiBuilders.userLeaderboard(workingData, interaction, pagenum - 1));
+    interaction.update(uiBuilders.userLeaderboard(workingData, interaction, realtimeStockData, pagenum - 1));
 }
 
-function userLeaderboard_next(workingData, interaction, eventTokens) {
+function userLeaderboard_next(workingData, interaction, realtimeStockData, eventTokens) {
     let pagenum = parseInt(eventTokens.shift());
 
-    interaction.update(uiBuilders.userLeaderboard(workingData, interaction, pagenum + 1));
+    interaction.update(uiBuilders.userLeaderboard(workingData, interaction, realtimeStockData, pagenum + 1));
 }
 
 function changelog_prev(interaction, eventTokens) {
