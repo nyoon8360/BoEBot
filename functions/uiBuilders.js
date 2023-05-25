@@ -205,7 +205,7 @@ async function msgLeaderboard(client, workingData, interaction, pagenum) {
     //populate leaderboardEntries with embed fields holding info on the leaderboard messages
     let leaderboardEntries = [];
 
-    for (let i = pagenum * 5; i < (pagenum + 1) * 5; i++) {
+    for (let i = pagenum * 5; i < Math.min((pagenum + 1) * 5, workingData[interaction.guildId].msgLeaderboard.length); i++) {
         try {
             await client.channels.cache.get(workingData[interaction.guildId].msgLeaderboard[i].channelid).messages.fetch(workingData[interaction.guildId].msgLeaderboard[i].id).then(message => {
                 leaderboardEntries.push(
