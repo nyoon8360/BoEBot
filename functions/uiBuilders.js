@@ -1,6 +1,5 @@
 const { ButtonStyle, ActionRowBuilder, ButtonBuilder, EmbedBuilder, bold, time, underscore, codeBlock, inlineCode, userMention} = require('discord.js');
 const changelogPages = require('../pages/changelog.json');
-const intEventTokens = require('../constants/intEventTokens.js');
 const config = require('../constants/configConsts.js');
 const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
 const utils = require('./utils.js');
@@ -841,14 +840,11 @@ ${investmentsByStockString}------------------------------`;
     }
 }
 
-//========================================================================================================================================
-
-async function stockExchangeStockInfoUI(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens) {
+async function stockExchangeStockInfo(workingData, interaction, realtimeStockData, tenDayStockData, stockTicker) {
     //get accessing user's data, realtime stock data, and stock ticker
     let accessingUser = workingData[interaction.guildId].users.find(user => {
         return user.id == interaction.user.id;
     });
-    let stockTicker = eventTokens.shift();
     let stockInfo = realtimeStockData[stockTicker];
 
     //calculate total original investments value and total current investments value
@@ -931,20 +927,20 @@ Total Investments Current Value: ${totalCurrentInvestmentsValue}
             new ButtonBuilder()
                 .setLabel("Back")
                 .setStyle(ButtonStyle.Danger)
-                .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "BACK"),
+                .setCustomId(["stockExchangeStockInfo", "back"].join('-')),
             new ButtonBuilder()
                 .setLabel("Refresh")
                 .setStyle(ButtonStyle.Primary)
-                .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "REFRESH-" + stockTicker)
+                .setCustomId(["stockExchangeStockInfo", "refresh", stockTicker].join('-'))
                 .setEmoji("🔄"),
             new ButtonBuilder()
                 .setLabel("Invest")
                 .setStyle(ButtonStyle.Success)
-                .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "INVEST-" + stockTicker),
+                .setCustomId(["stockExchangeStockInfo", "invest", stockTicker, "initial"].join('-')),
             new ButtonBuilder()
                 .setLabel("Sell")
                 .setStyle(ButtonStyle.Secondary)
-                .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "SELL-" + stockTicker),
+                .setCustomId(["stockExchangeStockInfo", "sell", stockTicker].join('-')),
         );
 
     //return message object with content, navigation buttons, and graph png attachment
@@ -956,13 +952,12 @@ Total Investments Current Value: ${totalCurrentInvestmentsValue}
     }
 }
 
-function stockExchangeSellStocksUI(workingData, interaction, realtimeStockData, eventTokens, pagenum, notifMsg = "") {
+function stockExchangeSellStocks(workingData, interaction, realtimeStockData, stockTicker, pagenum, notifMsg = "") {
     //get accessing user's data, accessing user's stats, stock ticker, and stock info
     let accessingUser = workingData[interaction.guildId].users.find(user => {
         return user.id == interaction.user.id;
     });
     let accessingUserStats = utils.checkStatsAndEffects(workingData, interaction, interaction.user.id);
-    let stockTicker = eventTokens.shift();
     let stockInfo = realtimeStockData[stockTicker];
 
     //calculate total original investments value and total current investments value
@@ -1018,7 +1013,7 @@ Current Investment Value (With Bonus): ${Math.round(curInvestmentValue + (invest
                     new ButtonBuilder()
                         .setLabel("Sell Investment " + (i - ((pagenum * config.investmentsDisplayedPerPage) - 1)))
                         .setStyle(ButtonStyle.Success)
-                        .setCustomId(intEventTokens.stockExchangeSellPagePrefix + "SELL-" + stockTicker + "-" + (i - ((pagenum * config.investmentsDisplayedPerPage)) + (pagenum * config.investmentsDisplayedPerPage)))
+                        .setCustomId(["stockExchangeSellStocks", "sell", stockTicker, (i - ((pagenum * config.investmentsDisplayedPerPage)) + (pagenum * config.investmentsDisplayedPerPage))].join('-'))
                 )
             }
         }
@@ -1036,21 +1031,21 @@ Current Investment Value (With Bonus): ${Math.round(curInvestmentValue + (invest
         .addComponents(
             new ButtonBuilder()
                 .setLabel("Back")
-                .setCustomId(intEventTokens.stockExchangeSellPagePrefix + "BACK-" + stockTicker)
+                .setCustomId(["stockExchangeSellStocks", "back", stockTicker].join('-'))
                 .setStyle(ButtonStyle.Danger),
             new ButtonBuilder()
                 .setLabel("Prev")
-                .setCustomId(intEventTokens.stockExchangeSellPagePrefix + "PREV-" + pagenum + "-" + stockTicker)
+                .setCustomId(["stockExchangeSellStocks", "prev", pagenum, stockTicker].join('-'))
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(!(pagenum > 0)),
             new ButtonBuilder()
                 .setLabel("Page " + (pagenum + 1))
-                .setCustomId(intEventTokens.stockExchangeSellPagePrefix + "PAGENUM")
+                .setCustomId("STOCKEXCHANGESELLSTOCKSPAGENUM")
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(true),
             new ButtonBuilder()
                 .setLabel("Next")
-                .setCustomId(intEventTokens.stockExchangeSellPagePrefix + "NEXT-" + pagenum + "-" + stockTicker)
+                .setCustomId(["stockExchangeSellStocks", "next", pagenum, stockTicker].join('-'))
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(sellButtonsActionRow.components.length == 0 || accessingUser.stockInvestments[stockTicker].length <= ((pagenum + 1) * config.investmentsDisplayedPerPage))
         )
@@ -1071,6 +1066,8 @@ Current Investment Value (With Bonus): ${Math.round(curInvestmentValue + (invest
         }
     }
 }
+
+//========================================================================================================================================
 
 function notifCantSelfUse() {
     let row = new ActionRowBuilder()
@@ -1138,7 +1135,7 @@ function notifCantUseOnBot() {
 
 module.exports = {
     mainMenu, mainHelp, msgLeaderboard, settings, usablesInv, equipsInv, shopCategories, equipsShop, usablesShop, changelog,
-    userLeaderboard, stockExchange, stockExchangeSellStocksUI, usablesShopItemInfo, equipsShopItemInfo, usablesInvItemInfo,
+    userLeaderboard, stockExchange, stockExchangeSellStocks, usablesShopItemInfo, equipsShopItemInfo, usablesInvItemInfo,
     equipsInvItemInfo,
-    stockExchangeStockInfoUI, notifCantSelfUse, notifDontHaveItem, notifTargetNotInVC, notifCantUseOnBot
+    stockExchangeStockInfo, notifCantSelfUse, notifDontHaveItem, notifTargetNotInVC, notifCantUseOnBot
 }

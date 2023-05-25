@@ -4,7 +4,6 @@ const { Client, IntentsBitField, ButtonStyle, ActionRowBuilder, ButtonBuilder, O
 const fs = require('fs');
 const usables = require('./items/usables.json');
 const equipment = require('./items/equipment.json');
-const intEventTokens = require('./constants/intEventTokens.js');
 const config = require('./constants/configConsts.js');
 const { usableItemsFunctionalities } = require('./functions/itemFunctions.js');
 const uiBuilder = require('./functions/uiBuilders.js');
@@ -92,6 +91,13 @@ tenDayStockData = {
         graphLastUpdated: (unix timestamp of last time graph was updated and redrawn)
     }
 }
+*/
+
+/*
+TODO:
+add investments value to user scoreboard
+remove 20% base stock profit bonus
+
 */
 
 //===================================================
@@ -944,18 +950,77 @@ interactionListenersMap.set("equipsInvItemInfo", (interaction, eventTokens) => {
     }
 });
 
-interactionListenersMap.set("stockExchange", (interaction, eventTokens) => {
+interactionListenersMap.set("stockExchange", async (interaction, eventTokens) => {
+    await utils.getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall).then((values) => {
+        realtimeStockData = values[0];
+        tenDayStockData = values[1];
+        lastStockAPICall = values[2];
+    });
     switch (eventTokens.shift()) {
         case "prev":
+            //NOTE: not implemented due to limitation of 8 tracked stocks because of API limits
             break;
 
         case "next":
+            //NOTE: not implemented due to limitation of 8 tracked stocks because of API limits
             break;
 
         case "refresh":
+            btnEventHandlers.stockExchange_refresh(workingData, interaction, realtimeStockData);
             break;
 
         case "selectStock":
+            btnEventHandlers.stockExchange_selectStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens);
+            break;
+    }
+});
+
+interactionListenersMap.set("stockExchangeStockInfo", async (interaction, eventTokens) => {
+    await utils.getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall).then((values) => {
+        realtimeStockData = values[0];
+        tenDayStockData = values[1];
+        lastStockAPICall = values[2];
+    });
+    switch (eventTokens.shift()) {
+        case "back":
+            btnEventHandlers.stockExchangeStockInfo_back(workingData, interaction, realtimeStockData);
+            break;
+
+        case "refresh":
+            btnEventHandlers.stockExchangeStockInfo_refresh(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens);
+            break;
+
+        case "invest":
+            btnEventHandlers.stockExchangeStockInfo_invest();
+            break;
+
+        case "sell":
+            btnEventHandlers.stockExchangeStockInfo_sell();
+            break;
+    }
+});
+
+interactionListenersMap.set("stockExchangeSellStocks", async (interaction, eventTokens) => {
+    await utils.getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall).then((values) => {
+        realtimeStockData = values[0];
+        tenDayStockData = values[1];
+        lastStockAPICall = values[2];
+    });
+    switch (eventTokens.shift()) {
+        case "sell":
+            btnEventHandlers.stockExchangeSellStocks_sell(workingData, interaction, realtimeStockData, eventTokens);
+            break;
+
+        case "prev":
+            btnEventHandlers.stockExchangeSellStocks_prev(workingData, interaction, realtimeStockData, eventTokens);
+            break;
+
+        case "next":
+            btnEventHandlers.stockExchangeSellStocks_next(workingData, interaction, realtimeStockData, eventTokens);
+            break;
+
+        case "back":
+            btnEventHandlers.stockExchangeSellStocks_back(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens);
             break;
     }
 });
@@ -967,87 +1032,6 @@ client.on('interactionCreate', async (interaction) => {
     let eventTokens = interaction.customId.split("-");
 
     interactionListenersMap.get(eventTokens.shift())(interaction, eventTokens);
-
-    /*
-    //handlers for button interaction events
-    switch (eventTokens.shift()) {
-
-        case intEventTokens.stockExchangeNavPrefix.slice(0, -1):
-            //NOTE: No need for switch statement here since only refresh button needs to be implemented since we cant have more than 1 page currently due to API limits
-            await utils.getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall).then((values) => {
-                realtimeStockData = values[0];
-                tenDayStockData = values[1];
-                lastStockAPICall = values[2];
-            });
-            btnEventHandlers.stockExchange_refreshStockInfo(workingData, interaction, realtimeStockData);
-            break;
-
-        case intEventTokens.stockExchangeSelectStockPrefix.slice(0, -1):
-            await utils.getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall).then((values) => {
-                realtimeStockData = values[0];
-                tenDayStockData = values[1];
-                lastStockAPICall = values[2];
-            });
-            btnEventHandlers.stockExchange_selectStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens);
-            break;
-
-        case intEventTokens.stockExchangeInfoPagePrefix.slice(0, -1):
-            await utils.getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall).then((values) => {
-                realtimeStockData = values[0];
-                tenDayStockData = values[1];
-                lastStockAPICall = values[2];
-            });
-            switch (eventTokens.shift()) {
-                case "BACK":
-                    btnEventHandlers.stockExchange_refreshStockInfo(workingData, interaction, realtimeStockData);
-                    break;
-
-                case "REFRESH":
-                    btnEventHandlers.stockExchange_selectStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens);
-                    break;
-
-                case "SELL":
-                    btnEventHandlers.stockExchange_openInvestments(workingData, interaction, realtimeStockData, eventTokens, 0);
-                    break;
-
-                case "INVEST":
-                    btnEventHandlers.stockExchange_investInStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens);
-                    break;
-                
-                case "NOTIFBACK":
-                    btnEventHandlers.stockExchange_selectStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens);
-                    break;
-            }
-            break;
-
-        case intEventTokens.stockExchangeSellPagePrefix.slice(0, -1):
-            await utils.getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall).then((values) => {
-                realtimeStockData = values[0];
-                tenDayStockData = values[1];
-                lastStockAPICall = values[2];
-            });
-            switch (eventTokens.shift()) {
-                case "BACK":
-                    btnEventHandlers.stockExchange_selectStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens);
-                    break;
-
-                case "PREV":
-                    let prevPagenum = parseInt(eventTokens.shift()) - 1;
-                    btnEventHandlers.stockExchange_openInvestments(workingData, interaction, realtimeStockData, eventTokens, prevPagenum);
-                    break;
-
-                case "NEXT":
-                    let nextPagenum = parseInt(eventTokens.shift()) + 1;
-                    btnEventHandlers.stockExchange_openInvestments(workingData, interaction, realtimeStockData, eventTokens, nextPagenum);
-                    break;
-
-                case "SELL":
-                    btnEventHandlers.stockExchange_executeStockSell(workingData, interaction, realtimeStockData, eventTokens);
-                    break;
-            }
-            break;
-    }
-    */
 });
 
 //===================================================

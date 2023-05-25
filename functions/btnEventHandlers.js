@@ -1,7 +1,6 @@
 const { ButtonStyle, time, ActionRowBuilder, ButtonBuilder, inlineCode, bold, underscore, EmbedBuilder, codeBlock, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 const usables = require('../items/usables.json');
 const equipment = require('../items/equipment.json');
-const intEventTokens = require('../constants/intEventTokens.js');
 const config = require('../constants/configConsts.js');
 const uiBuilders = require('./uiBuilders.js');
 const utils = require('./utils.js');
@@ -228,12 +227,14 @@ function changelog_next(interaction, eventTokens) {
 //UPDATE to previous page of settings menu
 function settings_prev(workingData, interaction, eventTokens) {
     let pagenum = parseInt(eventTokens.shift());
+
     interaction.update(uiBuilders.settings(workingData, interaction, pagenum - 1));
 }
 
 //UPDATE to next page of settings menu
 function settings_next(workingData, interaction, eventTokens) {
     let pagenum = parseInt(eventTokens.shift());
+
     interaction.update(uiBuilders.settings(workingData, interaction, pagenum + 1));
 }
 
@@ -571,127 +572,143 @@ function equipsInvItemInfo_equip(workingData, interaction, eventTokens) {
     interaction.update(uiBuilders.equipsInvItemInfo(workingData, interaction, itemSlot, itemName));
 }
 
-//=====================================================================================================================================
-
 function stockExchange_selectStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens) {
-    uiBuilders.stockExchangeStockInfoUI(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens).then(ui => {
+    let stockTicker = eventTokens.shift();
+
+    uiBuilders.stockExchangeStockInfo(workingData, interaction, realtimeStockData, tenDayStockData, stockTicker).then(ui => {
+        interaction.update(ui);
+    });
+}
+
+function stockExchange_refresh(workingData, interaction, realtimeStockData) {
+    interaction.update(uiBuilders.stockExchange(workingData, interaction, realtimeStockData, 0));
+}
+
+function stockExchangeStockInfo_back(workingData, interaction, realtimeStockData) {
+    interaction.reply(uiBuilders.stockExchange(workingData, interaction, realtimeStockData, 0));
+}
+
+function stockExchangeStockInfo_refresh(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens) {
+    let stockTicker = eventTokens.shift();
+
+    uiBuilders.stockExchangeStockInfo(workingData, interaction, realtimeStockData, tenDayStockData, stockTicker).then(ui => {
         interaction.update(ui);
     })
 }
 
-function stockExchange_refreshStockInfo(workingData, interaction, realtimeStockData) {
-    interaction.update(uiBuilders.stockExchange(workingData, interaction, realtimeStockData, 0));
-}
-
-function stockExchange_openInvestments(workingData, interaction, realtimeStockData, eventTokens, pagenum) {
-    interaction.update(uiBuilders.stockExchangeSellStocksUI(workingData, interaction, realtimeStockData, eventTokens, pagenum));
-}
-
-function stockExchange_investInStock(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens) {
+function stockExchangeStockInfo_invest(workingData, interaction, realtimeStockData, eventTokens) {
     let stockTicker = eventTokens.shift();
-    let nextToken = eventTokens.shift();
+    let action = eventTokens.shift();
 
-    if (!nextToken) {
-        let modal = new ModalBuilder()
-            .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "INVEST-" + stockTicker + "-SUBMIT")
-            .setTitle("Investment Form For: " + stockTicker)
-            .addComponents(
-                new ActionRowBuilder().addComponents(
-                    new TextInputBuilder()
-                        .setCustomId("investmentAmount")
-                        .setStyle(TextInputStyle.Short)
-                        .setLabel("Investment Amount (10-999)")
-                        .setRequired(true)
-                        .setMinLength(2)
-                        .setMaxLength(10)
-                        
-                        
+    switch (action) {
+        case "initial":
+            let modal = new ModalBuilder()
+                .setCustomId(["stockExchangeStockInfo", "invest", stockTicker, "modalSubmit"].join('-'))
+                .setTitle("Investment Form For: " + stockTicker)
+                .addComponents(
+                    new ActionRowBuilder().addComponents(
+                        new TextInputBuilder()
+                            .setCustomId("investmentAmount")
+                            .setStyle(TextInputStyle.Short)
+                            .setLabel("Investment Amount (10-999)")
+                            .setRequired(true)
+                            .setMinLength(2)
+                            .setMaxLength(10)
+                )
             )
-        )
 
-        interaction.showModal(modal);
-    } else {
-        let enteredInvestment = interaction.fields.getTextInputValue('investmentAmount');
-        let parsedInvestment = parseInt(enteredInvestment);
+            interaction.showModal(modal);
+            break;
 
-        let userData = workingData[interaction.guildId].users.find(user => {
-            return user.id == interaction.user.id;
-        });
+        case "modalSubmit":
+            let enteredInvestment = interaction.fields.getTextInputValue('investmentAmount');
+            let parsedInvestment = parseInt(enteredInvestment);
 
-        //check if enteredInvestment is not a number, just whitespace, not an integer, above 999, or below 10
-        if (isNaN(enteredInvestment) || isNaN(parsedInvestment) || parsedInvestment != parseFloat(enteredInvestment) || parsedInvestment > 999 || parsedInvestment < 10) {
-            let backButtonRow = new ActionRowBuilder()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "NOTIFBACK-" + stockTicker)
-                        .setStyle(ButtonStyle.Danger)
-                        .setLabel("Back")
-                )
-
-            interaction.update({
-                content: "Invalid Amount Entered!",
-                components: [backButtonRow],
-                files: [],
-                ephemeral: true
+            let userData = workingData[interaction.guildId].users.find(user => {
+                return user.id == interaction.user.id;
             });
-            return;
-        //check if investment amount entered is above user's balance
-        } else if (parsedInvestment > userData.balance) {
-            let backButtonRow = new ActionRowBuilder()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "NOTIFBACK-" + stockTicker)
-                        .setStyle(ButtonStyle.Danger)
-                        .setLabel("Back")
-                )
 
-            interaction.update({
-                content: "Insufficient Balance!",
-                components: [backButtonRow],
-                files: [],
-                ephemeral: true
-            });
-            return;
-        }
+            //check if enteredInvestment is not a number, just whitespace, not an integer, above 999, or below 10
+            if (isNaN(enteredInvestment) || isNaN(parsedInvestment) || parsedInvestment != parseFloat(enteredInvestment) || parsedInvestment > 999 || parsedInvestment < 10) {
+                let backButtonRow = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(["stockExchangeStockInfo", "refresh", stockTicker].join('-'))
+                            .setStyle(ButtonStyle.Danger)
+                            .setLabel("Back")
+                    )
 
-        //instantiate stock ticker entry in user's stock investments if it doesnt exist
-        if (!(stockTicker in userData.stockInvestments)) {
-            userData.stockInvestments[stockTicker] = [];
-        }
+                interaction.update({
+                    content: "Invalid Amount Entered!",
+                    components: [backButtonRow],
+                    files: [],
+                    ephemeral: true
+                });
+                return;
+            //check if investment amount entered is above user's balance
+            } else if (parsedInvestment > userData.balance) {
+                let backButtonRow = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(["stockExchangeStockInfo", "refresh", stockTicker].join('-'))
+                            .setStyle(ButtonStyle.Danger)
+                            .setLabel("Back")
+                    )
 
-        //push investment object into user's data
-        userData.stockInvestments[stockTicker].push(
-            {
-                investmentTimestamp: Math.floor(Date.now()/1000),
-                investmentAmount: parsedInvestment,
-                investmentPrice: realtimeStockData[stockTicker].close
+                interaction.update({
+                    content: "Insufficient Balance!",
+                    components: [backButtonRow],
+                    files: [],
+                    ephemeral: true
+                });
+                return;
             }
-        )
 
-        //update funstats
-        userData.fStatValueOfTotalInvestmentsMade += parsedInvestment;
+            //instantiate stock ticker entry in user's stock investments if it doesnt exist
+            if (!(stockTicker in userData.stockInvestments)) {
+                userData.stockInvestments[stockTicker] = [];
+            }
 
-        //subtract investment amount from user's balance
-        userData.balance -= parsedInvestment;
-        
-        let backButtonRow = new ActionRowBuilder()
-                .addComponents(
-                    new ButtonBuilder()
-                        .setCustomId(intEventTokens.stockExchangeInfoPagePrefix + "NOTIFBACK-" + stockTicker)
-                        .setStyle(ButtonStyle.Danger)
-                        .setLabel("Back")
-                )
+            //push investment object into user's data
+            userData.stockInvestments[stockTicker].push(
+                {
+                    investmentTimestamp: Math.floor(Date.now()/1000),
+                    investmentAmount: parsedInvestment,
+                    investmentPrice: realtimeStockData[stockTicker].close
+                }
+            )
 
-        interaction.update({
-            content: "Investment Successful!",
-            components: [backButtonRow],
-            files: [],
-            ephemeral: true
-        });
+            //update funstats
+            userData.fStatValueOfTotalInvestmentsMade += parsedInvestment;
+
+            //subtract investment amount from user's balance
+            userData.balance -= parsedInvestment;
+            
+            let backButtonRow = new ActionRowBuilder()
+                    .addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(["stockExchangeStockInfo", "refresh", stockTicker].join('-'))
+                            .setStyle(ButtonStyle.Danger)
+                            .setLabel("Back")
+                    )
+
+            interaction.update({
+                content: "Investment Successful!",
+                components: [backButtonRow],
+                files: [],
+                ephemeral: true
+            });
+            break
     }
 }
 
-function stockExchange_executeStockSell(workingData, interaction, realtimeStockData, eventTokens) {
+function stockExchangeStockInfo_sell(workingData, interaction, realtimeStockData, eventTokens) {
+    let stockTicker = eventTokens.shift();
+
+    interaction.update(uiBuilders.stockExchangeSellStocks(workingData, interaction, realtimeStockData, stockTicker, 0));
+}
+
+function stockExchangeSellStocks_sell(workingData, interaction, realtimeStockData, eventTokens) {
     //get stock ticker and investment index from event tokens
     let stockTicker = eventTokens.shift();
     let investmentIndex = parseInt(eventTokens.shift());
@@ -719,8 +736,30 @@ function stockExchange_executeStockSell(workingData, interaction, realtimeStockD
     //add final investment value to user's balance
     accessingUser.balance += finalInvestmentValue;
 
-    interaction.update(uiBuilders.stockExchangeSellStocksUI(workingData, interaction, realtimeStockData, [stockTicker], 0, `You've sold $${stockTicker} stock and gained ${finalInvestmentValue} EB!`))
+    interaction.update(uiBuilders.stockExchangeSellStocks(workingData, interaction, realtimeStockData, [stockTicker], 0, `You've sold $${stockTicker} stock and gained ${finalInvestmentValue} EB!`))
 }
+
+function stockExchangeSellStocks_prev(workingData, interaction, realtimeStockData, eventTokens) {
+    let pagenum = eventTokens.shift();
+    let stockTicker = eventTokens.shift();
+
+    interaction.update(uiBuilders.stockExchangeSellStocks(workingData, interaction, realtimeStockData, stockTicker, pagenum - 1));
+}
+
+function stockExchangeSellStocks_next(workingData, interaction, realtimeStockData, eventTokens) {
+    let pagenum = eventTokens.shift();
+    let stockTicker = eventTokens.shift();
+
+    interaction.update(uiBuilders.stockExchangeSellStocks(workingData, interaction, realtimeStockData, stockTicker, pagenum + 1));
+}
+
+function stockExchangeSellStocks_back(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens) {
+    let stockTicker = eventTokens.shift();
+
+    interaction.update(uiBuilders.stockExchangeStockInfo(workingData, interaction, realtimeStockData, tenDayStockData, stockTicker));
+}
+
+//=====================================================================================================================================
 
 module.exports = {
     mainMenu_changelog, mainMenu_findTreasure, mainMenu_help, mainMenu_msgLeaderboard, mainMenu_openInv, mainMenu_shop, mainMenu_showStats, mainMenu_userLeaderboard, mainMenu_settings, mainMenu_stockExchange,
@@ -738,6 +777,7 @@ module.exports = {
     usablesInvItemInfo_back, usablesInvItemInfo_use,
     equipsInv_prev, equipsInv_next, equipsInv_usables, equipsInv_invSpace,
     equipsInvItemInfo_back, equipsInvItemInfo_equip,
-
-    stockExchange_selectStock, stockExchange_refreshStockInfo, stockExchange_investInStock, stockExchange_openInvestments, stockExchange_executeStockSell
+    stockExchange_refresh, stockExchange_selectStock,
+    stockExchangeStockInfo_back, stockExchangeStockInfo_refresh, stockExchangeStockInfo_invest, stockExchangeStockInfo_sell,
+    stockExchangeSellStocks_sell, stockExchangeSellStocks_prev, stockExchangeSellStocks_next, stockExchangeSellStocks_back
 }
