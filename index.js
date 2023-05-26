@@ -94,7 +94,7 @@ tenDayStockData = {
 
 /*
 TODO:
-add investments value to user scoreboard
+add log util
 */
 
 //===================================================
