@@ -484,7 +484,7 @@ itemFunctionMap.set('item_steal', (client, workingData, interaction, eventTokens
         };
 
         let casterString = `${interaction.member.nickname ? `${interaction.member.nickname}(${interaction.user.tag})` : interaction.user.tag}`;
-        let targetString = `${targetMemberObject.nickname ? `${targetMemberObject.nickname}(${targetMemberObject.user.tag})` : targetMemberObject.user.tag}`;
+        let targetString = `${targetMemberObj.nickname ? `${targetMemberObj.nickname}(${targetMemberObj.user.tag})` : targetMemberObj.user.tag}`;
         
         let targetPingSetting = targetSettings.find(obj => {
             return obj.name == "pingOnTargetted";

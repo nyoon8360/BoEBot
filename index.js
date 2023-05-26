@@ -578,7 +578,7 @@ client.on('messageReactionAdd', async (messageReaction, user) => {
 
     
     let currLeaderboard = workingData[messageReaction.message.guildId].msgLeaderboard;
-    if (messageScore >= currLeaderboard[currLeaderboard.length - 1].score) {
+    if (currLeaderboard.length < config.msgLeaderboardLimit || messageScore >= currLeaderboard[currLeaderboard.length - 1].score) {
 
         let messageSnippet = (messageReaction.message.embeds.length || messageReaction.message.attachments.size || messageReaction.message.content.length <= 0) ? "MEDIA POST" : messageReaction.message.content.length > 50 ? messageReaction.message.content.substring(0, 47) + "...": messageReaction.message.content.substring(0, 50);
 
