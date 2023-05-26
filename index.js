@@ -997,11 +997,11 @@ interactionListenersMap.set("stockExchangeStockInfo", async (interaction, eventT
             break;
 
         case "invest":
-            btnEventHandlers.stockExchangeStockInfo_invest();
+            btnEventHandlers.stockExchangeStockInfo_invest(workingData, interaction, realtimeStockData, eventTokens);
             break;
 
         case "sell":
-            btnEventHandlers.stockExchangeStockInfo_sell();
+            btnEventHandlers.stockExchangeStockInfo_sell(workingData, interaction, realtimeStockData, eventTokens);
             break;
     }
 });
