@@ -86,7 +86,7 @@ function checkStatsAndEffects(workingData, interaction, targetId, getRawChances)
             reactionBonus: 0,
             usableCrit: 0,
             usablesDiscount: 0,
-            stockProfitBonus: 0
+            stockProfitBonus: 20
         }
     };
 
