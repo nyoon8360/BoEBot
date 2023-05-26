@@ -585,7 +585,7 @@ function stockExchange_refresh(workingData, interaction, realtimeStockData) {
 }
 
 function stockExchangeStockInfo_back(workingData, interaction, realtimeStockData) {
-    interaction.reply(uiBuilders.stockExchange(workingData, interaction, realtimeStockData, 0));
+    interaction.update(uiBuilders.stockExchange(workingData, interaction, realtimeStockData, 0));
 }
 
 function stockExchangeStockInfo_refresh(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens) {
