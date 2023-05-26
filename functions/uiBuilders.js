@@ -1,4 +1,4 @@
-const { ButtonStyle, ActionRowBuilder, ButtonBuilder, EmbedBuilder, bold, time, underscore, codeBlock, inlineCode, userMention} = require('discord.js');
+const { ButtonStyle, ActionRowBuilder, ButtonBuilder, EmbedBuilder, bold, time, underscore, codeBlock, inlineCode, userMention, italic} = require('discord.js');
 const changelogPages = require('../pages/changelog.json');
 const config = require('../constants/configConsts.js');
 const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
@@ -298,15 +298,35 @@ function changelog(pagenum) {
     }
 }
 
-function userLeaderboard(workingData, interaction, pagenum) {
-    let sortedLeaderboard = workingData[interaction.guildId].users.sort((a, b) => (a.balance > b.balance) ? -1 : 1);
+function userLeaderboard(workingData, interaction, realtimeStockData, pagenum) {
+    let unsortedUsersList = [];
+
+    workingData[interaction.guildId].users.forEach(user => {
+        let totalInvestmentsCurValue = 0;
+        Object.keys(user.stockInvestments).forEach(key => {
+            user.stockInvestments[key].forEach(investment => {
+
+                totalInvestmentsCurValue += investment.investmentAmount * (realtimeStockData[key].close/investment.investmentPrice)
+            })
+        });
+
+        totalInvestmentsCurValue = Math.round(totalInvestmentsCurValue * 1000) / 1000;
+
+        unsortedUsersList.push({
+            id: user.id,
+            balance: user.balance,
+            investmentsValue: totalInvestmentsCurValue
+        });
+    });
+
+    let sortedLeaderboard = unsortedUsersList.sort((a, b) => ((a.balance + a.investmentsValue) > (b.balance + b.investmentsValue)) ? -1 : 1);
     let leaderboard = "";
     let userEntriesNum = sortedLeaderboard.length;
 
     sortedLeaderboard = sortedLeaderboard.slice(pagenum * config.userLeaderboardEntriesPerPage, (pagenum + 1) * config.userLeaderboardEntriesPerPage);
 
     sortedLeaderboard.forEach((user, index) => {
-        leaderboard += "(" + (index + 1 + (pagenum * config.userLeaderboardEntriesPerPage)) + ") " + (user.id ? userMention(user.id) : user.tag) + ": " + user.balance + " EB \n"
+        leaderboard +=`(${(index + 1 + (pagenum * config.userLeaderboardEntriesPerPage))}) ${userMention(user.id)}: ${user.balance} (+ ${user.investmentsValue}) EB\n`;
     })
 
     let row = new ActionRowBuilder()
@@ -329,7 +349,7 @@ function userLeaderboard(workingData, interaction, pagenum) {
         );
     
     return {
-        content: bold("====================\nUSER LEADERBOARD\n====================") + "\n" + leaderboard,
+        content: bold("====================\nUSER LEADERBOARD\n====================") + `\n${italic("(#) user: balance (+ investments) EB")}\n\n` + leaderboard,
         components: [row],
         ephemeral: true
     }

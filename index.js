@@ -94,9 +94,7 @@ tenDayStockData = {
 
 /*
 TODO:
-add investments value to user scoreboard
-remove 20% base stock profit bonus
-
+add log util
 */
 
 //===================================================
@@ -723,7 +721,12 @@ interactionListenersMap.set("mainMenu", async (interaction, eventTokens) => {
         
         case "userLeaderboard":
             //Display leaderboard for top balance users
-            btnEventHandlers.mainMenu_userLeaderboard(workingData, interaction);
+            await utils.getUpdatedStockData(realtimeStockData, tenDayStockData, lastStockAPICall).then((values) => {
+                realtimeStockData = values[0];
+                tenDayStockData = values[1];
+                lastStockAPICall = values[2];
+            });
+            btnEventHandlers.mainMenu_userLeaderboard(workingData, interaction, realtimeStockData);
             break;
         
         case "msgLeaderboard":
@@ -776,11 +779,11 @@ interactionListenersMap.set("msgLeaderboard", (interaction, eventTokens) => {
 interactionListenersMap.set("userLeaderboard", (interaction, eventTokens) => {
     switch (eventTokens.shift()) {
         case "prev":
-            btnEventHandlers.userLeaderboard_prev(workingData, interaction, eventTokens);
+            btnEventHandlers.userLeaderboard_prev(workingData, interaction, realtimeStockData, eventTokens);
             break;
 
         case "next":
-            btnEventHandlers.userLeaderboard_next(workingData, interaction, eventTokens);
+            btnEventHandlers.userLeaderboard_next(workingData, interaction, realtimeStockData, eventTokens);
             break;
     }
 });
