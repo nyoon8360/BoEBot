@@ -323,6 +323,7 @@ client.on('messageCreate', (message) => {
                 message.channel.send(uiBuilder.mainMenu()).then(msg => {
                     workingData[message.guildId].activeMenuId = msg.id;
                     workingData[message.guildId].activeMenuChannelId = msg.channelId;
+                    utils.saveData(client, workingData);
                 });
                 break;
 

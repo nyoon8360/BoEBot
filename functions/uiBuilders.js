@@ -214,7 +214,7 @@ async function msgLeaderboard(client, workingData, interaction, pagenum) {
             await client.channels.cache.get(workingData[interaction.guildId].msgLeaderboard[i].channelid).messages.fetch(workingData[interaction.guildId].msgLeaderboard[i].id).then(message => {
                 leaderboardEntries.push(
                     {
-                        name: `[${parseInt(i - (pagenum * 5)) + 1}] ` + underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
+                        name: `[${i + 1}] ` + underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
                         value: "[" + workingData[interaction.guildId].msgLeaderboard[i].snippet + "]" + "(" + message.url + ")"
                     }
                 );
@@ -222,7 +222,7 @@ async function msgLeaderboard(client, workingData, interaction, pagenum) {
         } catch(e) {
             leaderboardEntries.push(
                 {
-                    name: `[${parseInt(i - (pagenum * 5)) + 1}] ` + underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
+                    name: `[${i + 1}] ` + underscore(workingData[interaction.guildId].msgLeaderboard[i].author + " (" + workingData[interaction.guildId].msgLeaderboard[i].score + " EB)"),
                     value: "(Original Message Deleted)"
                 }
             );
@@ -1091,7 +1091,38 @@ Current Investment Value (With Bonus): ${Math.round(curInvestmentValue + (invest
     }
 }
 
-//========================================================================================================================================
+function wagerMenu() {
+/*
+What do you want to wager on?
+=============================
+[Riot Games] [Coin Toss] [Custom]
+*/
+    let row1 = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setLabel("Riot Games")
+                .setCustomId()
+                .setStyle(),
+            new ButtonBuilder()
+                .setLabel("Coin Toss")
+                .setCustomId()
+                .setStyle(),
+            new ButtonBuilder()
+                .setLabel("Custom")
+                .setCustomId()
+                .setStyle()
+        )
+
+    let contentString = `
+What do you want to wager on?
+=============================`;
+
+    return {
+        content: contentString,
+        components: [row1],
+        ephemeral: true
+    }
+}
 
 function notifCantSelfUse() {
     let row = new ActionRowBuilder()
