@@ -756,7 +756,9 @@ function stockExchangeSellStocks_next(workingData, interaction, realtimeStockDat
 function stockExchangeSellStocks_back(workingData, interaction, realtimeStockData, tenDayStockData, eventTokens) {
     let stockTicker = eventTokens.shift();
 
-    interaction.update(uiBuilders.stockExchangeStockInfo(workingData, interaction, realtimeStockData, tenDayStockData, stockTicker));
+    uiBuilders.stockExchangeStockInfo(workingData, interaction, realtimeStockData, tenDayStockData, stockTicker).then(ui => {
+        interaction.update(ui);
+    });
 }
 
 //=====================================================================================================================================
