@@ -11,7 +11,8 @@
             "-Added investments to user leaderboard.",
             "-HOTFIX: Fixed Total Profits Made to properly record your total profits made after selling stocks.",
             "-HOTFIX: Added a final stock update per day outside of trading hours if data wasn't updated near close of trading hours.",
-            "-HOTFIX: I'm a dumbass...changed currency name back to the proper edbucks emoji."
+            "-HOTFIX: I'm a dumbass...changed currency name back to the proper edbucks emoji.",
+            "-HOTFIX: Fixed issue causing back button in stock selling UI to not work."
         ]
     },
     {
